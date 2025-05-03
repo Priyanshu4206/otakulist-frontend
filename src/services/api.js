@@ -33,7 +33,7 @@ const api = axios.create({
   baseURL: BASE_URL,
   timeout: 30000,
   headers: {
-    'X-API-KEY': API_KEY, // Required for all requests per apiKeyMiddleware.js
+    'X-API-Key': API_KEY, // Required for all requests per apiKeyMiddleware.js
     'Content-Type': 'application/json',
     'Accept': 'application/json'
   }
@@ -58,7 +58,7 @@ const cancelPendingRequests = (config) => {
 api.interceptors.request.use(
   (config) => {
     // Always ensure the API key is set for all requests per apiKeyMiddleware.js
-    config.headers['X-API-KEY'] = API_KEY;
+    config.headers['X-API-Key'] = API_KEY;
     
     // Add Authorization header if token exists
     const token = getAuthToken();
