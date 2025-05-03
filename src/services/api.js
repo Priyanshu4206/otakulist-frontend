@@ -5,7 +5,7 @@ const isDevelopment = import.meta.env.DEV;
 const BASE_URL = isDevelopment 
   ? '/api'
   : (import.meta.env.VITE_API_URL || 'https://otaku-backend.jumpingcrab.com/api/v1');
-const API_KEY = import.meta.env.VITE_API_KEY || '37654f0f8b56e520978b27674ccd416d2af4708d5183c6d204cd7f03c3ca7f42';
+const API_KEY = import.meta.env.VITE_API_KEY;
 
 // Keep track of pending requests to cancel duplicates
 const pendingRequests = new Map();
@@ -33,7 +33,7 @@ const api = axios.create({
   baseURL: BASE_URL,
   timeout: 30000,
   headers: {
-    'X-API-Key': API_KEY, // Required for all requests per apiKeyMiddleware.js
+    'x-api-key': API_KEY, // Required for all requests per apiKeyMiddleware.js
     'Content-Type': 'application/json',
     'Accept': 'application/json'
   }
@@ -58,7 +58,7 @@ const cancelPendingRequests = (config) => {
 api.interceptors.request.use(
   (config) => {
     // Always ensure the API key is set for all requests per apiKeyMiddleware.js
-    config.headers['X-API-Key'] = API_KEY;
+    config.headers['x-api-key'] = API_KEY;
     
     // Add Authorization header if token exists
     const token = getAuthToken();
