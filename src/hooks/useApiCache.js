@@ -95,13 +95,32 @@ const useApiCache = (storageType = 'localStorage', expiryTime = null) => {
       const response = await fetchFunction();
       
       // Cache the response
-      if (response.success && response.data) {
-        saveToCache(key, response.data);
+      // Handle different API response structures
+      // Some endpoints return {success: true, data: [...]} while others return the data directly
+      if (response && typeof response === 'object') {
+        if (response.data) {
+          // If the response has a data property, cache it
+          saveToCache(key, response.data);
+          setLoading(false);
+          return response.data;
+        } else if (Array.isArray(response)) {
+          // If response is an array, it's likely the data directly
+          saveToCache(key, response);
+          setLoading(false);
+          return response;
+        } else if (!response.success && !response.data) {
+          // If it's an object without success/data properties, assume it's the data
+          saveToCache(key, response);
+          setLoading(false);
+          return response;
+        }
       }
       
+      // Fallback for other response structures
       setLoading(false);
-      return response.data;
+      return response;
     } catch (err) {
+      console.error(`Cache error for key: ${key}`, err);
       setError(err.message || 'An error occurred');
       setLoading(false);
       throw err;

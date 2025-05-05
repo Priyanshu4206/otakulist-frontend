@@ -4,7 +4,6 @@ import { NavLink } from 'react-router-dom';
 import { Home, Calendar, Search, User, LogOut, Settings, Tv, LogIn } from 'lucide-react';
 import useUI from '../../hooks/useUI';
 import useAuth from '../../hooks/useAuth';
-import ThemeSwitcher from './ThemeSwitcher';
 
 const SidebarContainer = styled.div`
   position: fixed;

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { watchlistAPI } from '../../services/api';
 import useAuth from '../../hooks/useAuth';
 import WatchlistModal from './WatchlistModal';
+import useToast from '../../hooks/useToast';
 
 const shimmer = keyframes`
   0% {
@@ -342,7 +343,7 @@ const WatchlistButton = styled.button`
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   
   &:hover {
-    background: var(--tertiary);
+    background: var(--primary);
     color: white;
     transform: translateY(-2px);
   }
@@ -353,6 +354,7 @@ const AnimeCard = ({ anime }) => {
   const [animeStatus, setAnimeStatus] = useState(null);
   const [loading, setLoading] = useState(false);
   const { isAuthenticated } = useAuth();  
+  const { showToast } = useToast();
   // Extract anime data based on API response format
   // Handle both schedule endpoint and anime detail endpoint formats
   const {
@@ -451,10 +453,24 @@ const AnimeCard = ({ anime }) => {
       // Use the correct ID property depending on what's available
       const animeId = anime.mal_id || anime.id;
       const response = await watchlistAPI.getAnimeStatus(animeId);
-      setAnimeStatus(response.data);
-      setWatchlistModalOpen(true);
+      
+      if (response && response.success) {
+        setAnimeStatus(response.data);
+        setWatchlistModalOpen(true);
+      } else {
+        // Show error toast
+        showToast({
+          type: 'error',
+          message: 'Failed to fetch anime status'
+        });
+      }
     } catch (error) {
       console.error('Error fetching anime status:', error);
+      // Show error toast
+      showToast({
+        type: 'error',
+        message: 'Error loading anime status. Please try again.'
+      });
     } finally {
       setLoading(false);
     }

@@ -61,7 +61,7 @@ const TimezoneOption = styled.button`
   width: 100%;
   text-align: left;
   padding: 0.5rem 1rem;
-  background-color: ${props => props.isSelected ? 'var(--tertiaryLight)' : 'transparent'};
+  background-color: ${props => props.isSelected ? 'var(--primaryLight)' : 'transparent'};
   color: var(--textPrimary);
   border: none;
   cursor: pointer;

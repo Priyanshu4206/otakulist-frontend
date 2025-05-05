@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { ChevronRight, ChevronLeft, ThumbsUp } from 'lucide-react';
 import ShimmerCard from '../common/ShimmerCard';
-import AnimeCard from '../common/AnimeCard';
+import RecommendationCard from './RecommendationCard';
 
 const fadeIn = keyframes`
   from {
@@ -217,15 +217,16 @@ const RecommendationsList = ({ recommendations, loading }) => {
           // Extract the anime entry from the recommendation
           const anime = rec.entry || rec.anime || rec;
           
+          // Add recommendation note if present
+          if (rec.votes && !anime.recommendationNote) {
+            anime.recommendationNote = rec.votes > 0 
+              ? `Recommended by ${rec.votes} anime fans`
+              : '';
+          }
+          
           return (
             <CardWrapper key={anime.mal_id || anime.id || anime.malId} index={index}>
-              {rec.votes > 0 && (
-                <VotesBadge>
-                  <ThumbsUp size={16} />
-                  {rec.votes} vote{rec.votes !== 1 ? 's' : ''}
-                </VotesBadge>
-              )}
-              <AnimeCard anime={anime} />
+              <RecommendationCard anime={anime} />
             </CardWrapper>
           );
         })}

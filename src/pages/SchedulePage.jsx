@@ -149,13 +149,15 @@ const SchedulePage = () => {
   const [filteredAnimeList, setFilteredAnimeList] = useState([]);
   const [originalData, setOriginalData] = useState([]);
   const [hasMore, setHasMore] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   
   // UseApiCache hook for caching API calls
   const { 
-    loading, 
+    loading: cacheLoading, 
     error, 
     fetchWithCache, 
-    clearCacheItem
+    clearCacheItem,
+    getFromCache
   } = useApiCache('localStorage', 30 * 60 * 1000); // 30 minutes (shorter cache for timezone-specific data)
   
   // Create cache key from activeDay, page and user timezone
@@ -306,8 +308,8 @@ const SchedulePage = () => {
   }, [filters, applyFilters]);
   
   // Fetch schedule data
-  const fetchSchedule = async (reset = false) => {
-    try {
+  const fetchSchedule = useCallback(async (reset = false) => {
+    try {      
       // If we're resetting, clear previous data
       if (reset) {
         setAnimeList([]);
@@ -316,91 +318,152 @@ const SchedulePage = () => {
         setHasMore(true);
       }
       
+      // Calculate the page number for this request
+      const pageToFetch = reset ? 1 : page;
+      
+      // Create cache key for this specific request
+      const requestCacheKey = `schedule_${activeDay}_${pageToFetch}_${userTimezoneCode}`;
+      
+      // First check if we have this data in cache
+      const cachedData = getFromCache(requestCacheKey);
+      if (cachedData && Array.isArray(cachedData) && cachedData.length > 0) {        
+        // Process cached data
+        if (reset) {
+          setOriginalData(cachedData);
+          setAnimeList(cachedData);
+          setFilteredAnimeList(cachedData);
+        } else {
+          setOriginalData(prev => [...prev, ...cachedData]);
+          setAnimeList(prev => [...prev, ...cachedData]);
+          setFilteredAnimeList(prev => [...prev, ...cachedData]);
+        }
+        
+        // Update pagination
+        setHasMore(cachedData.length >= 50); // If we got a full page, assume there's more
+        
+        if (!reset) {
+          setPage(prev => prev + 1);
+        } else {
+          // If resetting, set to page 2 for next load more
+          setPage(2);
+        }
+        
+        return;
+      }
+      
+      // Set loading state
+      setIsLoading(true);
+      
       // Build API params with user's timezone
       const params = {
         day: activeDay,
-        page: reset ? 1 : page,
-        limit: 50, // Increase limit to get more data at once
-        timezone: userTimezone // Use user's timezone preference
+        page: pageToFetch,
+        limit: 50,
+        timezone: userTimezone
       };
       
       // Fetch data with caching
       const response = await fetchWithCache(
-        cacheKey,
+        requestCacheKey,
         () => scheduleAPI.getScheduleByDay(activeDay, params)
       );
       
-      // Process API response
-      const animeData = response || [];
-      const paginationData = response.pagination || { total: 0, limit: 50, page: 1, pages: 1 };
+      // Process API response      
+      let animeData = [];
+      let paginationData = { total: 0, limit: 50, page: 1, pages: 1 };
       
-      // Update state
-      let newData;
-      if (reset) {
-        newData = animeData;
-        setOriginalData(animeData);
-        setAnimeList(animeData);
-        setFilteredAnimeList(animeData); // Initially show all data before filtering
-      } else {
-        newData = [...originalData, ...animeData];
-        setOriginalData(newData);
-        setAnimeList(prev => [...prev, ...animeData]);
+      // Handle different API response structures
+      if (response) {
+        if (Array.isArray(response)) {
+          // Direct array response
+          animeData = response;
+        } else if (response.data && Array.isArray(response.data)) {
+          // {data: [...]} structure
+          animeData = response.data;
+          paginationData = response.pagination || paginationData;
+        } else if (response.animes && Array.isArray(response.animes)) {
+          // {animes: [...]} structure
+          animeData = response.animes;
+          paginationData = response.pagination || paginationData;
+        } else {
+          console.error('Unexpected API response structure:', response);
+        }
+      }
+            
+      // Update state only if we have data
+      if (animeData.length > 0) {
+        if (reset) {
+          setOriginalData(animeData);
+          setAnimeList(animeData);
+          setFilteredAnimeList(animeData); 
+        } else {
+          setOriginalData(prev => [...prev, ...animeData]);
+          setAnimeList(prev => [...prev, ...animeData]);
+          setFilteredAnimeList(prev => [...prev, ...animeData]);
+        }
         
-        // Apply current filters to the new combined data
-        const updatedFiltered = [...filteredAnimeList, ...animeData];
-        setFilteredAnimeList(updatedFiltered);
+        // Check if we have more pages
+        setHasMore(pageToFetch < paginationData.pages);
+        
+        if (!reset) {
+          setPage(prev => prev + 1);
+        } else {
+          // If resetting, set to page 2 for next load more
+          setPage(2);
+        }
+      } else {
+        setHasMore(false);
       }
       
-      // Check if we have more pages
-      const currentPage = reset ? 1 : page;
-      setHasMore(currentPage < paginationData.pages);
-      
-      if (!reset) {
-        setPage(prev => prev + 1);
-      }
+      // Reset loading state
+      setIsLoading(false);
     } catch (err) {
       console.error('Error fetching schedule:', err);
       setHasMore(false);
+      setIsLoading(false);
     }
+  }, [activeDay, fetchWithCache, getFromCache, page, userTimezone, userTimezoneCode]);
+  
+  // Handle day tab change
+  const handleDayChange = (day) => {    
+    // Clear previous data before switching days
+    setAnimeList([]);
+    setFilteredAnimeList([]);
+    setOriginalData([]);
+    setPage(1);
+    setHasMore(true);
+    
+    // Then update the active day to trigger data loading
+    setActiveDay(day);
   };
   
   // Initial fetch on component mount and when active day changes
-  useEffect(() => {
-    fetchSchedule(true);
-  }, [activeDay]);
-  
-  // Handle day tab change
-  const handleDayChange = (day) => {
-    setActiveDay(day);
-    // The fetch will happen via the useEffect
-  };
+  useEffect(() => {    
+    // When day changes, check if we already have data in cache
+    const firstPageCacheKey = `schedule_${activeDay}_1_${userTimezoneCode}`;
+    const cachedData = getFromCache(firstPageCacheKey);
+    
+    if (cachedData && Array.isArray(cachedData) && cachedData.length > 0) {
+      // If we have valid cached data, use it      setOriginalData(cachedData);
+      setAnimeList(cachedData);
+      setFilteredAnimeList(cachedData);
+      setPage(2); // Set to page 2 for potential "load more"
+      
+      // Estimate if there's more data
+      setHasMore(cachedData.length >= 50);
+    } else {
+      // If no cached data or invalid cache, fetch from API
+      fetchSchedule(true);
+    }
+    // Deliberately not including fetchSchedule as a dependency to prevent loops
+  }, [activeDay, userTimezoneCode, getFromCache]);
   
   // Handle timezone change
   useEffect(() => {
-    // Clear cache for all days when timezone changes to force refresh
-    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    days.forEach(day => {
-      // Clear cache for this day with old timezone (we don't know which one)
-      for (let p = 1; p <= 10; p++) {
-        const cachePattern = `schedule_${day}_${p}_`;
-        
-        // Find and clear all matching cache keys
-        const keysToRemove = [];
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && key.startsWith(cachePattern)) {
-            keysToRemove.push(key);
-          }
-        }
-        
-        // Remove the keys after we've finished iterating
-        keysToRemove.forEach(key => clearCacheItem(key));
-      }
-    });
-    
-    // Refresh current data with new timezone
+    // When timezone changes, we should refresh the current view
+    // but we don't need to clear all cache entries
     fetchSchedule(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Deliberately not including fetchSchedule as a dependency to prevent loops
   }, [userTimezoneCode]);
   
   // Handle filter changes
@@ -480,7 +543,7 @@ const SchedulePage = () => {
         </FilterContainer>
         
         <ScheduleContent>
-          {loading && Object.keys(groupedByTime).length === 0 ? (
+          {isLoading && Object.keys(groupedByTime).length === 0 ? (
             renderLoading()
           ) : filteredAnimeList.length === 0 ? (
             renderEmptyState()
@@ -507,7 +570,7 @@ const SchedulePage = () => {
             })
           )}
           
-          {!loading && hasMore && filteredAnimeList.length > 0 && (
+          {!isLoading && hasMore && filteredAnimeList.length > 0 && (
             <LoadMore
               onClick={handleLoadMore}
               whileHover={{ scale: 1.03 }}

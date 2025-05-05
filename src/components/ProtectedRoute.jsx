@@ -1,7 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
 import LoadingSpinner from './common/LoadingSpinner';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 /**
  * ProtectedRoute component
@@ -15,48 +15,70 @@ import { useEffect, useState } from 'react';
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading, initialAuthCheckComplete, refreshUser } = useAuth();
   const location = useLocation();
+  const refreshAttempted = useRef(false);
   const [hasTriedRefresh, setHasTriedRefresh] = useState(false);
-
-  console.log('[AUTH DEBUG] ProtectedRoute:', {
-    path: location.pathname,
-    isAuthenticated,
-    loading,
-    initialAuthCheckComplete,
-    hasTriedRefresh
-  });
+  
+  // Store a timestamp to prevent redirect loops
+  const lastRefreshAttempt = useRef(0);
+  const MIN_REFRESH_INTERVAL = 3000; // 3 seconds
 
   // When a protected route is accessed, try to refresh user data once
   // This helps with cookie-based auth where we rely on httpOnly cookies
   useEffect(() => {
-    if (!isAuthenticated && !loading && !hasTriedRefresh && initialAuthCheckComplete) {
-      console.log('[AUTH DEBUG] Protected route not authenticated, trying to refresh user data');
+    // Only try to refresh if needed, not authenticated, not currently loading,
+    // and minimum time interval has passed since last attempt
+    const now = Date.now();
+    const shouldRefresh = 
+      !isAuthenticated && 
+      !loading && 
+      !hasTriedRefresh && 
+      initialAuthCheckComplete && 
+      !refreshAttempted.current && 
+      (now - lastRefreshAttempt.current > MIN_REFRESH_INTERVAL);
+    
+    if (shouldRefresh) {
+      // Prevent multiple refreshes with a ref to avoid state update cycles
+      refreshAttempted.current = true;
+      lastRefreshAttempt.current = now;
+      
       // Attempt to refresh user data when entering a protected route
-      // With cookie-based auth, this should work if the user has valid cookies
-      refreshUser();
-      setHasTriedRefresh(true);
+      refreshUser()
+        .then(() => {
+          // Success handling
+        })
+        .catch(err => {
+          if (err?.throttled) {
+            // Throttled request handling
+          } else {
+            // Error handling
+          }
+        })
+        .finally(() => {
+          setHasTriedRefresh(true);
+        });
     }
   }, [refreshUser, isAuthenticated, loading, hasTriedRefresh, initialAuthCheckComplete]);
 
   // If still checking auth status or if initial auth check is not complete, show loading spinner
   if (loading || !initialAuthCheckComplete) {
-    console.log('[AUTH DEBUG] Protected route showing loading spinner - still checking auth');
     return <LoadingSpinner fullScreen />;
   }
 
   // After trying to refresh, if still loading, show spinner
   if (loading && hasTriedRefresh) {
-    console.log('[AUTH DEBUG] Protected route showing loading spinner after refresh attempt');
     return <LoadingSpinner fullScreen />;
   }
 
   // If auth check is complete and not authenticated, redirect to login
-  if (!isAuthenticated && initialAuthCheckComplete) {
-    console.log('[AUTH DEBUG] Protected route redirecting to login - not authenticated after checks');
-    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+  if (!isAuthenticated && initialAuthCheckComplete && hasTriedRefresh) {
+    // Store the current location for redirect after login
+    const redirectPath = location.pathname + location.search + location.hash;
+    
+    // Use replace to avoid populating history
+    return <Navigate to={`/login?redirect=${encodeURIComponent(redirectPath)}`} replace />;
   }
 
   // If authenticated, render the protected route content
-  console.log('[AUTH DEBUG] Protected route rendering children - user is authenticated');
   return children;
 };
 

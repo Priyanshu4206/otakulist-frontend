@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Settings, Moon, Sun, Bell, EyeOff, AlertTriangle, LogOut, Trash2, Clock } from 'lucide-react';
+import { Settings, Moon, Sun, Bell, EyeOff, AlertTriangle, LogOut, Trash2, Clock, X, Check, Lock } from 'lucide-react';
 import Card from '../common/Card';
 import { userAPI } from '../../services/api';
 import useTheme from '../../hooks/useTheme';
@@ -59,7 +59,7 @@ const ThemeSelector = styled.select`
   
   &:focus {
     outline: none;
-    border-color: var(--tertiary);
+    border-color: var(--primary);
   }
 `;
 
@@ -84,23 +84,23 @@ const Slider = styled.span`
   right: 0;
   bottom: 0;
   background-color: var(--borderColor);
-  transition: 0.4s;
-  border-radius: 24px;
+  transition: 0.3s;
+  border-radius: 34px;
   
   &:before {
     position: absolute;
     content: "";
-    height: 18px;
-    width: 18px;
-    left: 3px;
-    bottom: 3px;
-    background-color: var(--white);
-    transition: 0.4s;
+    height: 16px;
+    width: 16px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    transition: 0.3s;
     border-radius: 50%;
   }
   
   input:checked + & {
-    background-color: var(--tertiary);
+    background-color: var(--primary);
   }
   
   input:checked + &:before {
@@ -364,6 +364,72 @@ export const saveUserTheme = (theme) => {
   }
 };
 
+// Password form styled components
+const ErrorText = styled.div`
+  color: var(--danger);
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+`;
+
+const ErrorMessage = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: rgba(var(--danger-rgb), 0.1);
+  color: var(--danger);
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+`;
+
+const Button = styled.button`
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover:not(:disabled) {
+    background-color: var(--primaryLight);
+  }
+  
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+`;
+
+const FormGroup = styled.div`
+  margin-bottom: 1rem;
+`;
+
+const Label = styled.label`
+  display: block;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  color: var(--textPrimary);
+`;
+
+const Input = styled.input`
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--borderColor);
+  border-radius: 4px;
+  background-color: var(--inputBackground);
+  color: var(--textPrimary);
+  font-size: 0.9rem;
+  
+  &:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+`;
+
 const SettingsSection = () => {
   const { logout, user, refreshUser, updateUserPreferences } = useAuth();
   const { currentTheme, changeTheme, availableThemes } = useTheme();
@@ -387,6 +453,19 @@ const SettingsSection = () => {
     showWatchlist: false,
     showFollowing: false,
     timezone: false
+  });
+  
+  const [updatingPassword, setUpdatingPassword] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [passwordErrors, setPasswordErrors] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+    general: ''
   });
   
   // Initialize theme from localStorage if not already set
@@ -467,15 +546,8 @@ const SettingsSection = () => {
             settings: { interfaceTheme: newTheme }
           });
           
-          if (response.success) {
-            console.log(`[THEME DEBUG] Theme update API call successful for: ${newTheme}`);
-            
-            // 5. Refresh user data to sync with backend but PRESERVE UI STATE
-            // This ensures we don't lose our place in the dashboard
+          if (response.success) {        
             await refreshUser(true); // true = preserveUIState
-            console.log(`[THEME DEBUG] User data refreshed after theme change to: ${newTheme}`);
-            
-            // 6. Show success toast ONLY AFTER user preferences are fully synced
             showToast({
               type: 'success',
               message: `Theme updated to "${themeName}"`
@@ -629,13 +701,41 @@ const SettingsSection = () => {
   
   const confirmDeleteAccount = async () => {
     try {
+      // Show loading indicator
+      setIsUpdating(true);
+      
       // Call API to delete account
-      await userAPI.deleteAccount();
-      // Logout after successful deletion
-      logout();
+      const response = await userAPI.deleteAccount();
+      
+      if (response && response.success) {
+        // Show success toast
+        showToast({
+          type: 'success',
+          message: 'Account successfully deleted'
+        });
+        
+        // Logout after successful deletion
+        logout();
+      } else {
+        // Show error toast for unsuccessful response
+        showToast({
+          type: 'error',
+          message: response?.message || 'Failed to delete account'
+        });
+        setShowDeleteModal(false);
+      }
     } catch (error) {
       console.error('Error deleting account:', error);
+      
+      // Show error toast
+      showToast({
+        type: 'error',
+        message: error.message || 'An error occurred while deleting your account'
+      });
+      
       setShowDeleteModal(false);
+    } finally {
+      setIsUpdating(false);
     }
   };
   
@@ -685,6 +785,119 @@ const SettingsSection = () => {
     }
   };
   
+  // Handle password form change
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordForm(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    
+    // Clear specific error when user types
+    setPasswordErrors(prev => ({
+      ...prev,
+      [name]: '',
+      general: ''
+    }));
+  };
+  
+  // Handle password update
+  const handlePasswordUpdate = async (e) => {
+    e.preventDefault();
+    
+    // Reset errors
+    setPasswordErrors({
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+      general: ''
+    });
+    
+    // Validate input
+    let hasErrors = false;
+    const errors = {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+      general: ''
+    };
+    
+    if (!passwordForm.currentPassword) {
+      errors.currentPassword = 'Current password is required';
+      hasErrors = true;
+    }
+    
+    if (!passwordForm.newPassword) {
+      errors.newPassword = 'New password is required';
+      hasErrors = true;
+    } else if (passwordForm.newPassword.length < 8) {
+      errors.newPassword = 'Password must be at least 8 characters';
+      hasErrors = true;
+    }
+    
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      errors.confirmPassword = 'Passwords do not match';
+      hasErrors = true;
+    }
+    
+    if (hasErrors) {
+      setPasswordErrors(errors);
+      return;
+    }
+    
+    // Update password
+    setUpdatingPassword(true);
+    
+    try {
+      const response = await userAPI.updatePassword({
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword
+      });
+      
+      if (response && response.success) {
+        // Show success toast
+        showToast({
+          type: 'success',
+          message: 'Password updated successfully'
+        });
+        
+        // Clear form
+        setPasswordForm({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+      } else {
+        // Show error toast
+        const errorMessage = response?.message || 'Failed to update password';
+        showToast({
+          type: 'error',
+          message: errorMessage
+        });
+        
+        setPasswordErrors({
+          ...errors,
+          general: errorMessage
+        });
+      }
+    } catch (error) {
+      console.error('Error updating password:', error);
+      
+      // Show error toast
+      showToast({
+        type: 'error',
+        message: error.message || 'An error occurred while updating password'
+      });
+      
+      setPasswordErrors({
+        ...errors,
+        general: error.message || 'An error occurred while updating password'
+      });
+    } finally {
+      setUpdatingPassword(false);
+    }
+  };
+  
   return (
     <>
       <Card 
@@ -724,6 +937,79 @@ const SettingsSection = () => {
           {/* Timezone settings card */}
           <Card padding="0rem">
             <TimezoneSelect onSave={handleSaveTimezone} />
+          </Card>
+          
+          {/* Security Settings Card */}
+          <Card padding="0rem">
+            <SettingsHeader>
+              <Lock size={20} />
+              <h3>Security Settings</h3>
+            </SettingsHeader>
+            
+            <div style={{ padding: '1rem' }}>
+              <form onSubmit={handlePasswordUpdate}>
+                <FormGroup>
+                  <Label htmlFor="currentPassword">Current Password</Label>
+                  <Input 
+                    type="password" 
+                    id="currentPassword" 
+                    name="currentPassword" 
+                    value={passwordForm.currentPassword}
+                    onChange={handlePasswordChange}
+                    placeholder="Enter current password"
+                  />
+                  {passwordErrors.currentPassword && (
+                    <ErrorText>{passwordErrors.currentPassword}</ErrorText>
+                  )}
+                </FormGroup>
+                
+                <FormGroup>
+                  <Label htmlFor="newPassword">New Password</Label>
+                  <Input 
+                    type="password" 
+                    id="newPassword" 
+                    name="newPassword" 
+                    value={passwordForm.newPassword}
+                    onChange={handlePasswordChange}
+                    placeholder="Enter new password"
+                  />
+                  {passwordErrors.newPassword && (
+                    <ErrorText>{passwordErrors.newPassword}</ErrorText>
+                  )}
+                </FormGroup>
+                
+                <FormGroup>
+                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                  <Input 
+                    type="password" 
+                    id="confirmPassword" 
+                    name="confirmPassword" 
+                    value={passwordForm.confirmPassword}
+                    onChange={handlePasswordChange}
+                    placeholder="Confirm new password"
+                  />
+                  {passwordErrors.confirmPassword && (
+                    <ErrorText>{passwordErrors.confirmPassword}</ErrorText>
+                  )}
+                </FormGroup>
+                
+                {passwordErrors.general && (
+                  <ErrorMessage>
+                    <X size={16} />
+                    {passwordErrors.general}
+                  </ErrorMessage>
+                )}
+                
+                <div style={{ textAlign: 'right', marginTop: '1rem' }}>
+                  <Button 
+                    type="submit"
+                    disabled={updatingPassword}
+                  >
+                    {updatingPassword ? 'Updating...' : 'Update Password'}
+                  </Button>
+                </div>
+              </form>
+            </div>
           </Card>
           
           <SettingItem>
@@ -859,11 +1145,17 @@ const SettingsSection = () => {
             <li>Remove your comments and activity history</li>
           </ul>
           <ModalButtons>
-            <CancelButton onClick={() => setShowDeleteModal(false)}>
+            <CancelButton 
+              onClick={() => setShowDeleteModal(false)}
+              disabled={isUpdating}
+            >
               Cancel
             </CancelButton>
-            <ConfirmButton onClick={confirmDeleteAccount}>
-              Delete Account
+            <ConfirmButton 
+              onClick={confirmDeleteAccount}
+              disabled={isUpdating}
+            >
+              {isUpdating ? 'Deleting...' : 'Delete Account'}
             </ConfirmButton>
           </ModalButtons>
         </ModalContent>

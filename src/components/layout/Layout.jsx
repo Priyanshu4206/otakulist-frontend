@@ -10,6 +10,17 @@ const Main = styled.main`
   transition: margin-left 0.3s ease;
   min-height: 100vh;
   background: ${props => props.transparent ? 'transparent' : 'var(--background)'};
+  overflow-x: hidden;
+  overflow-y: auto;
+  
+  /* Hide scrollbars but keep functionality */
+  &::-webkit-scrollbar {
+    width: 0;
+    background: transparent;
+  }
+  
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   
   @media (max-width: 768px) {
     margin-left: 0;

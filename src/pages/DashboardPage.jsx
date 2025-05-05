@@ -1,15 +1,19 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
 import styled from 'styled-components';
-import { motion, useScroll, useTransform } from 'framer-motion';
-import { User, Settings, Trophy, List, BookOpen } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { User, Settings, Trophy, List, BookOpen, Activity } from 'lucide-react';
 import Layout from '../components/layout/Layout.jsx';
 import useAuth from '../hooks/useAuth.js';
 import LoadingSpinner from '../components/common/LoadingSpinner.jsx';
+
+// Import dashboard pages
 import ProfileSection from '../components/dashboard/ProfileSection.jsx';
 import SettingsSection from '../components/dashboard/SettingsSection.jsx';
 import StatsSection from '../components/dashboard/StatsSection.jsx';
 import WatchlistSection from '../components/dashboard/WatchlistSection.jsx';
 import PlaylistsSection from '../components/dashboard/PlaylistsSection.jsx';
+import ActivitySection from '../components/dashboard/ActivitySection.jsx';
 
 const PageContainer = styled.div`
   max-width: 1600px;
@@ -17,11 +21,17 @@ const PageContainer = styled.div`
   margin-top: 80px;
   padding: 0;
   position: relative;
-  overflow: hidden;
+  overflow: visible !important;
+  z-index: 1;
 `;
 
 const ScrollArea = styled.div`
   padding: 0 2rem 2.5rem;
+  position: relative;
+  min-height: 100vh;
+  background-color: var(--background);
+  overflow: visible !important;
+  z-index: 1;
   
   @media (max-width: 768px) {
     padding: 0 1rem 1.5rem;
@@ -60,13 +70,13 @@ const DashboardTabs = styled(motion.div)`
   }
 `;
 
-const Tab = styled(motion.button)`
+const Tab = styled(Link)`
   padding: 1.25rem 1.5rem;
-  background: ${props => props.active ? 'rgba(var(--primary-rgb), 0.1)' : 'transparent'};
+  background: ${props => props.$active ? 'rgba(var(--primary-rgb), 0.1)' : 'transparent'};
   border: none;
   border-radius: 12px;
-  color: ${props => props.active ? 'var(--primary)' : 'var(--textSecondary)'};
-  font-weight: ${props => props.active ? '600' : '500'};
+  color: ${props => props.$active ? 'var(--primary)' : 'var(--textSecondary)'};
+  font-weight: ${props => props.$active ? '600' : '500'};
   font-size: 1.05rem;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -76,6 +86,7 @@ const Tab = styled(motion.button)`
   white-space: nowrap;
   position: relative;
   overflow: hidden;
+  text-decoration: none;
   
   &::after {
     content: '';
@@ -85,7 +96,7 @@ const Tab = styled(motion.button)`
     width: 100%;
     height: 3px;
     background: var(--gradientPrimary);
-    transform: scaleX(${props => props.active ? '1' : '0'});
+    transform: scaleX(${props => props.$active ? '1' : '0'});
     transform-origin: left;
     transition: transform 0.3s ease;
   }
@@ -100,8 +111,8 @@ const Tab = styled(motion.button)`
   }
   
   svg {
-    stroke-width: ${props => props.active ? 2.5 : 2};
-    color: ${props => props.active ? 'var(--primary)' : 'var(--textSecondary)'};
+    stroke-width: ${props => props.$active ? 2.5 : 2};
+    color: ${props => props.$active ? 'var(--primary)' : 'var(--textSecondary)'};
     transition: all 0.3s ease;
   }
   
@@ -120,6 +131,13 @@ const TabContent = styled(motion.div)`
   padding: 2.5rem;
   border: 1px solid rgba(var(--borderColor-rgb), 0.2);
   backdrop-filter: blur(5px);
+  position: relative;
+  min-height: calc(100vh - 200px);
+  z-index: 1;
+  overflow: visible !important;
+  
+  /* Ensure dropdown menus can overflow */
+  transform-style: preserve-3d;
   
   @media (max-width: 768px) {
     padding: 1.5rem;
@@ -155,11 +173,17 @@ const contentVariants = {
   }
 };
 
-const DashboardPage = () => {
-  const [activeTab, setActiveTab] = useState('profile');
-  const { user, loading, initialAuthCheckComplete } = useAuth();
+// Dashboard navigation component
+const DashboardNavigation = () => {
+  const location = useLocation();
+  const currentPath = location.pathname;
+  
+  const isActive = (path) => {
+    return currentPath === path || 
+      (path !== '/dashboard' && currentPath.startsWith(path));
+  };
+  
   const [scrolled, setScrolled] = useState(false);
-  const pageRef = useRef(null);
   
   useEffect(() => {
     const handleScroll = () => {
@@ -177,6 +201,116 @@ const DashboardPage = () => {
     };
   }, []);
   
+  return (
+    <NavWrapper>
+      <DashboardTabs expanded={scrolled}>
+        <Tab 
+          to="/dashboard" 
+          $active={isActive('/dashboard')}
+        >
+          <User size={20} />
+          Profile
+        </Tab>
+        
+        <Tab 
+          to="/dashboard/stats" 
+          $active={isActive('/dashboard/stats')}
+        >
+          <Trophy size={20} />
+          Stats & Achievements
+        </Tab>
+        
+        <Tab 
+          to="/dashboard/activity" 
+          $active={isActive('/dashboard/activity')}
+        >
+          <Activity size={20} />
+          Activity
+        </Tab>
+        
+        <Tab 
+          to="/dashboard/watchlist" 
+          $active={isActive('/dashboard/watchlist')}
+        >
+          <List size={20} />
+          Watchlist
+        </Tab>
+        
+        <Tab 
+          to="/dashboard/playlists" 
+          $active={isActive('/dashboard/playlists')}
+        >
+          <BookOpen size={20} />
+          Playlists
+        </Tab>
+        
+        <Tab 
+          to="/dashboard/settings" 
+          $active={isActive('/dashboard/settings')}
+        >
+          <Settings size={20} />
+          Settings
+        </Tab>
+      </DashboardTabs>
+    </NavWrapper>
+  );
+};
+
+// Main dashboard layout component
+const DashboardLayout = ({ children }) => {
+  return (
+    <Layout>
+      <PageContainer>
+        <ScrollArea>
+          <DashboardNavigation />
+          
+          <TabContent
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            variants={contentVariants}
+          >
+            {children}
+          </TabContent>
+        </ScrollArea>
+      </PageContainer>
+    </Layout>
+  );
+};
+
+// Main Dashboard component with nested routing
+const DashboardPage = () => {
+  const { loading, initialAuthCheckComplete, refreshUser, isAuthenticated } = useAuth();
+  const [userRefreshed, setUserRefreshed] = useState(false);
+  const refreshAttemptTimestamp = useRef(0);
+  const MIN_REFRESH_INTERVAL = 5000; // 5 seconds between refresh attempts
+  
+  // Refresh user data only once when dashboard loads
+  useEffect(() => {
+    const now = Date.now();
+    const timeSinceLastRefresh = now - refreshAttemptTimestamp.current;
+    if (!userRefreshed && 
+        initialAuthCheckComplete && 
+        !loading && 
+        timeSinceLastRefresh > MIN_REFRESH_INTERVAL) {
+      
+      refreshAttemptTimestamp.current = now;
+      
+      refreshUser()
+        .then(() => {
+          setUserRefreshed(true);
+        })
+        .catch((err) => {
+          if (err?.throttled) {
+            // Handle throttled requests
+          } else {
+            // Handle errors
+          }
+          setUserRefreshed(true);
+        });
+    }
+  }, [refreshUser, initialAuthCheckComplete, loading, userRefreshed]);
+  
   if (loading || !initialAuthCheckComplete) {
     return (
       <Layout>
@@ -190,76 +324,67 @@ const DashboardPage = () => {
     );
   }
   
+  // Add an additional check to ensure authenticated before rendering routes
+  if (!isAuthenticated) {
+    return (
+      <Layout>
+        <PageContainer>
+          <LoadingContainer>
+            <div style={{ textAlign: 'center' }}>
+              <p style={{ color: 'var(--textSecondary)', fontSize: '1.1rem', marginBottom: '1rem' }}>
+                You need to be logged in to access the dashboard.
+              </p>
+              <Link to="/login" style={{ 
+                padding: '0.75rem 1.5rem',
+                background: 'var(--primary)',
+                color: 'white',
+                borderRadius: '8px',
+                textDecoration: 'none',
+                display: 'inline-block'
+              }}>
+                Go to Login
+              </Link>
+            </div>
+          </LoadingContainer>
+        </PageContainer>
+      </Layout>
+    );
+  }
+  
   return (
-    <Layout>
-      <PageContainer ref={pageRef}>
-        <ScrollArea>
-          
-          <NavWrapper>
-            <DashboardTabs expanded={scrolled}>
-              <Tab 
-                active={activeTab === 'profile'} 
-                onClick={() => setActiveTab('profile')}
-                whileTap={{ scale: 0.98 }}
-              >
-                <User size={20} />
-                Profile
-              </Tab>
-              
-              <Tab 
-                active={activeTab === 'stats'} 
-                onClick={() => setActiveTab('stats')}
-                whileTap={{ scale: 0.98 }}
-              >
-                <Trophy size={20} />
-                Stats & Achievements
-              </Tab>
-              
-              <Tab 
-                active={activeTab === 'watchlist'} 
-                onClick={() => setActiveTab('watchlist')}
-                whileTap={{ scale: 0.98 }}
-              >
-                <List size={20} />
-                Watchlist
-              </Tab>
-              
-              <Tab 
-                active={activeTab === 'playlists'} 
-                onClick={() => setActiveTab('playlists')}
-                whileTap={{ scale: 0.98 }}
-              >
-                <BookOpen size={20} />
-                Playlists
-              </Tab>
-              
-              <Tab 
-                active={activeTab === 'settings'} 
-                onClick={() => setActiveTab('settings')}
-                whileTap={{ scale: 0.98 }}
-              >
-                <Settings size={20} />
-                Settings
-              </Tab>
-            </DashboardTabs>
-          </NavWrapper>
-          
-          <TabContent
-            key={activeTab}
-            variants={contentVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-          >
-            {activeTab === 'profile' && <ProfileSection />}
-            {activeTab === 'stats' && <StatsSection />}
-            {activeTab === 'watchlist' && <WatchlistSection />}
-            {activeTab === 'playlists' && <PlaylistsSection />}
-            {activeTab === 'settings' && <SettingsSection />}
-          </TabContent>
-        </ScrollArea>
-      </PageContainer>
-    </Layout>
+    <Routes>
+      <Route path="/" element={
+        <DashboardLayout>
+          <ProfileSection />
+        </DashboardLayout>
+      } />
+      <Route path="/stats" element={
+        <DashboardLayout>
+          <StatsSection />
+        </DashboardLayout>
+      } />
+      <Route path="/activity" element={
+        <DashboardLayout>
+          <ActivitySection />
+        </DashboardLayout>
+      } />
+      <Route path="/watchlist" element={
+        <DashboardLayout>
+          <WatchlistSection />
+        </DashboardLayout>
+      } />
+      <Route path="/playlists" element={
+        <DashboardLayout>
+          <PlaylistsSection />
+        </DashboardLayout>
+      } />
+      <Route path="/settings" element={
+        <DashboardLayout>
+          <SettingsSection />
+        </DashboardLayout>
+      } />
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Routes>
   );
 };
 

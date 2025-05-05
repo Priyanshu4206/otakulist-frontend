@@ -48,8 +48,8 @@ const AchievementCard = styled.div`
   gap: 1rem;
   padding: 1.25rem;
   border-radius: 10px;
-  background-color: ${props => props.unlocked ? 'rgba(var(--tertiary-rgb), 0.05)' : 'var(--cardBackground)'};
-  border: 1px solid ${props => props.unlocked ? 'var(--tertiary)' : 'var(--borderColor)'};
+  background-color: ${props => props.unlocked ? 'rgba(var(--primary-rgb), 0.05)' : 'var(--cardBackground)'};
+  border: 1px solid ${props => props.unlocked ? 'var(--primary)' : 'var(--borderColor)'};
   opacity: ${props => props.unlocked ? '1' : '0.75'};
   transition: all 0.2s ease;
   position: relative;
@@ -62,12 +62,12 @@ const AchievementCard = styled.div`
     left: 0;
     width: 4px;
     height: 100%;
-    background-color: ${props => props.unlocked ? 'var(--tertiary)' : 'transparent'};
+    background-color: ${props => props.unlocked ? 'var(--primary)' : 'transparent'};
   }
   
   &:hover {
     transform: ${props => props.unlocked ? 'translateY(-3px)' : 'translateY(-1px)'};
-    box-shadow: ${props => props.unlocked ? '0 6px 16px rgba(var(--tertiary-rgb), 0.15)' : '0 2px 8px rgba(0, 0, 0, 0.05)'};
+    box-shadow: ${props => props.unlocked ? '0 6px 16px rgba(var(--primary-rgb), 0.15)' : '0 2px 8px rgba(0, 0, 0, 0.05)'};
     opacity: 1;
   }
 `;
@@ -76,13 +76,13 @@ const AchievementIcon = styled.div`
   width: 46px;
   height: 46px;
   border-radius: 50%;
-  background-color: ${props => props.unlocked ? 'var(--tertiary)' : 'var(--backgroundLight)'};
+  background-color: ${props => props.unlocked ? 'var(--primary)' : 'var(--backgroundLight)'};
   color: ${props => props.unlocked ? 'white' : 'var(--textSecondary)'};
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: ${props => props.unlocked ? '0 4px 8px rgba(var(--tertiary-rgb), 0.25)' : 'none'};
+  box-shadow: ${props => props.unlocked ? '0 4px 8px rgba(var(--primary-rgb), 0.25)' : 'none'};
   transition: all 0.2s ease;
   
   ${AchievementCard}:hover & {
@@ -98,7 +98,7 @@ const AchievementTitle = styled.h4`
   font-size: 1.05rem;
   font-weight: 600;
   margin: 0 0 0.35rem 0;
-  color: ${props => props.unlocked ? 'var(--tertiary)' : 'var(--textPrimary)'};
+  color: ${props => props.unlocked ? 'var(--primary)' : 'var(--textPrimary)'};
 `;
 
 const AchievementDescription = styled.p`
@@ -119,7 +119,7 @@ const ProgressBar = styled.div`
 const ProgressFill = styled.div`
   height: 100%;
   width: ${props => props.percentage}%;
-  background-color: ${props => props.unlocked ? 'var(--success)' : 'var(--tertiary)'};
+  background-color: ${props => props.unlocked ? 'var(--success)' : 'var(--primary)'};
   border-radius: 3px;
   transition: width 0.3s ease;
 `;

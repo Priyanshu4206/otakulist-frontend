@@ -148,14 +148,14 @@ const getDayTabs = () => {
   });
 };
 
-const AnimatedDayTabs = ({ activeDay, onChange }) => {
+const AnimatedDayTabs = ({ activeDay, onDayChange }) => {
   const dayTabs = getDayTabs();
   const [hoveredDay, setHoveredDay] = useState(null);
   
   // Create a memoized callback for changing days to prevent unnecessary renders
   const handleDayChange = (day) => {
     if (day !== activeDay) {
-      onChange(day);
+      onDayChange(day);
     }
   };
   

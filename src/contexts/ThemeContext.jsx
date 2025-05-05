@@ -305,7 +305,6 @@ export const ThemeProvider = ({ children }) => {
   const [currentTheme, setCurrentTheme] = useState(() => {
     // Get theme from localStorage on initial render
     const storedTheme = getUserTheme();
-    console.log('[THEME DEBUG] Initializing theme from localStorage:', storedTheme);
     return storedTheme;
   });
   
@@ -313,9 +312,7 @@ export const ThemeProvider = ({ children }) => {
   useEffect(() => {
     const theme = themes[currentTheme] || themes[DEFAULT_THEME];
     const root = document.documentElement;
-    
-    console.log('[THEME DEBUG] Applying theme:', currentTheme);
-    
+        
     // Add transition properties for smooth theme switching
     // We add the transition at the beginning to ensure it applies to all changes
     root.style.setProperty('transition', 'background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease');
@@ -360,9 +357,7 @@ export const ThemeProvider = ({ children }) => {
       console.warn(`Theme "${themeName}" not found, using default theme.`);
       themeName = DEFAULT_THEME;
     }
-    
-    console.log('[THEME DEBUG] Changing theme to:', themeName);
-    
+        
     // Add transition class to root element before changing theme
     document.documentElement.classList.add('theme-transition-active');
     

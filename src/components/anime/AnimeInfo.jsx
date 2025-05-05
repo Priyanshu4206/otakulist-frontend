@@ -1,10 +1,11 @@
 import styled, { keyframes } from 'styled-components';
 import { useState } from 'react';
-import { Calendar, Clock, Globe, Star, Tv, Users, Award, Hash, Calendar as CalendarIcon, Heart, Eye, Bookmark, X } from 'lucide-react';
+import { Calendar, Clock, Globe, Star, Tv, Users, Award, Hash, Calendar as CalendarIcon, Heart, Eye, Bookmark, X, BookOpen } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
 import { watchlistAPI } from '../../services/api';
-import WatchStatusBadge from '../common/WatchStatusBadge';
 import WatchlistModal from '../common/WatchlistModal';
+import PlaylistAddModal from '../common/PlaylistAddModal';
+import useToast from '../../hooks/useToast';
 
 const fadeIn = keyframes`
   from {
@@ -134,7 +135,34 @@ const ActionGroup = styled.div`
   
   @media (max-width: 768px) {
     width: 100%;
-    justify-content: ${props => props.end ? 'flex-end' : 'flex-start'};
+    justify-content: ${props => props.isEnd ? 'flex-end' : 'flex-start'};
+  }
+`;
+
+const ActionButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  background-color: ${props => props.secondary ? 'rgba(var(--backgroundLight-rgb), 0.3)' : 'var(--primary)'};
+  color: ${props => props.secondary ? 'var(--textPrimary)' : 'white'};
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: ${props => props.secondary ? '0 2px 6px rgba(0, 0, 0, 0.1)' : '0 2px 6px rgba(var(--primary-rgb), 0.3)'};
+  white-space: nowrap;
+  
+  &:hover {
+    background-color: ${props => props.secondary ? 'rgba(var(--backgroundLight-rgb), 0.4)' : 'var(--primaryLight)'};
+    transform: ${props => props.secondary ? 'translateY(-2px)' : 'translateY(-2px)'};
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 `;
 
@@ -337,38 +365,13 @@ const SectionTitle = styled.div`
   }
 `;
 
-const WatchlistButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.6rem 1rem;
-  background-color: var(--tertiary);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 6px rgba(var(--tertiary-rgb), 0.3);
-  white-space: nowrap;
-  
-  &:hover {
-    background-color: var(--tertiaryLight);
-    transform: translateY(-2px);
-  }
-  
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-`;
-
 const AnimeInfo = ({ anime }) => {
   const { isAuthenticated } = useAuth();
-  const [watchlistModalOpen, setWatchlistModalOpen] = useState(false);
-  const [animeStatus, setAnimeStatus] = useState(null);
+  const [watchlistOpen, setWatchlistOpen] = useState(false);
+  const [playlistModalOpen, setPlaylistModalOpen] = useState(false);
+  const [animeWatchStatus, setAnimeWatchStatus] = useState(null);
   const [loading, setLoading] = useState(false);
+  const { showToast } = useToast();
 
   // Format anime data
   const formatSeason = (season, year) => {
@@ -394,36 +397,53 @@ const AnimeInfo = ({ anime }) => {
   
   // Extract info from anime object
   const {
-    status,
-    score,
-    scored_by,
+    status: animeStatus,
+    episodes,
     popularity,
-    rank,
+    members,
     favorites,
+    genres = [],
+    aired,
     season,
     year,
     broadcast,
-    genres = [],
-    duration,
-    aired,
     studios = [],
     source,
+    duration,
     type,
-    episodes,
-    members
   } = anime;
 
   const handleWatchlistClick = async () => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated) {
+      showToast({
+        type: 'warning',
+        message: 'You need to be logged in to add to your watchlist'
+      });
+      return;
+    }
     
     setLoading(true);
+    
     try {
-      const animeId = anime.mal_id || anime.id || anime.malId;
+      const animeId = anime.id || anime.malId || anime._id;
       const response = await watchlistAPI.getAnimeStatus(animeId);
-      setAnimeStatus(response.data);
-      setWatchlistModalOpen(true);
+      
+      if (response && response.success) {
+        setAnimeWatchStatus(response.data);
+        setWatchlistOpen(true);
+      } else {
+        // Show error toast
+        showToast({
+          type: 'error',
+          message: response?.message || 'Failed to get anime status'
+        });
+      }
     } catch (error) {
-      console.error('Error fetching anime status:', error);
+      console.error('Error getting anime status:', error);
+      showToast({
+        type: 'error',
+        message: 'An error occurred while checking anime status'
+      });
     } finally {
       setLoading(false);
     }
@@ -434,41 +454,51 @@ const AnimeInfo = ({ anime }) => {
       {/* Improved Score, Status, and Watchlist Bar */}
       <TopActionBar>
         <ActionGroup>
-          {score ? (
+          {anime.score ? (
             <ScoreBlock>
-              <Star size={18} />
-              <ScoreValue>{score.toFixed(2)}</ScoreValue>
+              <Star />
+              <ScoreValue>{anime.score}</ScoreValue>
               <ScoreDetails>
-                <ScoreLabel>{scored_by ? `${new Intl.NumberFormat().format(scored_by)} votes` : 'Score'}</ScoreLabel>
+                <ScoreLabel>Score</ScoreLabel>
               </ScoreDetails>
             </ScoreBlock>
           ) : (
             <NoScoreBlock>
-              <Star size={18} />
-              <span>Not yet rated</span>
+              <Star />
+              No score yet
             </NoScoreBlock>
           )}
           
-          {status && (
-            <StatusBadge status={status}>
-              <Award size={16} style={{ marginRight: '0.4rem' }} />
-              {status}
-            </StatusBadge>
-          )}
+          <StatusBadge status={animeStatus}>
+            {animeStatus}
+          </StatusBadge>
         </ActionGroup>
         
-        {isAuthenticated && (
-          <ActionGroup end>
-            <WatchlistButton onClick={handleWatchlistClick} disabled={loading}>
-              <Bookmark size={16} />
-              {loading ? 'Loading...' : animeStatus ? 'Update Status' : 'Add to Watchlist'}
-            </WatchlistButton>
-          </ActionGroup>
-        )}
+        <ActionGroup isEnd>
+          {isAuthenticated && (
+            <>
+              <ActionButton 
+                onClick={handleWatchlistClick}
+                disabled={loading}
+              >
+                <Bookmark size={18} />
+                {animeWatchStatus ? 'Update Status' : 'Add to Watchlist'}
+              </ActionButton>
+              
+              <ActionButton
+                onClick={() => setPlaylistModalOpen(true)}
+                secondary
+              >
+                <BookOpen size={18} />
+                Add to Playlist
+              </ActionButton>
+            </>
+          )}
+        </ActionGroup>
       </TopActionBar>
       
       {/* Statistics Cards */}
-      {(rank || popularity || favorites || members) && (
+      {(popularity || favorites || members) && (
         <>
           <SectionTitle>
             <Award size={18} />
@@ -476,14 +506,6 @@ const AnimeInfo = ({ anime }) => {
           </SectionTitle>
           
           <StatisticsRow>
-            {rank && (
-              <StatCard iconColor="var(--primary)">
-                <Award size={20} />
-                <StatValue>#{rank}</StatValue>
-                <StatLabel>Rank</StatLabel>
-              </StatCard>
-            )}
-            
             {popularity && (
               <StatCard iconColor="var(--secondary)">
                 <Eye size={20} />
@@ -613,14 +635,22 @@ const AnimeInfo = ({ anime }) => {
         </InfoRow>
       )}
       
-      {watchlistModalOpen && (
-        <WatchlistModal
-          anime={anime}
-          isOpen={watchlistModalOpen}
-          onClose={() => setWatchlistModalOpen(false)}
-          currentStatus={animeStatus}
-        />
-      )}
+      {/* Watchlist Modal */}
+      <WatchlistModal
+        show={watchlistOpen}
+        onClose={() => setWatchlistOpen(false)}
+        anime={anime}
+        currentStatus={animeWatchStatus}
+        onStatusChange={setAnimeWatchStatus}
+      />
+      
+      {/* Playlist Modal */}
+      <PlaylistAddModal
+        show={playlistModalOpen}
+        onClose={() => setPlaylistModalOpen(false)}
+        anime={anime}
+        isScheduleAnime={false}
+      />
     </InfoContainer>
   );
 };

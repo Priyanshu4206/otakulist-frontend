@@ -8,6 +8,7 @@ import { userAPI, genreAPI } from '../../services/api';
 import useAuth from '../../hooks/useAuth';
 import useApiCache from '../../hooks/useApiCache';
 import { motion } from 'framer-motion';
+import useToast from '../../hooks/useToast';
 
 const DashboardHeader = styled(motion.div)`
   background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.15), rgba(var(--secondary-rgb), 0.15));
@@ -106,7 +107,7 @@ const StatBox = styled(motion.div)`
     left: 0;
     width: 100%;
     height: 3px;
-    background: linear-gradient(90deg, var(--tertiary), var(--primary));
+    background: linear-gradient(90deg, var(--primary), var(--primary));
     transform: scaleX(0);
     transform-origin: left;
     transition: transform 0.3s ease;
@@ -195,7 +196,7 @@ const Input = styled.input`
   
   &:focus {
     outline: none;
-    border-color: var(--tertiary);
+    border-color: var(--primary);
     box-shadow: 0 0 0 2px rgba(70, 54, 113, 0.2);
   }
 `;
@@ -214,7 +215,7 @@ const TextArea = styled.textarea`
   
   &:focus {
     outline: none;
-    border-color: var(--tertiary);
+    border-color: var(--primary);
     box-shadow: 0 0 0 2px rgba(70, 54, 113, 0.2);
   }
 `;
@@ -227,9 +228,9 @@ const GenreTagsContainer = styled.div`
 `;
 
 const GenreTag = styled.div`
-  background-color: ${props => props.selected ? 'var(--tertiary)' : 'var(--cardBackground)'};
+  background-color: ${props => props.selected ? 'var(--primary)' : 'var(--cardBackground)'};
   color: ${props => props.selected ? 'white' : 'var(--textPrimary)'};
-  border: 1px solid ${props => props.selected ? 'var(--tertiary)' : 'var(--borderColor)'};
+  border: 1px solid ${props => props.selected ? 'var(--primary)' : 'var(--borderColor)'};
   border-radius: 999px;
   padding: 0.35rem 0.85rem;
   font-size: 0.85rem;
@@ -237,7 +238,7 @@ const GenreTag = styled.div`
   transition: all 0.2s ease;
   
   &:hover {
-    border-color: var(--tertiary);
+    border-color: var(--primary);
     transform: translateY(-2px);
   }
 `;
@@ -271,7 +272,7 @@ const StatusMessage = styled.div`
 `;
 
 const Button = styled.button`
-  background-color: var(--tertiary);
+  background-color: var(--primary);
   color: white;
   border: none;
   border-radius: 4px;
@@ -285,7 +286,7 @@ const Button = styled.button`
   gap: 0.5rem;
   
   &:hover {
-    background-color: var(--tertiaryLight);
+    background-color: var(--primaryLight);
   }
   
   &:disabled {
@@ -324,7 +325,7 @@ const ViewProfileButton = styled(Link)`
   
   &:hover {
     background-color: var(--backgroundLight);
-    border-color: var(--tertiary);
+    border-color: var(--primary);
   }
 `;
 
@@ -363,6 +364,7 @@ const ProfileSection = () => {
   const [avatarPreview, setAvatarPreview] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const { showToast } = useToast();
   
 
   // Calculate user stats from user data
@@ -476,7 +478,6 @@ const ProfileSection = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setMessage({ type: '', text: '' });
     
     try {
       // Upload avatar if changed
@@ -484,7 +485,7 @@ const ProfileSection = () => {
         const formData = new FormData();
         formData.append('avatar', avatar);
         
-        console.log('Uploading avatar...');
+        setMessage({ type: 'info', text: 'Uploading avatar...' });
         const uploadResponse = await userAPI.uploadAvatar(formData);
         
         if (!uploadResponse.success) {
@@ -502,26 +503,35 @@ const ProfileSection = () => {
         }
       };
       
-      console.log('Updating profile with data:', profileData);
+      setMessage({ type: 'info', text: 'Updating profile...' });
       const response = await userAPI.updateProfile(profileData);
       
       if (response.success) {
         await refreshUser();
-        setMessage({ 
-          type: 'success', 
-          text: 'Profile updated successfully!' 
+        setMessage({ type: 'success', text: 'Profile updated successfully!' });
+        
+        // Show success toast
+        showToast({
+          type: 'success',
+          message: 'Profile updated successfully!'
         });
       } else {
-        setMessage({ 
-          type: 'error', 
-          text: response.message || 'Failed to update profile' 
+        setMessage({ type: 'error', text: response.message || 'Failed to update profile' });
+        
+        // Show error toast
+        showToast({
+          type: 'error',
+          message: response.message || 'Failed to update profile'
         });
       }
     } catch (err) {
       console.error('Error updating profile:', err);
-      setMessage({ 
-        type: 'error', 
-        text: err.message || 'An error occurred. Please try again.' 
+      setMessage({ type: 'error', text: err.message || 'An error occurred. Please try again.' });
+      
+      // Show error toast
+      showToast({
+        type: 'error',
+        message: err.message || 'An error occurred. Please try again.'
       });
     } finally {
       setIsSubmitting(false);

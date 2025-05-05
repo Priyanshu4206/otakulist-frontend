@@ -13,17 +13,27 @@ const pendingRequests = new Map();
 // Track authentication status to prevent repeated 401 calls
 let authFailed = false;
 
+// Let's modify how we handle /auth/me requests to prevent multiple calls at once
+let currentAuthRequest = null;
+let lastAuthRequestTime = 0;
+const AUTH_REQUEST_THROTTLE_MS = 2000; // Minimum time between auth requests
+
 // Storage utilities for JWT token
 const getAuthToken = () => {
   return localStorage.getItem('auth_token');
 };
 
 const setAuthToken = (token) => {
-  if (token) {
-    console.log('[AUTH DEBUG] Setting auth token in storage');
+  const currentToken = localStorage.getItem('auth_token');
+  
+  if (token) {    
+    // If token is different from the current one, it's a new login
+    if (token !== currentToken) {
+      authFailed = false;
+    }
+    
     localStorage.setItem('auth_token', token);
   } else {
-    console.log('[AUTH DEBUG] Clearing auth token from storage');
     localStorage.removeItem('auth_token');
   }
 };
@@ -63,14 +73,11 @@ api.interceptors.request.use(
     // Add Authorization header if token exists
     const token = getAuthToken();
     if (token) {
-      console.log(`[AUTH DEBUG] Adding Authorization header to ${config.url}`);
       config.headers['Authorization'] = `Bearer ${token}`;
     }
     
     // If this is an auth request and we've already failed auth, block the request
-    if (config.url.includes('/auth/me') && authFailed) {
-      console.log('[AUTH DEBUG] Blocking /auth/me request - previous auth failed');
-      // Create a new controller to immediately abort the request
+    if (config.url.includes('/auth/me') && authFailed) {      // Create a new controller to immediately abort the request
       const controller = new AbortController();
       config.signal = controller.signal;
       controller.abort('Auth already failed, not retrying');
@@ -91,7 +98,6 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
-    console.log('[AUTH DEBUG] Request interceptor error:', error);
     return Promise.reject(error);
   }
 );
@@ -105,8 +111,6 @@ api.interceptors.response.use(
     
     // Reset auth failed flag on success
     if (response.config.url.includes('/auth/me')) {
-      console.log('[AUTH DEBUG] /auth/me request successful, resetting authFailed flag');
-      console.log('[AUTH DEBUG] Response data:', JSON.stringify(response.data));
       authFailed = false;
     }
     
@@ -121,18 +125,8 @@ api.interceptors.response.use(
     
     // Ignore canceled requests
     if (axios.isCancel(error)) {
-      console.log('Request canceled:', error.message);
       return Promise.reject({ canceled: true });
     }
-    
-    // Log more detailed information about the error
-    console.log('API Error:', {
-      url: error.config?.url,
-      method: error.config?.method,
-      status: error.response?.status,
-      data: error.response?.data,
-      message: error.message
-    });
     
     // Handle CORS errors
     if (error.message === 'Network Error') {
@@ -141,7 +135,6 @@ api.interceptors.response.use(
     
     // Set flag for auth failures to prevent repeated calls
     if (error.config?.url.includes('/auth/me') && error.response?.status === 401) {
-      console.log('[AUTH DEBUG] Auth check unauthorized (401), setting authFailed flag');
       authFailed = true;
       // Clear token if unauthorized
       setAuthToken(null);
@@ -150,9 +143,7 @@ api.interceptors.response.use(
     // Handle unauthorized error or token expiration
     if (error.response?.status === 401 && !error.config._retry) {
       // For auth/me request, we don't need to redirect
-      if (!error.config.url.includes('/auth/me')) {
-        console.log('[AUTH DEBUG] Unauthorized for non-auth request, redirecting to login');
-        // Clear token
+      if (!error.config.url.includes('/auth/me')) {        // Clear token
         setAuthToken(null);
         // Redirect to login for auth errors on non-auth requests
         window.location.href = '/login';
@@ -171,12 +162,40 @@ export const resetAuthFailedState = () => {
 
 // Auth APIs
 export const authAPI = {
-  // Get current user
-  getCurrentUser: () => api.get('/auth/me'),
+  // Get current user with throttle to prevent multiple simultaneous calls
+  getCurrentUser: () => {
+    const now = Date.now();
+    
+    // If there's already a request in progress, return that promise instead of making a new request
+    if (currentAuthRequest) {
+      return currentAuthRequest;
+    }
+    
+    // If we've made a request very recently, throttle
+    if (now - lastAuthRequestTime < AUTH_REQUEST_THROTTLE_MS) {
+      return Promise.reject({ 
+        throttled: true, 
+        message: 'Auth request throttled to prevent excessive API calls' 
+      });
+    }
+    
+    // Update last request time
+    lastAuthRequestTime = now;
+    
+    // Create a new request and store the promise
+    currentAuthRequest = api.get('/auth/me')
+      .finally(() => {
+        // Set a timeout before clearing the stored promise to prevent immediate subsequent calls
+        setTimeout(() => {
+          currentAuthRequest = null;
+        }, 500);
+      });
+      
+    return currentAuthRequest;
+  },
   
   // Logout - clear local storage token
   logout: async () => {
-    console.log('[AUTH DEBUG] Logging out user - clearing auth data');
     
     try {
       // Call the server logout endpoint
@@ -190,6 +209,23 @@ export const authAPI = {
     
     // Clear token
     setAuthToken(null);
+    
+    // Clear all auth-related localStorage items
+    localStorage.removeItem('auth_checked');
+    localStorage.removeItem('auth_from_callback');
+    localStorage.removeItem('has_valid_token');
+    
+    // Clear session storage items
+    sessionStorage.removeItem('auth_callback_processed');
+    
+    // Set logout flag
+    sessionStorage.setItem('from_logout', 'true');
+    
+    // Clear cookies that might be related to auth
+    document.cookie = 'jwt=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; domain=' + window.location.hostname;
+    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; domain=' + window.location.hostname;
+    document.cookie = 'jwt=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;';
+    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;';
     
     return { success: true, message: 'Logged out successfully' };
   },
@@ -224,13 +260,24 @@ export const userAPI = {
       // First call the server endpoint to delete the account
       const response = await api.delete('/auth/delete-account');
       
-      // After successful deletion, clean up all LocalStorage items
-      console.log('[AUTH DEBUG] Deleting account - clearing all LocalStorage data');
+      // Reset auth failed state
+      resetAuthFailedState();
       
-      // Clear auth tokens
+      // Clear auth token
       setAuthToken(null);
       
-      // Clear all the specific items mentioned
+      // Clear all auth-related localStorage items
+      localStorage.removeItem('auth_checked');
+      localStorage.removeItem('auth_from_callback');
+      localStorage.removeItem('has_valid_token');
+      
+      // Clear session storage items
+      sessionStorage.removeItem('auth_callback_processed');
+      
+      // Set logout flag
+      sessionStorage.setItem('from_logout', 'true');
+      
+      // Clear the specific items mentioned
       const itemsToClear = [
         'all_achievements',
         'genres_list', 
@@ -240,6 +287,12 @@ export const userAPI = {
       
       // Remove each item
       itemsToClear.forEach(item => localStorage.removeItem(item));
+      
+      // Clear cookies that might be related to auth
+      document.cookie = 'jwt=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; domain=' + window.location.hostname;
+      document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; domain=' + window.location.hostname;
+      document.cookie = 'jwt=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;';
+      document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;';
       
       return response;
     } catch (error) {
@@ -284,30 +337,254 @@ export const watchlistAPI = {
   getAnimeStatus: (animeId) => api.get(`/watchlist/${animeId}`),
 };
 
+// Handle API errors consistently
+const handleError = (error) => {
+  console.error('API Error:', {
+    url: error.config?.url,
+    method: error.config?.method,
+    status: error.response?.status,
+    data: error.response?.data,
+    message: error.message
+  });
+  
+  // Additional error handling could be added here if needed
+};
+
 // Playlist APIs
 export const playlistAPI = {
   // Get user's playlists
-  getMyPlaylists: (page = 1, limit = 20, params = {}) => api.get('/playlists/my-playlists', { 
-    params: { 
-      page, 
-      limit,
-      ...params 
-    } 
-  }),
-  // Get a specific playlist by slug (not ID)
-  getPlaylistBySlug: (slug) => api.get(`/playlists/${slug}`),
+  getMyPlaylists: async (page = 1, limit = 12) => {
+    try {
+      const response = await api.get(`/playlists/my-playlists?page=${page}&limit=${limit}`);
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      handleError(error);
+      return {
+        success: false,
+        error: {
+          message: error.response?.data?.error?.message || 'Failed to fetch playlists'
+        }
+      };
+    }
+  },
+
+  // Get public playlists
+  getPublicPlaylists: async (page = 1, limit = 12) => {
+    try {
+      const response = await api.get(`/playlists/public?page=${page}&limit=${limit}`);
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      handleError(error);
+      return {
+        success: false,
+        error: {
+          message: error.response?.data?.error?.message || 'Failed to fetch public playlists'
+        }
+      };
+    }
+  },
+
+  // Get user's playlists by username
+  getUserPlaylists: async (username, page = 1, limit = 12) => {
+    try {
+      const response = await api.get(`/playlists/user/${username}?page=${page}&limit=${limit}`);
+      return {
+        success: true,
+        data: response.data,
+        pagination: response.pagination
+      };
+    } catch (error) {
+      handleError(error);
+      return {
+        success: false,
+        error: {
+          message: error.response?.data?.error?.message || 'Failed to fetch user playlists'
+        }
+      };
+    }
+  },
+
+  // Get playlist by ID
+  getPlaylistById: async (id) => {
+    try {
+      const response = await api.get(`/playlists/id/${id}`);
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      handleError(error);
+      return {
+        success: false,
+        error: {
+          message: error.response?.data?.error?.message || 'Failed to fetch playlist'
+        }
+      };
+    }
+  },
+
+  // Get playlist by slug
+  getPlaylistBySlug: async (slug) => {
+    try {
+      const response = await api.get(`/playlists/${slug}`);
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      handleError(error);
+      return {
+        success: false,
+        error: {
+          message: error.response?.data?.error?.message || 'Failed to fetch playlist'
+        }
+      };
+    }
+  },
+
   // Create a new playlist
-  createPlaylist: (data) => api.post('/playlists', data),
-  // Update an existing playlist
-  updatePlaylist: (id, data) => api.patch(`/playlists/${id}`, data),
+  createPlaylist: async (playlistData) => {
+    try {
+      const response = await api.post('/playlists', playlistData);
+      
+      // Return standardized response format
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      handleError(error);
+      return {
+        success: false,
+        error: {
+          message: error.response?.data?.error?.message || error.message || 'Failed to create playlist'
+        }
+      };
+    }
+  },
+
+  // Update a playlist
+  updatePlaylist: async (playlistId, updateData) => {
+    try {
+      const response = await api.patch(`/playlists/${playlistId}`, updateData);
+      
+      // Return standardized response format
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      handleError(error);
+      return {
+        success: false,
+        error: {
+          message: error.response?.data?.error?.message || error.message || 'Failed to update playlist'
+        }
+      };
+    }
+  },
+
   // Delete a playlist
-  deletePlaylist: (id) => api.delete(`/playlists/${id}`),
+  deletePlaylist: async (playlistId) => {
+    try {
+      const response = await api.delete(`/playlists/${playlistId}`);
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      handleError(error);
+      return {
+        success: false,
+        error: {
+          message: error.response?.data?.error?.message || 'Failed to delete playlist'
+        }
+      };
+    }
+  },
+
   // Add anime to playlist
-  addAnimeToPlaylist: (playlistId, animeId) => api.post(`/playlists/${playlistId}/anime`, { animeId }),
+  addAnimeToPlaylist: async (playlistId, animeId) => {
+    try {
+      const response = await api.post(`/playlists/${playlistId}/anime`, { animeId });
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      handleError(error);
+      return {
+        success: false,
+        error: {
+          message: error.response?.data?.error?.message || 'Failed to add anime to playlist'
+        }
+      };
+    }
+  },
+
   // Remove anime from playlist
-  removeAnimeFromPlaylist: (playlistId, animeId) => api.delete(`/playlists/${playlistId}/anime/${animeId}`),
+  removeAnimeFromPlaylist: async (playlistId, animeId) => {
+    try {
+      const response = await api.delete(`/playlists/${playlistId}/anime/${animeId}`);
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      handleError(error);
+      return {
+        success: false,
+        error: {
+          message: error.response?.data?.error?.message || 'Failed to remove anime from playlist'
+        }
+      };
+    }
+  },
+
   // Like/unlike a playlist
-  toggleLike: (playlistId) => api.post(`/playlists/${playlistId}/like`),
+  likePlaylist: async (playlistId) => {
+    try {
+      const response = await api.post(`/playlists/${playlistId}/like`);
+      
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      handleError(error);
+      return {
+        success: false,
+        error: {
+          message: error.response?.data?.error?.message || error.message || 'Failed to like/unlike playlist'
+        }
+      };
+    }
+  },
+
+  // Create or add to playlist
+  createOrAddToPlaylist: async (data) => {
+    try {
+      const response = await api.post('/playlists/add-anime', data);
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      handleError(error);
+      return {
+        success: false,
+        error: {
+          message: error.response?.data?.error?.message || 'Failed to create or add to playlist'
+        }
+      };
+    }
+  }
 };
 
 // Anime APIs

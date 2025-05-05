@@ -5,6 +5,7 @@ import { Clock, Search, X } from 'lucide-react';
 import useSimpleTimezones from '../../hooks/simpleTimezones';
 import { getTimezoneValue, getIANATimezone } from '../../utils/simpleTimezoneUtils';
 import { AuthContext } from '../../contexts/AuthContext';
+import CustomSelect from '../common/CustomSelect';
 
 const Container = styled.div`
   margin-bottom: 2rem;
@@ -196,9 +197,7 @@ const TimezoneSelect = ({ onSave }) => {
     error
   } = useSimpleTimezones();
   
-  const [searchTerm, setSearchTerm] = useState('');
   const [currentTime, setCurrentTime] = useState('');
-  const [filteredTimezones, setFilteredTimezones] = useState([]);
   
   // Use user.settings.timezone if available (on initial load)
   useEffect(() => {
@@ -206,30 +205,6 @@ const TimezoneSelect = ({ onSave }) => {
       updateTimezone(user.settings.timezone);
     }
   }, [user, updateTimezone]);
-  
-  // Update filtered timezones when search term changes
-  useEffect(() => {
-    if (!timezones.length) return;
-    
-    const searchTermLower = searchTerm.toLowerCase();
-    if (!searchTermLower) {
-      setFilteredTimezones(timezones);
-      return;
-    }
-    
-    const filtered = timezones.filter(timezone => {
-      // Handle both string and object formats
-      if (typeof timezone === 'string') {
-        return timezone.toLowerCase().includes(searchTermLower);
-      } else if (timezone.name) {
-        return timezone.name.toLowerCase().includes(searchTermLower) || 
-               (timezone.code && timezone.code.toLowerCase().includes(searchTermLower));
-      }
-      return false;
-    });
-    
-    setFilteredTimezones(filtered);
-  }, [searchTerm, timezones]);
   
   // Update current time based on selected timezone
   useEffect(() => {
@@ -268,12 +243,20 @@ const TimezoneSelect = ({ onSave }) => {
     return () => clearInterval(interval);
   }, [currentTimezone]);
   
-  // Handle timezone selection
-  const handleSelectTimezone = (timezone) => {
-    updateTimezone(timezone);
-    if (onSave) {
-      onSave(timezone);
-    }
+  // Format timezone options for CustomSelect
+  const formatTimezoneOptions = () => {
+    if (!timezones || !timezones.length) return [];
+    
+    return timezones.map(timezone => {
+      // Handle both string and object formats
+      const code = getTimezoneValue(timezone);
+      const label = formatTimezone(timezone);
+      
+      return {
+        value: code,
+        label: label
+      };
+    });
   };
   
   // Format timezone for display
@@ -300,20 +283,16 @@ const TimezoneSelect = ({ onSave }) => {
     return timezone;
   };
   
-  // Check if a timezone is selected
-  const isTimezoneSelected = (timezone) => {
-    const code = getTimezoneValue(timezone);
-    return code === currentTimezone;
-  };
-  
-  // Handle search input
-  const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value);
-  };
-  
-  // Clear search
-  const handleClearSearch = () => {
-    setSearchTerm('');
+  // Handle timezone selection
+  const handleSelectTimezone = (timezoneCode) => {
+    const selectedTimezone = timezones.find(tz => 
+      getTimezoneValue(tz) === timezoneCode
+    );
+    
+    updateTimezone(timezoneCode);
+    if (onSave) {
+      onSave(selectedTimezone || { code: timezoneCode });
+    }
   };
   
   return (
@@ -334,49 +313,24 @@ const TimezoneSelect = ({ onSave }) => {
         </ErrorMessage>
       )}
       
-      <SearchContainer>
-        <SearchIcon>
-          <Search size={16} />
-        </SearchIcon>
-        <SearchInput
-          type="text"
-          placeholder="Search for your timezone..."
-          value={searchTerm}
-          onChange={handleSearchChange}
-        />
-        {searchTerm && (
-          <ClearButton onClick={handleClearSearch}>
-            <X size={14} />
-          </ClearButton>
-        )}
-      </SearchContainer>
-      
       {loading ? (
         <LoadingMessage>Loading timezones...</LoadingMessage>
       ) : (
-        <TimezoneList>
-          {filteredTimezones.map((timezone, index) => (
-            <TimezoneItem
-              key={typeof timezone === 'string' ? timezone : (timezone.code || index)}
-              selected={isTimezoneSelected(timezone)}
-              onClick={() => handleSelectTimezone(timezone)}
-              whileTap={{ scale: 0.98 }}
-            >
-              {formatTimezone(timezone)}
-            </TimezoneItem>
-          ))}
+        <>
+          <CustomSelect
+            options={formatTimezoneOptions()}
+            value={currentTimezone}
+            onChange={handleSelectTimezone}
+            placeholder="Select your timezone"
+          />
           
-          {filteredTimezones.length === 0 && (
-            <LoadingMessage>No timezones found matching "{searchTerm}"</LoadingMessage>
+          {currentTime && (
+            <CurrentTime>
+              <Clock size={14} />
+              Current time: <strong>{currentTime}</strong>
+            </CurrentTime>
           )}
-        </TimezoneList>
-      )}
-      
-      {currentTimezone && (
-        <CurrentTime>
-          <Clock size={16} />
-          Current time in selected timezone: <strong>{currentTime}</strong>
-        </CurrentTime>
+        </>
       )}
     </Container>
   );

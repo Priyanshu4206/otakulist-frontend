@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { X } from 'lucide-react';
 import { watchlistAPI } from '../../services/api';
 import { createPortal } from 'react-dom';
+import useToast from '../../hooks/useToast';
 
 const ModalOverlay = styled.div`
   position: fixed;
@@ -79,11 +80,11 @@ const StatusOption = styled.div`
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  background-color: ${props => props.selected ? 'rgba(var(--tertiary-rgb), 0.1)' : 'transparent'};
-  border: 1px solid ${props => props.selected ? 'var(--tertiary)' : 'var(--borderColor)'};
+  background-color: ${props => props.selected ? 'rgba(var(--primary-rgb), 0.1)' : 'transparent'};
+  border: 1px solid ${props => props.selected ? 'var(--primary)' : 'var(--borderColor)'};
   
   &:hover {
-    background-color: rgba(var(--tertiary-rgb), 0.05);
+    background-color: rgba(var(--primary-rgb), 0.05);
   }
 `;
 
@@ -129,20 +130,28 @@ const CancelButton = styled(Button)`
 `;
 
 const ActionButton = styled(Button)`
-  background-color: var(--tertiary);
+  background-color: var(--primary);
   border: none;
   color: white;
   
   &:hover:not(:disabled) {
-    background-color: var(--tertiaryLight);
+    background-color: var(--primaryLight);
   }
 `;
 
-const WatchlistModal = ({ anime, isOpen, onClose, currentStatus }) => {
+const WatchlistModal = ({ 
+  anime, 
+  show, 
+  onClose, 
+  currentStatus, 
+  onStatusChange,
+  isScheduleAnime = false
+}) => {
   const [selectedStatus, setSelectedStatus] = useState(
     currentStatus ? currentStatus.status : 'plan_to_watch'
   );
   const [loading, setLoading] = useState(false);
+  const { showToast } = useToast();
   
   const statusOptions = [
     { value: 'watching', label: 'Currently Watching' },
@@ -155,21 +164,56 @@ const WatchlistModal = ({ anime, isOpen, onClose, currentStatus }) => {
   const handleSave = async () => {
     setLoading(true);
     try {
-      const animeId = anime.mal_id || anime.id || anime.malId;
-      await watchlistAPI.addOrUpdateAnime({
+      const animeId = isScheduleAnime 
+        ? anime.malId
+        : (anime.id || anime.malId || anime._id);
+      
+      const response = await watchlistAPI.addOrUpdateAnime({
         animeId: animeId.toString(),
         status: selectedStatus
       });
-      onClose();
+      
+      if (response && response.success) {
+        // Get the status label for the toast message
+        const statusLabel = statusOptions.find(option => option.value === selectedStatus)?.label || selectedStatus;
+        
+        // Call onStatusChange if provided
+        if (onStatusChange) {
+          onStatusChange(response.data);
+        }
+        
+        // Show success toast
+        showToast({
+          type: 'success',
+          message: currentStatus 
+            ? `Updated to ${statusLabel}` 
+            : `Added to ${statusLabel}`
+        });
+        
+        onClose();
+      } else {
+        // Show error toast
+        showToast({
+          type: 'error',
+          message: currentStatus 
+            ? 'Failed to update anime status' 
+            : 'Failed to add anime to watchlist'
+        });
+      }
     } catch (error) {
       console.error('Error updating watchlist:', error);
+      // Show error toast
+      showToast({
+        type: 'error',
+        message: 'An error occurred. Please try again.'
+      });
     } finally {
       setLoading(false);
     }
   };
   
   // If not open, don't render anything
-  if (!isOpen) return null;
+  if (!show) return null;
   
   // Use createPortal to render the modal at the root level of the DOM
   return createPortal(
@@ -192,12 +236,12 @@ const WatchlistModal = ({ anime, isOpen, onClose, currentStatus }) => {
               >
                 <StatusRadio 
                   type="radio"
-                  id={`${option.value}-${anime.mal_id || anime.id || anime.malId}`}
+                  id={`${option.value}-${isScheduleAnime ? anime.malId : (anime.id || anime.malId || anime._id)}`}
                   name="watchStatus"
                   checked={selectedStatus === option.value}
                   onChange={() => setSelectedStatus(option.value)}
                 />
-                <StatusLabel htmlFor={`${option.value}-${anime.mal_id || anime.id || anime.malId}`}>
+                <StatusLabel htmlFor={`${option.value}-${isScheduleAnime ? anime.malId : (anime.id || anime.malId || anime._id)}`}>
                   {option.label}
                 </StatusLabel>
               </StatusOption>

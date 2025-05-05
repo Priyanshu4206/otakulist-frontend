@@ -19,7 +19,7 @@ const NotFoundContainer = styled.div`
 const ErrorCode = styled.h1`
   font-size: 8rem;
   font-weight: 700;
-  color: var(--tertiary);
+  color: var(--primary);
   margin: 0;
   line-height: 1;
   opacity: 0.8;
@@ -51,7 +51,7 @@ const BackButton = styled(Link)`
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background-color: var(--tertiary);
+  background-color: var(--primary);
   color: white;
   padding: 0.75rem 1.5rem;
   border-radius: 4px;
@@ -59,7 +59,7 @@ const BackButton = styled(Link)`
   transition: all 0.2s ease;
   
   &:hover {
-    background-color: var(--tertiaryLight);
+    background-color: var(--primaryLight);
     color: white;
     transform: translateY(-2px);
   }

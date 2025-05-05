@@ -137,6 +137,9 @@ const GlobalStyles = createGlobalStyle`
   #root {
     min-height: 100vh;
     transition: background-color var(--theme-transition);
+    overflow: visible !important;
+    position: relative;
+    z-index: 0;
   }
 
   /* Special class for transition periods */
@@ -148,11 +151,28 @@ const GlobalStyles = createGlobalStyle`
                 box-shadow var(--theme-transition) !important;
   }
   
+  /* Ensure body allows for overflow elements */
+  body {
+    overflow-x: hidden;
+    overflow-y: auto;
+    position: relative;
+  }
+  
   .theme-transition-active * {
     transition: background-color var(--theme-transition),
                 color var(--theme-transition),
                 border-color var(--theme-transition),
                 box-shadow var(--theme-transition) !important;
+  }
+
+    /* Hide Scrollbars */
+  ::-webkit-scrollbar {
+    display: none;
+  }
+  
+  * {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
 `;
 

@@ -1,264 +1,61 @@
 import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Calendar, Film, ListFilter, Clock, Trophy, Users, BarChart2, Heart } from 'lucide-react';
 import Layout from '../components/layout/Layout';
 import Card from '../components/common/Card';
-import UserAvatar from '../components/common/UserAvatar';
 import AchievementsList from '../components/common/AchievementsList';
-import { userAPI, watchlistAPI } from '../services/api';
+import { userAPI, playlistAPI } from '../services/api';
 import useAuth from '../hooks/useAuth';
+import useToast from '../hooks/useToast';
 
-const PageContainer = styled.div`
-  padding: 2rem;
-  max-width: 1600px;
-  margin: 0 auto;
-  width: 100%;
-  
-  @media (max-width: 768px) {
-    padding: 1rem;
-  }
-`;
+// Import modular components
+import ProfileInfo from '../components/profile/ProfileInfo';
+import ProfileTabs, { TABS } from '../components/profile/ProfileTabs';
+import PlaylistsSection from '../components/profile/PlaylistsSection';
 
-const PageHeader = styled.header`
-  margin-bottom: 2rem;
-`;
-
-const PageTitle = styled.h1`
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-  color: var(--textPrimary);
-  letter-spacing: -0.5px;
-  
-  @media (max-width: 768px) {
-    font-size: 2rem;
-  }
-`;
-
-const PageSubtitle = styled.p`
-  font-size: 1rem;
-  color: var(--textSecondary);
-  margin-bottom: 1.5rem;
-`;
-
-const ProfileContainer = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 3fr;
-  gap: 2rem;
-  
-  @media (max-width: 1024px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const ProfileSidebar = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-`;
-
-const ProfileContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-`;
-
-const ProfileInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 1.5rem;
-`;
-
-const Username = styled.h2`
-  margin: 1rem 0 0.25rem 0;
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--textPrimary);
-`;
-
-const DisplayName = styled.h3`
-  margin: 0 0 0.5rem 0;
-  font-size: 1.1rem;
-  font-weight: 500;
-  color: var(--textSecondary);
-`;
-
-const JoinDate = styled.div`
-  font-size: 0.85rem;
-  color: var(--textSecondary);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-`;
-
-const FollowButton = styled.button`
-  background-color: var(--tertiary);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 0.5rem 1.5rem;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: 1rem;
-  
-  &:hover {
-    background-color: var(--tertiaryDark);
-  }
-  
-  &:disabled {
-    background-color: var(--borderColor);
-    cursor: not-allowed;
-  }
-`;
-
-const UnfollowButton = styled(FollowButton)`
-  background-color: var(--cardBackground);
-  color: var(--textPrimary);
-  border: 1px solid var(--borderColor);
-  
-  &:hover {
-    background-color: var(--dangerLight);
-    color: var(--danger);
-    border-color: var(--danger);
-  }
-`;
-
-const SocialStats = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.5rem;
-  width: 100%;
-  margin-top: 1rem;
-`;
-
-const StatItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 0.75rem;
-  border-radius: 8px;
-  background-color: var(--backgroundLight);
-`;
-
-const StatValue = styled.div`
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--textPrimary);
-`;
-
-const StatLabel = styled.div`
-  font-size: 0.8rem;
-  color: var(--textSecondary);
-`;
-
-const WatchlistStatsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 1rem;
-`;
-
-const WatchlistStatItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 1rem;
-  border-radius: 8px;
-  background-color: var(--cardBackground);
-  border: 1px solid var(--borderColor);
-`;
-
-const WatchlistStatIcon = styled.div`
-  color: var(--tertiary);
-  margin-bottom: 0.5rem;
-`;
-
-const WatchlistStatValue = styled.div`
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--textPrimary);
-  margin-bottom: 0.25rem;
-`;
-
-const WatchlistStatLabel = styled.div`
-  font-size: 0.85rem;
-  color: var(--textSecondary);
-`;
-
-const TabsContainer = styled.div`
-  display: flex;
-  border-bottom: 1px solid var(--borderColor);
-  margin-bottom: 1.5rem;
-  overflow-x: auto;
-  scrollbar-width: none;
-  
-  &::-webkit-scrollbar {
-    display: none;
-  }
-`;
-
-const Tab = styled.button`
-  padding: 0.75rem 1.5rem;
-  font-size: 0.95rem;
-  font-weight: ${props => props.active ? '600' : '400'};
-  color: ${props => props.active ? 'var(--tertiary)' : 'var(--textSecondary)'};
-  background: none;
-  border: none;
-  border-bottom: 2px solid ${props => props.active ? 'var(--tertiary)' : 'transparent'};
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-  
-  &:hover {
-    color: var(--tertiary);
-  }
-`;
-
-const LoadingState = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 2rem;
-  color: var(--textSecondary);
-`;
-
-const ErrorState = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 2rem;
-  color: var(--danger);
-`;
-
-const TABS = {
-  ACHIEVEMENTS: 'achievements',
-  WATCHLIST: 'watchlist',
-  ACTIVITY: 'activity',
-  PLAYLISTS: 'playlists'
-};
+// Import styles
+import {
+  PageContainer,
+  PageHeader,
+  PageTitle,
+  PageSubtitle,
+  ProfileContainer,
+  ProfileSidebar,
+  ProfileContent,
+  LoadingState,
+  ErrorState
+} from '../components/profile/ProfileStyles';
 
 const ProfilePage = () => {
   const { username } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { showToast } = useToast();
   
   const [profileData, setProfileData] = useState(null);
-  const [watchlistStats, setWatchlistStats] = useState(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [activeTab, setActiveTab] = useState(TABS.ACHIEVEMENTS);
   const [loading, setLoading] = useState(true);
+  const [followLoading, setFollowLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isOwner, setIsOwner] = useState(false);
   
+  // Playlists state
+  const [playlists, setPlaylists] = useState([]);
+  const [playlistsLoading, setPlaylistsLoading] = useState(false);
+  const [playlistsError, setPlaylistsError] = useState(null);
+  const [playlistsPage, setPlaylistsPage] = useState(1);
+  const [playlistsPagination, setPlaylistsPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    pages: 1
+  });
+  
+  // Playlist likes state
+  const [playlistLikes, setPlaylistLikes] = useState({});
+  const [processingLike, setProcessingLike] = useState({});
+  
+  // Fetch profile data
   useEffect(() => {
     const fetchProfileData = async () => {
       try {
@@ -270,27 +67,15 @@ const ProfilePage = () => {
         if (profileResponse && profileResponse.success) {
           setProfileData(profileResponse.data);
           
+          if(user && user.username === profileResponse.data.username) {
+            setIsOwner(true);
+          }
+          
           // Check if current user is following this profile
           if (user && profileResponse.data.followers) {
             setIsFollowing(profileResponse.data.followers.some(
               follower => follower.id === user.id
             ));
-          }
-          
-          // Fetch watchlist stats if privacy settings allow
-          if (profileResponse.data.settings?.showWatchlist !== false) {
-            try {
-              const watchlistResponse = await watchlistAPI.getWatchlist({
-                username: username,
-                countsOnly: true
-              });
-              
-              if (watchlistResponse && watchlistResponse.success) {
-                setWatchlistStats(watchlistResponse.data.counts);
-              }
-            } catch (watchlistError) {
-              console.error('Error fetching watchlist stats:', watchlistError);
-            }
           }
         }
       } catch (err) {
@@ -306,17 +91,80 @@ const ProfilePage = () => {
     }
   }, [username, user]);
   
+  // Fetch playlists
+  useEffect(() => {
+    const fetchPlaylists = async () => {
+      if (activeTab !== TABS.PLAYLISTS) return;
+      
+      try {
+        setPlaylistsLoading(true);
+        setPlaylistsError(null);
+        
+        const response = await playlistAPI.getUserPlaylists(username, playlistsPage, 8);
+        if (response && response.success) {
+          setPlaylists(response.data || []);
+          
+          // Initialize liked state
+          const likesState = {};
+          response.data.forEach(playlist => {
+            likesState[playlist._id] = {
+              isLiked: playlist.isLiked || false,
+              count: playlist.likesCount || 0
+            };
+          });
+          setPlaylistLikes(likesState);
+          
+          setPlaylistsPagination(response.pagination || {
+            page: 1,
+            limit: 8,
+            total: 0,
+            pages: 1
+          });
+        } else {
+          throw new Error(response?.error?.message || 'Failed to fetch playlists');
+        }
+      } catch (err) {
+        console.error('Error fetching playlists:', err);
+        setPlaylistsError('Failed to load playlists. Please try again later.');
+      } finally {
+        setPlaylistsLoading(false);
+      }
+    };
+    
+    if (username) {
+      fetchPlaylists();
+    }
+  }, [username, activeTab, playlistsPage]);
+  
+  // Handle follow/unfollow
   const handleFollowToggle = async () => {
     if (!user) {
       navigate('/login');
       return;
     }
     
+    setFollowLoading(true);
     try {
       if (isFollowing) {
-        await userAPI.unfollowUser(profileData.id);
+        const response = await userAPI.unfollowUser(profileData.id);
+        if (response.success) {
+          showToast({
+            type: 'success',
+            message: `Unfollowed ${profileData.displayName || profileData.username}`
+          });
+        } else {
+          throw new Error(response.message || 'Failed to unfollow user');
+        }
       } else {
-        await userAPI.followUser(profileData.id);
+        const response = await userAPI.followUser(profileData.id);
+        if (response.success) {
+          showToast({
+            type: 'success',
+            message: `Now following ${profileData.displayName || profileData.username}`
+          });
+        } else {
+          throw new Error(response.message || 'Failed to follow user');
+        }
       }
       
       // Toggle following state
@@ -331,18 +179,153 @@ const ProfilePage = () => {
       }));
     } catch (error) {
       console.error('Error toggling follow status:', error);
+      showToast({
+        type: 'error',
+        message: error.message || 'Error updating follow status'
+      });
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
+  // Generate an array of page numbers for pagination
+  const getPageNumbers = () => {
+    const { page, pages } = playlistsPagination;
+    let pageNumbers = [];
+    
+    if (pages <= 5) {
+      // If 5 or fewer pages, show all
+      for (let i = 1; i <= pages; i++) {
+        pageNumbers.push(i);
+      }
+    } else {
+      // Always include first page
+      pageNumbers.push(1);
+      
+      // Calculate range around current page
+      let startPage = Math.max(2, page - 1);
+      let endPage = Math.min(pages - 1, page + 1);
+      
+      // Adjust if at the beginning or end
+      if (page <= 2) {
+        endPage = 4;
+      } else if (page >= pages - 1) {
+        startPage = pages - 3;
+      }
+      
+      // Add ellipsis after first page if needed
+      if (startPage > 2) {
+        pageNumbers.push('...');
+      }
+      
+      // Add pages in range
+      for (let i = startPage; i <= endPage; i++) {
+        pageNumbers.push(i);
+      }
+      
+      // Add ellipsis before last page if needed
+      if (endPage < pages - 1) {
+        pageNumbers.push('...');
+      }
+      
+      // Always include last page
+      pageNumbers.push(pages);
+    }
+    
+    return pageNumbers;
+  };
+  
+  // Handle playlist like
+  const handleLikePlaylist = async (playlistId, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // If user is not logged in
+    if (!user) {
+      showToast({
+        type: 'info',
+        message: 'Please log in to like playlists'
+      });
+      return;
+    }
+    
+    if (isOwner) {
+      showToast({
+        type: 'info',
+        message: 'You cannot like your own playlist'
+      });
+      return;
+    }
+    
+    setProcessingLike(prev => ({ ...prev, [playlistId]: true }));
+    
+    try {
+      const response = await playlistAPI.likePlaylist(playlistId);
+      
+      if (response && (response.success || response.liked !== undefined)) {
+        // Handle different API response formats
+        const liked = response.data?.liked !== undefined ? response.data.liked : response.liked;
+        const likesCount = response.data?.likesCount !== undefined ? response.data.likesCount : response.likesCount;
+        
+        setPlaylistLikes(prev => ({
+          ...prev,
+          [playlistId]: {
+            isLiked: liked,
+            count: likesCount
+          }
+        }));
+        
+        showToast({
+          type: 'success',
+          message: liked 
+            ? 'Added to liked playlists' 
+            : 'Removed from liked playlists'
+        });
+      } else {
+        throw new Error('Failed to like playlist');
+      }
+    } catch (error) {
+      console.error('Error liking playlist:', error);
+      showToast({
+        type: 'error',
+        message: 'Failed to like playlist: ' + (error.message || 'Unknown error')
+      });
+    } finally {
+      setProcessingLike(prev => ({ ...prev, [playlistId]: false }));
     }
   };
   
-  const formatJoinDate = (dateString) => {
-    if (!dateString) return '';
+  // Handle share playlist
+  const handleSharePlaylist = async (playlist, e) => {
+    e.preventDefault();
+    e.stopPropagation();
     
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    }).format(date);
+    // Use ID-based URL for sharing for more stability across renames
+    const playlistId = playlist._id || playlist.id;
+    const url = window.location.origin + `/playlist/id/${playlistId}`;
+    
+    if (navigator.share) {
+      navigator.share({
+        title: playlist.name,
+        text: playlist.description || `Check out this anime playlist: ${playlist.name}`,
+        url: url
+      })
+      .catch(() => {}); // Silent catch for share cancellations
+    } else {
+      navigator.clipboard.writeText(url)
+        .then(() => {
+          showToast({
+            type: 'success',
+            message: 'Link copied to clipboard'
+          });
+        })
+        .catch(() => {
+          showToast({
+            type: 'error',
+            message: 'Failed to copy link'
+          });
+        });
+    }
   };
   
   if (loading) {
@@ -377,126 +360,22 @@ const ProfilePage = () => {
             
             <ProfileContainer>
               <ProfileSidebar>
-                <Card>
-                  <ProfileInfo>
-                    <UserAvatar 
-                      src={profileData.avatarUrl} 
-                      alt={profileData.displayName || profileData.username}
-                      size={120}
-                    />
-                    <Username>{profileData.username}</Username>
-                    {profileData.displayName && (
-                      <DisplayName>{profileData.displayName}</DisplayName>
-                    )}
-                    <JoinDate>
-                      <Calendar size={14} />
-                      Joined {formatJoinDate(profileData.createdAt)}
-                    </JoinDate>
-                    
-                    {profileData.bio && (
-                      <p style={{ fontSize: '0.9rem', color: 'var(--textSecondary)' }}>
-                        {profileData.bio}
-                      </p>
-                    )}
-                    
-                    {user && user.id !== profileData.id && (
-                      isFollowing ? (
-                        <UnfollowButton onClick={handleFollowToggle}>
-                          <Users size={16} />
-                          Unfollow
-                        </UnfollowButton>
-                      ) : (
-                        <FollowButton onClick={handleFollowToggle}>
-                          <Users size={16} />
-                          Follow
-                        </FollowButton>
-                      )
-                    )}
-                    
-                    <SocialStats>
-                      <StatItem>
-                        <StatValue>{profileData.followersCount || 0}</StatValue>
-                        <StatLabel>Followers</StatLabel>
-                      </StatItem>
-                      <StatItem>
-                        <StatValue>{profileData.followingCount || 0}</StatValue>
-                        <StatLabel>Following</StatLabel>
-                      </StatItem>
-                    </SocialStats>
-                  </ProfileInfo>
-                </Card>
-                
-                {watchlistStats && (
-                  <Card title="Watching Stats" icon={<BarChart2 size={18} />}>
-                    <WatchlistStatsGrid>
-                      <WatchlistStatItem>
-                        <WatchlistStatIcon>
-                          <Film size={20} />
-                        </WatchlistStatIcon>
-                        <WatchlistStatValue>{watchlistStats.watching || 0}</WatchlistStatValue>
-                        <WatchlistStatLabel>Watching</WatchlistStatLabel>
-                      </WatchlistStatItem>
-                      
-                      <WatchlistStatItem>
-                        <WatchlistStatIcon>
-                          <ListFilter size={20} />
-                        </WatchlistStatIcon>
-                        <WatchlistStatValue>{watchlistStats.completed || 0}</WatchlistStatValue>
-                        <WatchlistStatLabel>Completed</WatchlistStatLabel>
-                      </WatchlistStatItem>
-                      
-                      <WatchlistStatItem>
-                        <WatchlistStatIcon>
-                          <Clock size={20} />
-                        </WatchlistStatIcon>
-                        <WatchlistStatValue>{watchlistStats.plan_to_watch || 0}</WatchlistStatValue>
-                        <WatchlistStatLabel>Plan to Watch</WatchlistStatLabel>
-                      </WatchlistStatItem>
-                      
-                      <WatchlistStatItem>
-                        <WatchlistStatIcon>
-                          <Heart size={20} />
-                        </WatchlistStatIcon>
-                        <WatchlistStatValue>{watchlistStats.on_hold || 0}</WatchlistStatValue>
-                        <WatchlistStatLabel>On Hold</WatchlistStatLabel>
-                      </WatchlistStatItem>
-                    </WatchlistStatsGrid>
-                  </Card>
-                )}
+                <ProfileInfo 
+                  profileData={profileData}
+                  user={user}
+                  isOwner={isOwner}
+                  isFollowing={isFollowing}
+                  followLoading={followLoading}
+                  handleFollowToggle={handleFollowToggle}
+                />
               </ProfileSidebar>
               
               <ProfileContent>
                 <Card>
-                  <TabsContainer>
-                    <Tab 
-                      active={activeTab === TABS.ACHIEVEMENTS}
-                      onClick={() => setActiveTab(TABS.ACHIEVEMENTS)}
-                    >
-                      <Trophy size={16} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
-                      Achievements
-                    </Tab>
-                    <Tab 
-                      active={activeTab === TABS.WATCHLIST}
-                      onClick={() => setActiveTab(TABS.WATCHLIST)}
-                    >
-                      <Film size={16} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
-                      Watchlist
-                    </Tab>
-                    <Tab 
-                      active={activeTab === TABS.ACTIVITY}
-                      onClick={() => setActiveTab(TABS.ACTIVITY)}
-                    >
-                      <BarChart2 size={16} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
-                      Activity
-                    </Tab>
-                    <Tab 
-                      active={activeTab === TABS.PLAYLISTS}
-                      onClick={() => setActiveTab(TABS.PLAYLISTS)}
-                    >
-                      <ListFilter size={16} style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
-                      Playlists
-                    </Tab>
-                  </TabsContainer>
+                  <ProfileTabs 
+                    activeTab={activeTab}
+                    setActiveTab={setActiveTab}
+                  />
                   
                   {activeTab === TABS.ACHIEVEMENTS && (
                     <div>
@@ -510,30 +389,24 @@ const ProfilePage = () => {
                     </div>
                   )}
                   
-                  {activeTab === TABS.WATCHLIST && (
-                    <div>
-                      {profileData.settings?.showWatchlist !== false ? (
-                        <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--textSecondary)' }}>
-                          Watchlist feature coming soon!
-                        </div>
-                      ) : (
-                        <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--textSecondary)' }}>
-                          This user has chosen to keep their watchlist private.
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  
-                  {activeTab === TABS.ACTIVITY && (
-                    <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--textSecondary)' }}>
-                      Activity feed coming soon!
-                    </div>
-                  )}
-                  
                   {activeTab === TABS.PLAYLISTS && (
-                    <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--textSecondary)' }}>
-                      Playlists feature coming soon!
-                    </div>
+                    <PlaylistsSection
+                      playlists={playlists}
+                      playlistsLoading={playlistsLoading}
+                      playlistsError={playlistsError}
+                      playlistLikes={playlistLikes}
+                      processingLike={processingLike}
+                      user={user}
+                      isOwner={isOwner}
+                      username={username}
+                      profileData={profileData}
+                      playlistsPage={playlistsPage}
+                      playlistsPagination={playlistsPagination}
+                      setPlaylistsPage={setPlaylistsPage}
+                      handleLikePlaylist={handleLikePlaylist}
+                      handleSharePlaylist={handleSharePlaylist}
+                      getPageNumbers={getPageNumbers}
+                    />
                   )}
                 </Card>
               </ProfileContent>

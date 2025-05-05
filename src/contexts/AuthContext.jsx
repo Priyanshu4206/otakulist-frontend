@@ -3,6 +3,7 @@ import { authAPI, resetAuthFailedState } from '../services/api';
 import { saveUserTimezone } from '../utils/simpleTimezoneUtils';
 import { saveUserTheme } from '../components/dashboard/SettingsSection';
 import { themes } from '../contexts/ThemeContext';
+import useToast from '../hooks/useToast';
 
 export const AuthContext = createContext();
 
@@ -16,7 +17,6 @@ const applyThemeDirectly = (themeName) => {
   const theme = themes[themeName];
   if (!theme) return false;
   
-  console.log('[AUTH DEBUG] Directly applying theme:', themeName);
   const root = document.documentElement;
   
   // Apply all theme properties as CSS variables
@@ -45,6 +45,9 @@ const applyThemeDirectly = (themeName) => {
   return true;
 };
 
+// Debug flag - set to true to enable debug logging
+const DEBUG_AUTH = false;
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -52,6 +55,7 @@ export const AuthProvider = ({ children }) => {
   const [initialAuthCheckComplete, setInitialAuthCheckComplete] = useState(false);
   const fetchInProgress = useRef(false);
   const authFailCount = useRef(0);
+  const { showToast } = useToast();
 
   // Function to sync user preferences (theme, etc.) after setting user data
   const syncUserPreferences = useCallback((userData) => {
@@ -62,21 +66,18 @@ export const AuthProvider = ({ children }) => {
       const newTheme = userData.settings.interfaceTheme;
       const currentTheme = getCurrentTheme();
       
-      console.log('[AUTH DEBUG] Syncing user theme preference:', newTheme, 'Current theme:', currentTheme);
       
       // Save theme to localStorage
       saveUserTheme(newTheme);
       
       // If the theme from the server is different from the current theme, apply it immediately
       if (newTheme !== currentTheme) {
-        console.log('[AUTH DEBUG] Theme changed from server, applying immediately:', newTheme);
         applyThemeDirectly(newTheme);
       }
     }
     
     // Sync timezone preference if available
     if (userData.settings && userData.settings.timezone) {
-      console.log('[AUTH DEBUG] Syncing user timezone preference:', userData.settings.timezone);
       saveUserTimezone(userData.settings.timezone);
     }
   }, []);
@@ -87,7 +88,7 @@ export const AuthProvider = ({ children }) => {
     // Check if token exists
     const token = localStorage.getItem('auth_token');
     if (!token && !force) {
-      console.log('[AUTH DEBUG] No token found, skipping auth check');
+      if (DEBUG_AUTH) console.log('[AUTH DEBUG] No token found, skipping fetch');
       setLoading(false);
       setUser(null);
       setInitialAuthCheckComplete(true);
@@ -96,15 +97,12 @@ export const AuthProvider = ({ children }) => {
     
     // Prevent concurrent calls
     if (fetchInProgress.current || authFailCount.current >= 3) {
-      console.log('[AUTH DEBUG] Skipping auth check:', {
-        fetchInProgress: fetchInProgress.current,
-        authFailCount: authFailCount.current
-      });
+      if (DEBUG_AUTH) console.log('[AUTH DEBUG] Fetch already in progress or too many failures, skipping');
       return null;
     }
 
     try {
-      console.log('[AUTH DEBUG] Fetching current user (force:', force, ', preserveUIState:', preserveUIState, ')');
+      if (DEBUG_AUTH) console.log('[AUTH DEBUG] Starting fetch of current user');
       fetchInProgress.current = true;
       
       // Only set loading if we're not preserving UI state
@@ -116,8 +114,8 @@ export const AuthProvider = ({ children }) => {
       
       const response = await authAPI.getCurrentUser();
       
-      if (response && response.success && response.data) {
-        console.log('[AUTH DEBUG] User authenticated successfully:', response.data.username || response.data.email);
+      if (response && response.success && response.data) { 
+        if (DEBUG_AUTH) console.log('[AUTH DEBUG] Fetch successful');
         
         // Only update user object if we're not in UI preserving mode or if important data changed
         if (!preserveUIState) {
@@ -144,7 +142,7 @@ export const AuthProvider = ({ children }) => {
         // Return the user data for promise chaining
         return response.data;
       } else {
-        console.log('[AUTH DEBUG] User not authenticated or invalid response format:', response);
+        if (DEBUG_AUTH) console.log('[AUTH DEBUG] Fetch failed, no data or success flag');
         if (!preserveUIState) {
           setUser(null);
         }
@@ -154,6 +152,12 @@ export const AuthProvider = ({ children }) => {
         return null;
       }
     } catch (err) {
+      // Special handling for throttled requests - don't count as failure
+      if (err?.throttled) {
+        if (DEBUG_AUTH) console.log('[AUTH DEBUG] Auth request was throttled to prevent API spam');
+        return null;
+      }
+      
       console.error('[AUTH DEBUG] Error fetching current user:', err);
       if (!preserveUIState) {
         setUser(null);
@@ -169,12 +173,12 @@ export const AuthProvider = ({ children }) => {
       }
       fetchInProgress.current = false;
       setInitialAuthCheckComplete(true);
+      if (DEBUG_AUTH) console.log('[AUTH DEBUG] Fetch completed');
     }
   }, [syncUserPreferences]);
 
   // Check auth status on mount
   useEffect(() => {
-    console.log('[AUTH DEBUG] Auth context mounted, checking auth status');
     fetchCurrentUser();
     
     // Return early cleanup to prevent memory leaks
@@ -186,7 +190,6 @@ export const AuthProvider = ({ children }) => {
   // Handle logout
   const logout = async () => {
     try {
-      console.log('[AUTH DEBUG] Logging out user');
       setLoading(true);
       
       // Important: Clear user state before API call to prevent UI flicker
@@ -196,16 +199,47 @@ export const AuthProvider = ({ children }) => {
       authFailCount.current = 0;
       resetAuthFailedState();
       
+      // Clear all auth-related localStorage and sessionStorage items
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_from_callback');
+      localStorage.removeItem('auth_checked');
+      localStorage.removeItem('has_valid_token');
+      sessionStorage.removeItem('auth_callback_processed');
+      
+      // Set a flag in sessionStorage to indicate we just logged out
+      // This will be used to ensure proper re-login flow
+      sessionStorage.setItem('from_logout', 'true');
+      
       // Call API to logout server-side
       await authAPI.logout();
       
+      // Show success toast
+      showToast({
+        type: 'success',
+        message: 'Successfully logged out'
+      });
+      
       // Redirect to login page after logout
-      console.log('[AUTH DEBUG] Logout complete, redirecting to login page');
       window.location.href = '/login';
     } catch (err) {
       console.error('[AUTH DEBUG] Error during logout:', err);
+      
       // Still clear user on frontend even if API call fails
       setUser(null);
+      
+      // Clear auth data even if API call fails
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_from_callback');
+      localStorage.removeItem('auth_checked');
+      localStorage.removeItem('has_valid_token');
+      sessionStorage.removeItem('auth_callback_processed');
+      sessionStorage.setItem('from_logout', 'true');
+      
+      // Show error toast
+      showToast({
+        type: 'error',
+        message: 'Error during logout, but session cleared'
+      });
       
       // Force redirect to login page even if logout fails
       window.location.href = '/login';
@@ -216,21 +250,14 @@ export const AuthProvider = ({ children }) => {
 
   // Manual refresh function that forces a new fetch and returns a promise
   // preserveUIState = true will avoid triggering UI-changing state updates 
-  const refreshUser = useCallback((preserveUIState = false) => {
-    console.log('[AUTH DEBUG] Manually refreshing user data (preserveUIState:', preserveUIState, ')');
-    // Reset the fail count to force a new fetch
+  const refreshUser = useCallback((preserveUIState = false) => {    // Reset the fail count to force a new fetch
     authFailCount.current = 0;
     // Return the promise from fetchCurrentUser for proper async handling
     return fetchCurrentUser(true, preserveUIState);
   }, [fetchCurrentUser]);
 
   // Function to handle login success from token in URL hash
-  const handleLoginSuccess = (userData, token) => {
-    console.log('[AUTH DEBUG] Handling login success', {
-      hasUserData: !!userData,
-      hasToken: !!token
-    });
-    
+  const handleLoginSuccess = (userData, token) => {   
     if (userData) {
       setUser(userData);
       // Sync user preferences from login data
@@ -245,14 +272,23 @@ export const AuthProvider = ({ children }) => {
     authFailCount.current = 0;
     resetAuthFailedState();
     
-    // Force refresh user data
-    console.log('[AUTH DEBUG] Forcing refresh of user data after login');
-    setTimeout(() => fetchCurrentUser(true), 100);
+    // Check if we're coming from auth callback
+    const fromCallback = localStorage.getItem('auth_from_callback') === 'true';
+    
+    if (fromCallback) {      
+      // Clear the flag
+      localStorage.removeItem('auth_from_callback');
+      
+      // Set initialAuthCheckComplete to true
+      setInitialAuthCheckComplete(true);
+    } else {
+      // Not from auth callback - refresh user data as usual
+      setTimeout(() => fetchCurrentUser(true), 100);
+    }
   };
 
   // Function to initiate Google OAuth login
   const loginWithGoogle = () => {
-    console.log('[AUTH DEBUG] Initiating Google OAuth login');
     // Reset fail count
     authFailCount.current = 0;
     // Reset auth failed state
@@ -274,7 +310,20 @@ export const AuthProvider = ({ children }) => {
     loginWithGoogle,
     handleLoginSuccess,
     logout,
-    refreshUser
+    refreshUser,
+    fetchCurrentUser,
+    refreshUserData: async () => {
+      // This function is used to refresh user data after operations like
+      // creating a playlist or updating user settings
+      // We use preserveUIState=true to avoid UI flickers
+      try {
+        const userData = await fetchCurrentUser(true, true);
+        return userData;
+      } catch (error) {
+        console.error('Error refreshing user data:', error);
+        return null;
+      }
+    }
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

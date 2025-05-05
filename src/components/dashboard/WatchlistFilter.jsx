@@ -41,8 +41,8 @@ const SearchInput = styled.input`
   
   &:focus {
     outline: none;
-    border-color: var(--tertiary);
-    box-shadow: 0 4px 15px rgba(var(--tertiary-rgb), 0.2);
+    border-color: var(--primary);
+    box-shadow: 0 4px 15px rgba(var(--primary-rgb), 0.2);
   }
 
   &::placeholder {
@@ -55,7 +55,7 @@ const SearchIcon = styled.div`
   left: 1rem;
   top: 50%;
   transform: translateY(-50%);
-  color: var(--tertiary);
+  color: var(--primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -86,19 +86,19 @@ const FilterButton = styled.button`
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  background: ${props => props.active ? 'var(--tertiary)' : 'rgba(var(--cardBackground-rgb), 0.8)'};
+  background: ${props => props.active ? 'var(--primary)' : 'rgba(var(--cardBackground-rgb), 0.8)'};
   color: ${props => props.active ? 'white' : 'var(--textPrimary)'};
-  border: 1px solid ${props => props.active ? 'var(--tertiary)' : 'rgba(var(--borderColor-rgb), 0.2)'};
+  border: 1px solid ${props => props.active ? 'var(--primary)' : 'rgba(var(--borderColor-rgb), 0.2)'};
   border-radius: 8px;
   padding: 0.85rem 1.2rem;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: ${props => props.active ? '0 5px 15px rgba(var(--tertiary-rgb), 0.2)' : '0 3px 10px rgba(0, 0, 0, 0.05)'};
+  box-shadow: ${props => props.active ? '0 5px 15px rgba(var(--primary-rgb), 0.2)' : '0 3px 10px rgba(0, 0, 0, 0.05)'};
   transition: all 0.2s ease;
   
   &:hover {
-    background: ${props => props.active ? 'var(--tertiary)' : 'rgba(var(--tertiary-rgb), 0.1)'};
+    background: ${props => props.active ? 'var(--primary)' : 'rgba(var(--primary-rgb), 0.1)'};
     transform: translateY(-2px);
   }
 `;
@@ -147,7 +147,7 @@ const FilterLabel = styled.div`
   gap: 0.5rem;
   
   svg {
-    color: var(--tertiary);
+    color: var(--primary);
   }
 `;
 
@@ -182,14 +182,6 @@ const genreOptions = [
   { value: 'thriller', label: 'Thriller' },
 ];
 
-const sortOptions = [
-  { value: 'title', label: 'Title' },
-  { value: 'score', label: 'Your Score' },
-  { value: 'progress', label: 'Progress' },
-  { value: 'last_updated', label: 'Last Updated' },
-  { value: 'release_date', label: 'Release Date' },
-];
-
 const seasonOptions = [
   { value: '', label: 'All Seasons' },
   { value: 'winter', label: 'Winter' },
@@ -204,7 +196,6 @@ const WatchlistFilter = ({ filters, onChange }) => {
   const [localFilters, setLocalFilters] = useState({
     status: '',
     genres: [],
-    sort: 'last_updated',
     season: '',
     ...filters
   });
@@ -326,18 +317,6 @@ const WatchlistFilter = ({ filters, onChange }) => {
                   value={localFilters.genres}
                   onChange={(value) => handleFilterChange('genres', value)}
                   placeholder="All Genres"
-                />
-              </FilterGroup>
-              
-              <FilterGroup>
-                <FilterLabel>
-                  <Star size={16} />
-                  Sort By
-                </FilterLabel>
-                <CustomSelect
-                  options={sortOptions}
-                  value={localFilters.sort}
-                  onChange={(value) => handleFilterChange('sort', value)}
                 />
               </FilterGroup>
               

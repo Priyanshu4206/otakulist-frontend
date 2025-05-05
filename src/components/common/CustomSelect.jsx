@@ -30,14 +30,14 @@ const SelectTrigger = styled.button`
   -webkit-tap-highlight-color: transparent;
   
   &:hover {
-    border-color: var(--tertiary);
-    box-shadow: 0 2px 6px rgba(var(--tertiary-rgb), 0.1);
+    border-color: var(--primary);
+    box-shadow: 0 2px 6px rgba(var(--primary-rgb), 0.1);
   }
   
   &:focus {
     outline: none;
-    border-color: var(--tertiary);
-    box-shadow: 0 0 0 2px rgba(var(--tertiary-rgb), 0.1);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.1);
   }
 `;
 
@@ -58,23 +58,42 @@ const DropdownMenu = styled(motion.div)`
   border: 1px solid rgba(var(--borderColor-rgb), 0.2);
   border-radius: 8px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-  z-index: 100;
+  z-index: 1000;
   backdrop-filter: blur(10px);
   touch-action: auto;
-  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS devices */
+  -webkit-overflow-scrolling: touch;
+  filter: none;
+  isolation: isolate; /* Create a new stacking context */
+  transform-style: preserve-3d; /* Forces a new rendering context */
   
+  /* Fixed portal position to ensure dropdown is rendered on top of other elements */
+  position: fixed;
+  transform-origin: top left;
+  
+  /* Custom scrollbar styling */
   &::-webkit-scrollbar {
+    display: block;
     width: 6px;
   }
   
   &::-webkit-scrollbar-track {
-    background: transparent;
+    background: rgba(var(--borderColor-rgb), 0.05);
+    border-radius: 3px;
   }
   
   &::-webkit-scrollbar-thumb {
-    background-color: rgba(var(--tertiary-rgb), 0.3);
+    background-color: rgba(var(--primary-rgb), 0.3);
     border-radius: 3px;
+    transition: background-color 0.3s ease;
+    
+    &:hover {
+      background-color: rgba(var(--primary-rgb), 0.5);
+    }
   }
+  
+  /* Firefox scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(var(--primary-rgb), 0.3) rgba(var(--borderColor-rgb), 0.05);
 `;
 
 const OptionItem = styled.div`
@@ -82,20 +101,20 @@ const OptionItem = styled.div`
   align-items: center;
   justify-content: space-between;
   padding: 0.7rem 1rem;
-  color: ${props => props.selected ? 'var(--tertiary)' : 'var(--textPrimary)'};
-  background: ${props => props.selected ? 'rgba(var(--tertiary-rgb), 0.1)' : 'transparent'};
+  color: ${props => props.selected ? 'var(--primary)' : 'var(--textPrimary)'};
+  background: ${props => props.selected ? 'rgba(var(--primary-rgb), 0.1)' : 'transparent'};
   cursor: pointer;
   transition: all 0.2s ease;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   
   &:hover {
-    background: rgba(var(--tertiary-rgb), 0.05);
-    color: var(--tertiary);
+    background: rgba(var(--primary-rgb), 0.05);
+    color: var(--primary);
   }
   
   &:active {
-    background: rgba(var(--tertiary-rgb), 0.15);
+    background: rgba(var(--primary-rgb), 0.15);
   }
   
   &:not(:last-child) {
@@ -110,7 +129,7 @@ const OptionText = styled.span`
 const CheckIcon = styled.div`
   display: flex;
   align-items: center;
-  color: var(--tertiary);
+  color: var(--primary);
 `;
 
 const dropdownVariants = {
@@ -141,8 +160,20 @@ const CustomSelect = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
+  const [dropdownStyle, setDropdownStyle] = useState({});
   
   const selectedOption = options.find(option => option.value === value);
+  
+  // Update dropdown position based on container position
+  useEffect(() => {
+    if (isOpen) {
+      setDropdownStyle({
+        position: 'absolute',
+        top: `3.1rem`,
+        maxHeight: '250px',
+      });
+    }
+  }, [isOpen]);
   
   const toggleDropdown = () => {
     setIsOpen(!isOpen);
@@ -196,6 +227,7 @@ const CustomSelect = ({
             exit="hidden"
             variants={dropdownVariants}
             role="listbox"
+            style={dropdownStyle}
           >
             {options.map((option) => (
               <OptionItem

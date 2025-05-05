@@ -10,7 +10,7 @@ const AvatarContainer = styled.div`
   overflow: hidden;
   background-color: var(--cardBackground);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  border: 3px solid ${({ showBorder }) => (showBorder ? 'var(--tertiary)' : 'transparent')};
+  border: 3px solid ${({ showBorder }) => (showBorder ? 'var(--primary)' : 'transparent')};
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -51,7 +51,6 @@ const UserAvatar = ({
   const handleError = () => {
     setError(true);
   };
-  
   return (
     <AvatarContainer size={size} showBorder={showBorder} {...props}>
       {src && !error ? (

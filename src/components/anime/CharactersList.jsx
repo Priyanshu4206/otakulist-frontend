@@ -14,18 +14,6 @@ const fadeIn = keyframes`
   }
 `;
 
-const glowEffect = keyframes`
-  0% {
-    box-shadow: 0 0 10px rgba(var(--secondary-rgb), 0.3);
-  }
-  50% {
-    box-shadow: 0 0 20px rgba(var(--secondary-rgb), 0.5);
-  }
-  100% {
-    box-shadow: 0 0 10px rgba(var(--secondary-rgb), 0.3);
-  }
-`;
-
 const Section = styled.section`
   margin: 2rem 0;
 `;

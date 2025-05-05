@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
-import { Star, Users, Clock, Tv, Bookmark } from 'lucide-react';
+import { Star, Users, Clock, Tv, Bookmark, BookOpen } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
 import { watchlistAPI } from '../../services/api';
 import WatchlistModal from '../common/WatchlistModal';
+import PlaylistAddModal from '../common/PlaylistAddModal';
+import useToast from '../../hooks/useToast';
 
 const Card = styled.div`
   position: relative;
@@ -110,8 +112,8 @@ const GenreList = styled.div`
 const GenreBadge = styled.span`
   font-size: 0.65rem;
   padding: 0.1rem 0.4rem;
-  background: rgba(var(--tertiaryLight-rgb), 0.1);
-  color: var(--tertiary);
+  background: rgba(var(--primaryLight-rgb), 0.1);
+  color: var(--primary);
   border-radius: 30px;
 `;
 
@@ -122,7 +124,7 @@ const WatchlistButton = styled.button`
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--cardBackground);
   border: none;
   display: flex;
   align-items: center;
@@ -134,13 +136,22 @@ const WatchlistButton = styled.button`
   backdrop-filter: blur(2px);
   
   &:hover {
-    background: var(--tertiary);
+    background: var(--primary);
     transform: scale(1.1);
   }
   
   svg {
     width: 14px;
     height: 14px;
+  }
+`;
+
+const PlaylistButton = styled(WatchlistButton)`
+  left: auto;
+  right: 0.5rem;
+  
+  &:hover {
+    background: var(--secondary);
   }
 `;
 
@@ -208,8 +219,10 @@ const ScoreInfo = styled.div`
 const ScheduleAnimeCard = ({ anime }) => {
   const { isAuthenticated } = useAuth();
   const [watchlistModalOpen, setWatchlistModalOpen] = useState(false);
+  const [playlistModalOpen, setPlaylistModalOpen] = useState(false);
   const [animeStatus, setAnimeStatus] = useState(null);
   const [loading, setLoading] = useState(false);
+  const { showToast } = useToast();
   
   // Get anime details
   const animeId = anime.malId || anime._id;
@@ -272,15 +285,34 @@ const ScheduleAnimeCard = ({ anime }) => {
     e.preventDefault();
     e.stopPropagation();
     
-    if (!isAuthenticated) return;
+    if (!isAuthenticated) {
+      showToast({
+        type: 'warning',
+        message: 'You need to be logged in to add anime to watchlist'
+      });
+      return;
+    }
     
     setLoading(true);
+    
     try {
-      const response = await watchlistAPI.getAnimeStatus(animeId);
-      setAnimeStatus(response.data);
-      setWatchlistModalOpen(true);
+      const response = await watchlistAPI.getAnimeStatus(anime.malId);
+      
+      if (response && response.success) {
+        setAnimeStatus(response.data);
+        setWatchlistModalOpen(true);
+      } else {
+        showToast({
+          type: 'error',
+          message: response?.message || 'Failed to get anime status'
+        });
+      }
     } catch (error) {
-      console.error('Error fetching anime status:', error);
+      console.error('Error getting anime status:', error);
+      showToast({
+        type: 'error',
+        message: 'An error occurred. Please try again.'
+      });
     } finally {
       setLoading(false);
     }
@@ -292,12 +324,28 @@ const ScheduleAnimeCard = ({ anime }) => {
         <ImageContainer>
           <Image src={getImageUrl()} alt={getTitle()} loading="lazy" />
           {isAuthenticated && (
-            <WatchlistButton 
-              title="Add to watchlist"
-              onClick={handleWatchlistClick}
-            >
-              <Bookmark size={16} />
-            </WatchlistButton>
+            <>
+              <WatchlistButton 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleWatchlistClick(e);
+                }}
+                disabled={loading}
+              >
+                <Bookmark />
+              </WatchlistButton>
+              
+              <PlaylistButton
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setPlaylistModalOpen(true);
+                }}
+              >
+                <BookOpen />
+              </PlaylistButton>
+            </>
           )}
         </ImageContainer>
         
@@ -364,10 +412,21 @@ const ScheduleAnimeCard = ({ anime }) => {
       
       {watchlistModalOpen && (
         <WatchlistModal
-          anime={anime}
-          isOpen={watchlistModalOpen}
+          show={watchlistModalOpen}
           onClose={() => setWatchlistModalOpen(false)}
+          anime={anime}
           currentStatus={animeStatus}
+          onStatusChange={setAnimeStatus}
+          isScheduleAnime={true}
+        />
+      )}
+      
+      {playlistModalOpen && (
+        <PlaylistAddModal
+          show={playlistModalOpen}
+          onClose={() => setPlaylistModalOpen(false)}
+          anime={anime}
+          isScheduleAnime={true}
         />
       )}
     </Card>

@@ -7,6 +7,7 @@ import useAuth from '../../hooks/useAuth';
 import { userAPI, watchlistAPI } from '../../services/api';
 import AchievementsList from '../common/AchievementsList';
 import { Link } from 'react-router-dom';
+import useToast from '../../hooks/useToast';
 
 const StatsGrid = styled.div`
   display: grid;
@@ -44,7 +45,7 @@ const StatItem = styled.div`
     left: 0;
     width: 100%;
     height: 4px;
-    background: linear-gradient(90deg, var(--tertiary), var(--primary));
+    background: linear-gradient(90deg, var(--primary), var(--primary));
     transform: scaleX(0);
     transform-origin: left;
     transition: transform 0.3s ease;
@@ -61,12 +62,12 @@ const StatItem = styled.div`
 `;
 
 const StatIcon = styled.div`
-  color: var(--tertiary);
+  color: var(--primary);
   margin-bottom: 1rem;
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background-color: rgba(var(--tertiary-rgb), 0.1);
+  background-color: rgba(var(--primary-rgb), 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -74,7 +75,7 @@ const StatIcon = styled.div`
   
   ${StatItem}:hover & {
     transform: scale(1.1);
-    background-color: var(--tertiary);
+    background-color: var(--primary);
     color: white;
   }
 `;
@@ -87,7 +88,7 @@ const StatValue = styled.div`
   transition: all 0.3s ease;
   
   ${StatItem}:hover & {
-    color: var(--tertiary);
+    color: var(--primary);
   }
 `;
 
@@ -109,7 +110,7 @@ const SectionTitle = styled.h3`
   color: var(--textPrimary);
   
   svg {
-    color: var(--tertiary);
+    color: var(--primary);
   }
 `;
 
@@ -182,7 +183,7 @@ const SocialName = styled.div`
   transition: color 0.2s ease;
   
   ${SocialItem}:hover & {
-    color: var(--tertiary);
+    color: var(--primary);
   }
 `;
 
@@ -226,8 +227,8 @@ const HowToUnlock = styled.div`
   }
   
   li svg {
-    color: var(--tertiary);
-    background: rgba(var(--tertiary-rgb), 0.1);
+    color: var(--primary);
+    background: rgba(var(--primary-rgb), 0.1);
     padding: 0.5rem;
     border-radius: 50%;
     flex-shrink: 0;
@@ -246,6 +247,7 @@ const TopAchievements = styled.div`
 
 const StatsSection = () => {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [watchlistStats, setWatchlistStats] = useState({
     watching: 0,
@@ -254,12 +256,6 @@ const StatsSection = () => {
     on_hold: 0,
     dropped: 0,
     total: 0
-  });
-  const [followers, setFollowers] = useState([]);
-  const [following, setFollowing] = useState([]);
-  const [socialCounts, setSocialCounts] = useState({
-    followersCount: 0,
-    followingCount: 0
   });
   
   useEffect(() => {
@@ -274,36 +270,26 @@ const StatsSection = () => {
         const watchlistResponse = await watchlistAPI.getWatchlist();
         if (watchlistResponse.success) {
           setWatchlistStats(watchlistResponse.data.counts || {});
-        }
-        
-        // Fetch followers with limit for display
-        const followersResponse = await userAPI.getFollowers(1, 8);
-        if (followersResponse.success) {
-          setFollowers(followersResponse.data || []);
-          setSocialCounts(prev => ({ 
-            ...prev,
-            followersCount: user.followersCount || followersResponse.data.length
-          }));
-        }
-        
-        // Fetch following with limit for display
-        const followingResponse = await userAPI.getFollowing(1, 8);
-        if (followingResponse.success) {
-          setFollowing(followingResponse.data || []);
-          setSocialCounts(prev => ({ 
-            ...prev,
-            followingCount: user.followingCount || followingResponse.data.length
-          }));
+        } else {
+          console.error('Failed to load watchlist stats:', watchlistResponse);
+          showToast({
+            type: 'error',
+            message: 'Failed to load watchlist statistics'
+          });
         }
       } catch (error) {
         console.error('Error fetching stats data:', error);
+        showToast({
+          type: 'error',
+          message: 'Error loading dashboard statistics'
+        });
       } finally {
         setLoading(false);
       }
     };
     
     fetchData();
-  }, [user]);
+  }, [user, showToast]);
   
   // Calculate watchlist total
   const calculateWatchlistTotal = () => {
@@ -337,6 +323,7 @@ const StatsSection = () => {
   
   const animeWatchedCount = getAnimeWatchedCount();
   const watchlistTotal = calculateWatchlistTotal();
+  const followersCount = user?.followersCount || 0;
   
   return (
     <>
@@ -370,7 +357,7 @@ const StatsSection = () => {
           <StatIcon>
             <Users size={24} />
           </StatIcon>
-          <StatValue>{socialCounts.followersCount || 0}</StatValue>
+          <StatValue>{followersCount}</StatValue>
           <StatLabel>Followers</StatLabel>
         </StatItem>
       </StatsGrid>
@@ -384,7 +371,7 @@ const StatsSection = () => {
       <TopAchievements>
         {user?.achievements?.current && (
           <StatItem style={{ maxWidth: '350px', margin: '0 auto 2rem auto' }}>
-            <StatIcon style={{ backgroundColor: 'var(--tertiary)', color: 'white' }}>
+            <StatIcon style={{ backgroundColor: 'var(--primary)', color: 'white' }}>
               <Trophy size={24} />
             </StatIcon>
             <StatValue>{user.achievements.current}</StatValue>
@@ -441,66 +428,6 @@ const StatsSection = () => {
           </li>
         </ul>
       </HowToUnlock>
-      
-      <SectionDivider />
-      
-      {/* Social Section */}
-      {(followers.length > 0 || following.length > 0) && (
-        <>
-          <SectionTitle>
-            <Users size={22} />
-            Social Network
-          </SectionTitle>
-          
-          <SocialContainer>
-            <SocialSection>
-              <h4 style={{ marginBottom: '1rem' }}>Followers ({socialCounts.followersCount || 0})</h4>
-              {followers.length > 0 ? (
-                <SocialGrid>
-                  {followers.map(follower => (
-                    <SocialItem key={follower._id} to={`/profile/${follower.username_slug}`}>
-                      <UserAvatar 
-                        src={follower.avatarUrl} 
-                        alt={follower.displayName || follower.username} 
-                        size={50} 
-                      />
-                      <SocialName>{follower.displayName || follower.username}</SocialName>
-                    </SocialItem>
-                  ))}
-                </SocialGrid>
-              ) : (
-                <NoContent>
-                  <Users size={36} color="var(--textSecondary)" />
-                  <p>No followers yet</p>
-                </NoContent>
-              )}
-            </SocialSection>
-            
-            <SocialSection>
-              <h4 style={{ marginBottom: '1rem' }}>Following ({socialCounts.followingCount || 0})</h4>
-              {following.length > 0 ? (
-                <SocialGrid>
-                  {following.map(followed => (
-                    <SocialItem key={followed._id} to={`/profile/${followed.username_slug}`}>
-                      <UserAvatar 
-                        src={followed.avatarUrl} 
-                        alt={followed.displayName || followed.username} 
-                        size={50} 
-                      />
-                      <SocialName>{followed.displayName || followed.username}</SocialName>
-                    </SocialItem>
-                  ))}
-                </SocialGrid>
-              ) : (
-                <NoContent>
-                  <Users size={36} color="var(--textSecondary)" />
-                  <p>Not following anyone yet</p>
-                </NoContent>
-              )}
-            </SocialSection>
-          </SocialContainer>
-        </>
-      )}
     </>
   );
 };

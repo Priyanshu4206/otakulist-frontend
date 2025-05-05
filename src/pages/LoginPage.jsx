@@ -1,33 +1,193 @@
 import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LogIn } from 'lucide-react';
+import { LogIn, User, Key, ChevronRight, MessageSquare, Quote } from 'lucide-react';
 import useAuth from '../hooks/useAuth';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { resetAuthFailedState } from '../services/api';
+import Layout from '../components/layout/Layout';
+import Card from '../components/common/Card';
+import { motion } from 'framer-motion';
 
-const LoginContainer = styled.div`
+const PageContainer = styled.div`
+  padding: 2rem;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  background-color: var(--background);
-  padding: 2rem;
+  min-height: calc(100vh - var(--header-height));
+  
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
 `;
 
-const LoginCard = styled.div`
-  background-color: var(--cardBackground);
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  padding: 2rem;
-  width: 100%;
-  max-width: 400px;
+const PageTitle = styled.h1`
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: var(--textPrimary);
+  letter-spacing: -0.5px;
   text-align: center;
+  background: var(--gradientPrimary);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  
+  @media (max-width: 768px) {
+    font-size: 2rem;
+  }
+`;
+
+const PageSubtitle = styled.p`
+  font-size: 1.1rem;
+  color: var(--textSecondary);
+  margin-bottom: 2rem;
+  text-align: center;
+  max-width: 600px;
+`;
+
+const ContentGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  width: 100%;
+  max-width: 1600px;
+  
+  @media (max-width: 992px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const LoginSection = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const FeaturesSection = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const LoginButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 1rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  margin-top: 1rem;
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.2);
+  
+  &:hover {
+    background-color: var(--primaryLight);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(var(--primary-rgb), 0.25);
+  }
+  
+  svg {
+    margin-right: 10px;
+  }
+`;
+
+const FeatureCard = styled(motion.div)`
+  background-color: var(--cardBackground);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--borderColor);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  
+  h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: var(--textPrimary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  p {
+    color: var(--textSecondary);
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+  
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    border-color: rgba(var(--primary-rgb), 0.3);
+  }
+`;
+
+const QuoteCard = styled(motion.div)`
+  background: linear-gradient(135deg, rgba(var(--primary-rgb), 0.08), rgba(var(--secondary-rgb), 0.08));
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 1rem;
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 80px;
+    height: 80px;
+    background: radial-gradient(circle, rgba(var(--primary-rgb), 0.2) 0%, transparent 70%);
+    border-radius: 50%;
+    transform: translate(30%, -30%);
+  }
+  
+  p {
+    font-style: italic;
+    color: var(--textPrimary);
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+    position: relative;
+    z-index: 1;
+  }
+  
+  cite {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--textSecondary);
+    text-align: right;
+    position: relative;
+    z-index: 1;
+  }
+`;
+
+const ErrorMessage = styled.div`
+  background-color: rgba(var(--danger-rgb), 0.1);
+  color: var(--danger);
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 `;
 
 const Logo = styled.div`
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   
   img {
     height: 80px;
@@ -36,65 +196,31 @@ const Logo = styled.div`
   }
   
   h1 {
-    font-size: 1.8rem;
+    font-size: 2.2rem;
     color: var(--textPrimary);
     margin-bottom: 0.5rem;
-  }
-  
-  p {
-    color: var(--textSecondary);
+    font-weight: 800;
+    background: var(--gradientPrimary);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
 `;
 
-const LoginButton = styled.button`
+// LogoFallback component in case the image doesn't load
+const LogoFallback = styled.div`
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--gradientPrimary);
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--tertiary);
+  font-size: 2rem;
+  font-weight: 800;
   color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  width: 100%;
-  margin-top: 1.5rem;
-  
-  &:hover {
-    background-color: var(--tertiaryLight);
-  }
-  
-  svg {
-    margin-right: 8px;
-  }
+  margin-bottom: 1rem;
 `;
-
-const QuoteContainer = styled.div`
-  margin-top: 2.5rem;
-  padding: 1rem;
-  background-color: rgba(99, 102, 241, 0.1);
-  border-radius: 8px;
-  
-  p {
-    font-style: italic;
-    color: var(--textPrimary);
-  }
-  
-  cite {
-    display: block;
-    margin-top: 0.5rem;
-    font-size: 0.9rem;
-    color: var(--textSecondary);
-  }
-`;
-
-// Handle query parameters for token
-const useQueryParams = () => {
-  const { search } = useLocation();
-  return React.useMemo(() => new URLSearchParams(search), [search]);
-};
 
 // Sample anime quotes
 const animeQuotes = [
@@ -120,6 +246,25 @@ const animeQuotes = [
   }
 ];
 
+// Features for the features section
+const features = [
+  {
+    icon: <User size={20} />,
+    title: "Personalized Experience",
+    description: "Get recommendations tailored to your watching history and preferences."
+  },
+  {
+    icon: <ChevronRight size={20} />,
+    title: "Track Your Progress",
+    description: "Keep track of what you're watching, plan to watch, and have completed."
+  },
+  {
+    icon: <MessageSquare size={20} />,
+    title: "Join the Community",
+    description: "Discuss your favorite anime with fellow fans and make new friends."
+  }
+];
+
 const LoginPage = () => {
   const { isAuthenticated, loading, initialAuthCheckComplete, loginWithGoogle, handleLoginSuccess } = useAuth();
   const navigate = useNavigate();
@@ -138,24 +283,34 @@ const LoginPage = () => {
   const userData = queryParams.get('user');
   const authSuccess = queryParams.get('auth_success');
   
+  // Custom Google login function with additional cleanup
+  const handleGoogleLogin = () => {
+    // Clear all possible auth flags and tokens before initiating login    
+    // Clear all auth-related storage items
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_from_callback');
+    localStorage.removeItem('auth_checked');
+    localStorage.removeItem('has_valid_token');
+    sessionStorage.removeItem('auth_callback_processed');
+    sessionStorage.removeItem('from_logout');
+    
+    // Reset auth failed state in API service
+    resetAuthFailedState();
+    
+    // Now initiate the login
+    loginWithGoogle();
+  };
+  
   // Handle OAuth callback with token
   useEffect(() => {
-    console.log('[AUTH DEBUG] LoginPage mounted, checking for auth tokens/cookies');
-    console.log('[AUTH DEBUG] URL params:', {
-      token: token ? 'exists' : 'not found',
-      userData: userData ? 'exists' : 'not found',
-      authSuccess: authSuccess
-    });
-    
-    // According to backend docs, we should have a JWT cookie set automatically
-    // after successful OAuth. Check for it or other success indicators.
-    
     // Check if we have token in URL (legacy/fallback approach)
     if (token) {
-      console.log('[AUTH DEBUG] Found token in URL, processing login');
       try {
         // Parse user data if available
         const parsedUserData = userData ? JSON.parse(userData) : null;
+        
+        // Set flag to indicate we're coming from direct token auth
+        localStorage.setItem('auth_from_callback', 'true');
         
         // Handle successful login
         handleLoginSuccess(parsedUserData, token);
@@ -165,7 +320,6 @@ const LoginPage = () => {
         window.history.replaceState({}, document.title, cleanUrl);
         
         // Navigate to destination
-        console.log('[AUTH DEBUG] Navigating to:', from);
         navigate(from, { replace: true });
       } catch (err) {
         console.error('[AUTH DEBUG] Error processing login data:', err);
@@ -175,10 +329,6 @@ const LoginPage = () => {
     }
     
     // If redirected from OAuth with no visible token, check for cookies
-    // We can't directly access httpOnly cookies, but we can check for success parameters
-    // or assume cookies are set after redirect from OAuth endpoint
-    
-    // Get the referrer to check if we're coming from OAuth
     const referrer = document.referrer;
     const comingFromOAuth = referrer && 
                           (referrer.includes('/auth/google') || 
@@ -186,8 +336,9 @@ const LoginPage = () => {
     
     const justLoggedIn = authSuccess === 'true' || comingFromOAuth;
     
-    if (justLoggedIn) {
-      console.log('[AUTH DEBUG] Detected OAuth redirect with cookies, refreshing user data');
+    if (justLoggedIn) {      
+      // Set flag to indicate we're coming from direct callback
+      localStorage.setItem('auth_from_callback', 'true');
       
       // The backend should have set cookies - try to authenticate with them
       handleLoginSuccess(null, null);
@@ -197,42 +348,40 @@ const LoginPage = () => {
       window.history.replaceState({}, document.title, cleanUrl);
       
       // Navigate to destination
-      console.log('[AUTH DEBUG] Navigating to:', from);
       navigate(from, { replace: true });
     }
   }, [token, userData, authSuccess, handleLoginSuccess, navigate, from]);
   
   // Reset auth failed state when login page loads
   useEffect(() => {
-    console.log('[AUTH DEBUG] Resetting auth failed state and clearing auth_checked flag');
-    
     // Reset the auth failed state when the login page mounts
     resetAuthFailedState();
     
     // Also clear any localStorage flags that might prevent auth checks
     localStorage.removeItem('auth_checked');
+    localStorage.removeItem('auth_from_callback');
     
-    // Check for URL parameters that indicate auth failure
-    const hasAuthError = queryParams.get('error') || location.hash.includes('error');
-    if (hasAuthError) {
-      console.log('[AUTH DEBUG] Auth error detected in URL');
-      // Clear cookies as they might be stale or invalid
+    // Check if we came from a logout
+    const fromLogout = sessionStorage.getItem('from_logout');
+    if (fromLogout) {      // Remove the flag
+      sessionStorage.removeItem('from_logout');
+      
+      // Clear all auth-related data
+      localStorage.removeItem('has_valid_token');
+      localStorage.removeItem('auth_token');
+      sessionStorage.removeItem('auth_callback_processed');
+      
+      // Ensure cookies are cleared
       document.cookie = 'jwt=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; domain=' + window.location.hostname;
       document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; domain=' + window.location.hostname;
       document.cookie = 'jwt=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;';
       document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;';
     }
     
-    // If we came from a logout, we might need to clear some additional state
-    const fromLogout = sessionStorage.getItem('from_logout');
-    if (fromLogout) {
-      console.log('[AUTH DEBUG] User came from logout, clearing additional state');
-      // Remove the flag
-      sessionStorage.removeItem('from_logout');
-      // Clear additional state
-      localStorage.removeItem('has_valid_token');
-      localStorage.removeItem('auth_token');
-      // Ensure cookies are cleared
+    // Check for URL parameters that indicate auth failure
+    const hasAuthError = queryParams.get('error') || location.hash.includes('error');
+    if (hasAuthError) { 
+      // Clear cookies as they might be stale or invalid
       document.cookie = 'jwt=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; domain=' + window.location.hostname;
       document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; domain=' + window.location.hostname;
       document.cookie = 'jwt=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;';
@@ -242,55 +391,106 @@ const LoginPage = () => {
   
   // If already authenticated, redirect
   useEffect(() => {
-    if (isAuthenticated && !loading) {
-      console.log('[AUTH DEBUG] Already authenticated, redirecting to:', from);
+    if (isAuthenticated && !loading && initialAuthCheckComplete) {
       navigate(from, { replace: true });
     }
-  }, [isAuthenticated, loading, navigate, from]);
+  }, [isAuthenticated, loading, initialAuthCheckComplete, navigate, from]);
   
-  // If still loading or initial auth check is not complete, show a loading spinner
   if (loading || !initialAuthCheckComplete) {
-    return <LoadingSpinner fullScreen />;
-  }
-
-  // If authenticated but still on this page (rare race condition), redirect immediately
-  if (isAuthenticated) {
-    console.log('[AUTH DEBUG] User authenticated but still on login page, redirecting immediately');
-    navigate(from, { replace: true });
-    return null;
+    return (
+      <Layout>
+        <PageContainer style={{ justifyContent: 'center' }}>
+          <LoadingSpinner size={40} />
+          <p style={{ marginTop: '1rem', color: 'var(--textSecondary)' }}>Loading authentication status...</p>
+        </PageContainer>
+      </Layout>
+    );
   }
   
+  // If not loading and not authenticated, show login UI
   return (
-    <LoginContainer>
-      <LoginCard>
-        <Logo>
-          <img src="/images/logo.svg" alt="Anime-Share Logo" />
-          <h1>Anime-Share</h1>
-          <p>Join the community of anime enthusiasts</p>
-        </Logo>
+    <Layout>
+      <PageContainer>
+        <PageTitle>Welcome to OtakuList</PageTitle>
+        <PageSubtitle>
+          Track, discover, and share your favorite anime with fellow otaku from around the world
+        </PageSubtitle>
         
-        {error && (
-          <div style={{ 
-            padding: '0.75rem',
-            marginBottom: '1rem',
-            backgroundColor: 'rgba(239, 68, 68, 0.1)',
-            color: 'var(--error)',
-            borderRadius: '4px'
-          }}>
-            {error === 'auth_failed' ? 'Authentication failed. Please try again.' : error}
-          </div>
-        )}
-        
-        <LoginButton onClick={loginWithGoogle}>
-          <LogIn size={20} /> Login with Google
-        </LoginButton>
-        
-        <QuoteContainer>
-          <p>"{randomQuote.quote}"</p>
-          <cite>— {randomQuote.source}</cite>
-        </QuoteContainer>
-      </LoginCard>
-    </LoginContainer>
+        <ContentGrid>
+          <LoginSection>
+            <Card>
+              <Logo>
+                {/* Try to load logo image with fallback */}
+                <img 
+                  src="/images/logo.png" 
+                  alt="OtakuList Logo" 
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    const fallback = document.getElementById('logo-fallback');
+                    if (fallback) fallback.style.display = 'flex';
+                  }}
+                />
+                <LogoFallback id="logo-fallback" style={{ display: 'none' }}>
+                  O
+                </LogoFallback>
+                <h1>OtakuList</h1>
+              </Logo>
+              
+              {error && (
+                <ErrorMessage>
+                  <Key size={16} />
+                  {error}
+                </ErrorMessage>
+              )}
+              
+              <p style={{ marginBottom: '1.5rem', color: 'var(--textSecondary)' }}>
+                Sign in to track your anime, create custom lists, and join the community.
+              </p>
+              
+              <LoginButton onClick={handleGoogleLogin}>
+                <LogIn size={20} />
+                Continue with Google
+              </LoginButton>
+              
+              <QuoteCard
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <Quote size={24} style={{ color: 'var(--primary)', opacity: 0.5, marginBottom: '0.5rem' }} />
+                <p>"{randomQuote.quote}"</p>
+                <cite>— {randomQuote.source}</cite>
+              </QuoteCard>
+            </Card>
+          </LoginSection>
+          
+          <FeaturesSection>
+            {features.map((feature, index) => (
+              <FeatureCard
+                key={index}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 * (index + 1) }}
+              >
+                <h3>{feature.icon} {feature.title}</h3>
+                <p>{feature.description}</p>
+              </FeatureCard>
+            ))}
+            
+            <Card style={{ marginTop: '1rem' }}>
+              <h3 style={{ marginBottom: '1rem' }}>Why Join OtakuList?</h3>
+              <ul style={{ color: 'var(--textSecondary)', lineHeight: '1.6' }}>
+                <li>Automatically track your watching progress</li>
+                <li>Discover new anime based on your preferences</li>
+                <li>Create custom watchlists and playlists</li>
+                <li>Share recommendations with friends</li>
+                <li>Get notified when new episodes are available</li>
+              </ul>
+            </Card>
+          </FeaturesSection>
+        </ContentGrid>
+      </PageContainer>
+    </Layout>
   );
 };
 

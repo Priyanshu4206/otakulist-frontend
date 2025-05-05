@@ -51,7 +51,7 @@ const FeaturesGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1.5rem;
-  max-width: 1200px;
+  max-width: 1600px;
   margin: 0 auto;
   padding: 1rem;
   
@@ -133,8 +133,8 @@ const SimplifiedFeatureSection = () => {
       title: 'Custom Watch Lists',
       description: 'Create and manage your personal watch lists to keep track of what to watch next.',
       icon: ListChecks,
-      gradient: `linear-gradient(135deg, ${theme.tertiary} 0%, ${theme.tertiaryLight} 100%)`,
-      iconColor: theme.tertiary
+      gradient: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryLight} 100%)`,
+      iconColor: theme.primary
     },
     {
       title: 'Community & Discussions',

@@ -14,7 +14,7 @@ const StatusContainer = styled.span`
       case 'watching':
         return 'var(--success)';
       case 'completed':
-        return 'var(--tertiary)';
+        return 'var(--primary)';
       case 'on_hold':
         return 'var(--warning)';
       case 'dropped':
