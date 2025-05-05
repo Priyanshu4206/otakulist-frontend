@@ -48,6 +48,10 @@ const EmptyMessage = styled.div`
 `;
 
 const PlaylistAnimeGrid = ({ playlist, isOwner, onOpenMAL, onDeleteAnime }) => {
+  // Handle different API response formats
+  const animeItems = playlist.items || playlist.animes || [];
+  const hasAnime = animeItems.length > 0 || (playlist.animeIds && playlist.animeIds.length > 0);
+
   return (
     <ContentCard
       title={
@@ -57,12 +61,12 @@ const PlaylistAnimeGrid = ({ playlist, isOwner, onOpenMAL, onDeleteAnime }) => {
       }
       icon={<BookOpen size={20} />}
     >
-      {playlist.items.length > 0 ? (
+      {hasAnime ? (
         <AnimeGrid>
-          {playlist.items.map((item) => (
+          {animeItems.map((item) => (
             <PlaylistAnimeCard 
-              key={item._id || item.anime.malId}
-              anime={item.anime}
+              key={item._id || item.anime?.malId || (item.anime && item.anime.id)}
+              anime={item.anime || item}
               isOwner={isOwner}
               onOpenMAL={onOpenMAL}
               onDeleteAnime={onDeleteAnime}
