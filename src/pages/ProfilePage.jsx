@@ -6,6 +6,7 @@ import AchievementsList from '../components/common/AchievementsList';
 import { userAPI, playlistAPI } from '../services/api';
 import useAuth from '../hooks/useAuth';
 import useToast from '../hooks/useToast';
+import copyToClipboard from '../utils/copyToClipboard';
 
 // Import modular components
 import ProfileInfo from '../components/profile/ProfileInfo';
@@ -295,39 +296,6 @@ const ProfilePage = () => {
     }
   };
   
-  // Handle share playlist
-  const handleSharePlaylist = async (playlist, e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    // Use ID-based URL for sharing for more stability across renames
-    const playlistId = playlist._id || playlist.id;
-    const url = window.location.origin + `/playlist/id/${playlistId}`;
-    
-    if (navigator.share) {
-      navigator.share({
-        title: playlist.name,
-        text: playlist.description || `Check out this anime playlist: ${playlist.name}`,
-        url: url
-      })
-      .catch(() => {}); // Silent catch for share cancellations
-    } else {
-      navigator.clipboard.writeText(url)
-        .then(() => {
-          showToast({
-            type: 'success',
-            message: 'Link copied to clipboard'
-          });
-        })
-        .catch(() => {
-          showToast({
-            type: 'error',
-            message: 'Failed to copy link'
-          });
-        });
-    }
-  };
-  
   if (loading) {
     return (
       <Layout>
@@ -380,7 +348,18 @@ const ProfilePage = () => {
                   {activeTab === TABS.ACHIEVEMENTS && (
                     <div>
                       {profileData.settings?.showWatchlist !== false ? (
-                        <AchievementsList username={username} showProgress={true} showCategory={true} />
+                        profileData.achievements ? (
+                          <AchievementsList 
+                            userData={profileData} 
+                            showProgress={true} 
+                            showCategory={true} 
+                            isPublicProfile={true} 
+                          />
+                        ) : (
+                          <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--textSecondary)' }}>
+                            No achievements data available.
+                          </div>
+                        )
                       ) : (
                         <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--textSecondary)' }}>
                           This user has chosen to keep their achievements private.
@@ -404,7 +383,6 @@ const ProfilePage = () => {
                       playlistsPagination={playlistsPagination}
                       setPlaylistsPage={setPlaylistsPage}
                       handleLikePlaylist={handleLikePlaylist}
-                      handleSharePlaylist={handleSharePlaylist}
                       getPageNumbers={getPageNumbers}
                     />
                   )}

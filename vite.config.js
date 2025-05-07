@@ -14,8 +14,8 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: "https://otaku-backend.jumpingcrab.com",
-        // target: 'http://localhost:3000',
+        // target: "https://otaku-backend.jumpingcrab.com",
+        target: "http://localhost:3000",
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, "/api/v1"),
       },

@@ -175,7 +175,7 @@ const RecommendationsList = ({ recommendations, loading }) => {
   if (loading) {
     return (
       <Section>
-        <SectionTitle>Recommendations</SectionTitle>
+        <SectionTitle>You May Also Like</SectionTitle>
         <ScrollContainer>
           {[...Array(5)].map((_, index) => (
             <ShimmerCard key={index} width="280px" height="380px" />
@@ -189,7 +189,7 @@ const RecommendationsList = ({ recommendations, loading }) => {
   if (!recommendations || recommendations.length === 0) {
     return (
       <Section>
-        <SectionTitle>Recommendations</SectionTitle>
+        <SectionTitle>You May Also Like</SectionTitle>
         <EmptyState>No recommendations available.</EmptyState>
       </Section>
     );
@@ -201,7 +201,7 @@ const RecommendationsList = ({ recommendations, loading }) => {
   return (
     <Section>
       <SectionTitle>
-        Recommendations
+      You May Also Like
         <ScrollControls>
           <ScrollButton onClick={scrollLeft}>
             <ChevronLeft size={20} />

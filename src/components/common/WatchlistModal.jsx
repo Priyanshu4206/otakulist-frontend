@@ -139,11 +139,11 @@ const ActionButton = styled(Button)`
   }
 `;
 
-const WatchlistModal = ({ 
-  anime, 
-  show, 
-  onClose, 
-  currentStatus, 
+const WatchlistModal = ({
+  anime,
+  show,
+  onClose,
+  currentStatus,
   onStatusChange,
   isScheduleAnime = false
 }) => {
@@ -152,7 +152,7 @@ const WatchlistModal = ({
   );
   const [loading, setLoading] = useState(false);
   const { showToast } = useToast();
-  
+
   const statusOptions = [
     { value: 'watching', label: 'Currently Watching' },
     { value: 'completed', label: 'Completed' },
@@ -160,61 +160,81 @@ const WatchlistModal = ({
     { value: 'on_hold', label: 'On Hold' },
     { value: 'dropped', label: 'Dropped' }
   ];
-  
+
   const handleSave = async () => {
     setLoading(true);
     try {
-      const animeId = isScheduleAnime 
+      const animeId = isScheduleAnime
         ? anime.malId
-        : (anime.id || anime.malId || anime._id);
-      
+        : (anime.malId || anime.mal_id || anime.id || anime._id);
+
       const response = await watchlistAPI.addOrUpdateAnime({
         animeId: animeId.toString(),
         status: selectedStatus
       });
-      
+
       if (response && response.success) {
         // Get the status label for the toast message
         const statusLabel = statusOptions.find(option => option.value === selectedStatus)?.label || selectedStatus;
-        
-        // Call onStatusChange if provided
-        if (onStatusChange) {
-          onStatusChange(response.data);
-        }
-        
-        // Show success toast
-        showToast({
+
+        // Store response data for after modal closes
+        const responseData = response.data;
+
+        // Store toast message data
+        const toastMessage = {
           type: 'success',
-          message: currentStatus 
-            ? `Updated to ${statusLabel}` 
+          message: currentStatus
+            ? `Updated to ${statusLabel}`
             : `Added to ${statusLabel}`
-        });
-        
+        };
+
+        // Close the modal first
         onClose();
+
+        // Call onStatusChange if provided (after modal closes)
+        if (onStatusChange) {
+          onStatusChange(responseData);
+        }
+
+        // Show success toast after a slight delay to ensure modal is closed
+        setTimeout(() => {
+          showToast(toastMessage);
+        }, 100);
       } else {
-        // Show error toast
-        showToast({
-          type: 'error',
-          message: currentStatus 
-            ? 'Failed to update anime status' 
-            : 'Failed to add anime to watchlist'
-        });
+        // Close the modal first
+        onClose();
+
+        // Show error toast after modal closes
+        setTimeout(() => {
+          showToast({
+            type: 'error',
+            message: currentStatus
+              ? 'Failed to update anime status'
+              : 'Failed to add anime to watchlist'
+          });
+        }, 100);
       }
     } catch (error) {
       console.error('Error updating watchlist:', error);
-      // Show error toast
-      showToast({
-        type: 'error',
-        message: 'An error occurred. Please try again.'
-      });
+
+      // Close the modal first
+      onClose();
+
+      // Show error toast after modal closes
+      setTimeout(() => {
+        showToast({
+          type: 'error',
+          message: 'An error occurred. Please try again.'
+        });
+      }, 100);
     } finally {
       setLoading(false);
     }
   };
-  
+
   // If not open, don't render anything
   if (!show) return null;
-  
+
   // Use createPortal to render the modal at the root level of the DOM
   return createPortal(
     <ModalOverlay onClick={onClose}>
@@ -225,16 +245,16 @@ const WatchlistModal = ({
             <X size={20} />
           </CloseButton>
         </ModalHeader>
-        
+
         <ModalBody>
           <StatusGrid>
             {statusOptions.map(option => (
-              <StatusOption 
+              <StatusOption
                 key={option.value}
                 selected={selectedStatus === option.value}
                 onClick={() => setSelectedStatus(option.value)}
               >
-                <StatusRadio 
+                <StatusRadio
                   type="radio"
                   id={`${option.value}-${isScheduleAnime ? anime.malId : (anime.id || anime.malId || anime._id)}`}
                   name="watchStatus"
@@ -248,11 +268,11 @@ const WatchlistModal = ({
             ))}
           </StatusGrid>
         </ModalBody>
-        
+
         <ModalFooter>
           <CancelButton onClick={onClose}>Cancel</CancelButton>
-          <ActionButton 
-            onClick={handleSave} 
+          <ActionButton
+            onClick={handleSave}
             disabled={loading}
           >
             {loading ? 'Saving...' : currentStatus ? 'Update' : 'Add'}

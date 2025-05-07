@@ -54,7 +54,7 @@ const ContentGrid = styled.div`
   grid-template-columns: 1fr 1fr;
   gap: 2rem;
   width: 100%;
-  max-width: 1600px;
+  max-width: 1200px;
   
   @media (max-width: 992px) {
     grid-template-columns: 1fr;

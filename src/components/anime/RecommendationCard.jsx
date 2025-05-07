@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { Link, useNavigate } from 'react-router-dom';
-import { Star, Calendar, Clock, ThumbsUp, Bookmark, BookOpen, ExternalLink, Tv } from 'lucide-react';
+import { Star, Bookmark, BookOpen, ExternalLink, Tv } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
 import { watchlistAPI } from '../../services/api';
 import WatchlistModal from '../common/WatchlistModal';
@@ -259,7 +259,7 @@ const RecommendationCard = ({ anime }) => {
   // Extract anime data with proper fallbacks
   const {
     id,
-    malId, 
+    malId,
     mal_id,
     titles,
     title_english,
@@ -270,68 +270,67 @@ const RecommendationCard = ({ anime }) => {
     status,
     url,
   } = anime;
-  
+
   // Get the anime ID for linking
   const animeId = id || malId || mal_id;
-  
   // Get the appropriate image URL
   const getImageUrl = () => {
     if (!images) return '';
-    
+
     // Handle different API response structures
     if (images.jpg) return images.jpg.large_image_url || images.jpg.image_url;
     if (images.webp) return images.webp.large_image_url || images.webp.image_url;
     if (images.image_url) return images.image_url;
     if (images.large) return images.large;
     if (images.medium) return images.medium;
-    
+
     // Fallback if we can't find a good image
     return '';
   };
-  
+
   // Get the appropriate title with proper fallback
   const getTitle = () => {
     if (titles) {
       return titles.english || titles.romaji || titles.native || titles.default;
     }
-    
+
     return title_english || title || 'Unknown Anime';
   };
-  
+
   // Format the duration
   const formatDuration = (duration) => {
     if (!duration) return 'Unknown';
-    
+
     // If duration is already in minutes (e.g. "24 min per ep")
     if (typeof duration === 'string' && duration.includes('min')) {
       return duration;
     }
-    
+
     // If duration is a number (assumed to be minutes)
     if (typeof duration === 'number' || !isNaN(parseInt(duration))) {
       const mins = parseInt(duration);
       return `${mins} min per ep`;
     }
-    
+
     return duration;
   };
-  
+
   // Format the season and year
   const formatSeason = (season, year) => {
     if (!season && !year) return 'Unknown';
-    
+
     if (season && year) {
       return `${season.charAt(0).toUpperCase() + season.slice(1)} ${year}`;
     }
-    
+
     return season ? `${season.charAt(0).toUpperCase() + season.slice(1)}` : `${year}`;
   };
-  
+
   // Handle watchlist button click
   const handleWatchlistClick = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (!isAuthenticated) {
       showToast({
         type: 'warning',
@@ -339,12 +338,12 @@ const RecommendationCard = ({ anime }) => {
       });
       return;
     }
-    
+
     setLoading(true);
-    
+
     try {
       const response = await watchlistAPI.getAnimeStatus(animeId);
-      
+
       if (response && response.success) {
         setAnimeWatchStatus(response.data);
         setWatchlistOpen(true);
@@ -364,11 +363,11 @@ const RecommendationCard = ({ anime }) => {
       setLoading(false);
     }
   };
-  
+
   const handlePlaylistClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (!isAuthenticated) {
       showToast({
         type: 'warning',
@@ -376,58 +375,58 @@ const RecommendationCard = ({ anime }) => {
       });
       return;
     }
-    
+
     setPlaylistModalOpen(true);
   };
-  
+
   const handleExternalLink = (e) => {
     e.preventDefault();
     e.stopPropagation();
     navigate(`/anime/${animeId}`, { target: '_blank' });
   };
-  
+
   // The score to display (handle different API response formats)
   const animeScore = score || scored;
-  
+
   // The display title
   const displayTitle = getTitle();
-  
+
   // The image URL
   const imageUrl = getImageUrl();
-  
+
   return (
     <Card>
       <CardLink to={`/anime/${animeId}`}>
         <ImageContainer>
           <Image src={imageUrl} alt={displayTitle} loading="lazy" />
           <ShimmerOverlay />
-          
+
           {animeScore && (
             <ScoreBadge>
               <Star size={16} strokeWidth={2.5} />
               {typeof animeScore === 'number' ? animeScore.toFixed(1) : animeScore}
             </ScoreBadge>
           )}
-          
+
           {status && (
             <StatusBadge status={status}>
               {status.replace('Airing', 'Airing').replace('Finished Airing', 'Completed')}
             </StatusBadge>
           )}
-          
+
           <Title>{displayTitle}</Title>
-          
+
           <ActionButtonsContainer>
             {isAuthenticated && (
               <>
-                <WatchlistButton 
+                <WatchlistButton
                   onClick={handleWatchlistClick}
                   disabled={loading}
                   title="Add to watchlist"
                 >
                   <Bookmark size={16} />
                 </WatchlistButton>
-                
+
                 <PlaylistButton
                   onClick={handlePlaylistClick}
                   title="Add to playlist"
@@ -436,7 +435,7 @@ const RecommendationCard = ({ anime }) => {
                 </PlaylistButton>
               </>
             )}
-            
+
             {url && (
               <ExternalButton
                 onClick={handleExternalLink}
@@ -448,7 +447,7 @@ const RecommendationCard = ({ anime }) => {
           </ActionButtonsContainer>
         </ImageContainer>
       </CardLink>
-      
+
       {/* Watchlist Modal */}
       {watchlistOpen && (
         <WatchlistModal
@@ -459,7 +458,7 @@ const RecommendationCard = ({ anime }) => {
           onStatusChange={setAnimeWatchStatus}
         />
       )}
-      
+
       {/* Playlist Modal */}
       {playlistModalOpen && (
         <PlaylistAddModal

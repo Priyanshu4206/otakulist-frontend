@@ -89,30 +89,57 @@ export const JoinDate = styled.div`
 export const Bio = styled.p`
   font-size: 0.9rem;
   color: var(--textSecondary);
+  margin-bottom: 1rem;
+`;
+
+export const ButtonsRow = styled.div`
+  display: flex;
+  justify-content: center;
+  margin: 1rem 0;
+  width: 100%;
+`;
+
+export const ButtonGroup = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+  
+  @media (max-width: 480px) {
+    flex-direction: column;
+    width: 100%;
+    max-width: 200px;
+  }
 `;
 
 export const FollowButton = styled.button`
   background-color: var(--primary);
   color: white;
   border: none;
-  border-radius: 4px;
-  padding: 0.5rem 1.5rem;
+  border-radius: 8px;
+  padding: 0.6rem 1.2rem;
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
-  margin-top: 1rem;
   
   &:hover {
     background-color: var(--primaryDark);
+    transform: translateY(-2px);
+  }
+  
+  &:active {
+    transform: translateY(0);
   }
   
   &:disabled {
     background-color: var(--borderColor);
     cursor: not-allowed;
+    transform: none;
   }
 `;
 
@@ -125,6 +152,18 @@ export const UnfollowButton = styled(FollowButton)`
     background-color: var(--dangerLight);
     color: var(--danger);
     border-color: var(--danger);
+  }
+`;
+
+export const ShareButton = styled(FollowButton)`
+  background-color: var(--backgroundLight);
+  color: var(--textPrimary);
+  border: 1px solid var(--borderColor);
+  
+  &:hover {
+    background-color: var(--backgroundLight);
+    color: var(--primary);
+    border-color: var(--primary);
   }
 `;
 

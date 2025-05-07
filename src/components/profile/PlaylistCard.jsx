@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, Share2, Play, Image } from 'lucide-react';
+import { Heart, Play, Image } from 'lucide-react';
+import ShareButton from '../common/ShareButton';
 import {
   PlaylistCard as StyledPlaylistCard,
   PlaylistCover,
@@ -15,7 +16,6 @@ import {
   MetaBadge,
   ActionButtons,
   ActionButton,
-  formatDate
 } from './ProfileStyles';
 
 const PlaylistCard = ({
@@ -26,9 +26,11 @@ const PlaylistCard = ({
   likeCount,
   isProcessingLike,
   handleLikePlaylist,
-  handleSharePlaylist
 }) => {
   const animeImages = playlist?.coverImages || [];
+  
+  // Create share URL for the playlist
+  const shareUrl = `${window.location.origin}/playlist/id/${playlist._id || playlist.id}`;
 
   return (
     <Link 
@@ -69,13 +71,20 @@ const PlaylistCard = ({
               </ActionButton>
             )}
             
-            <ActionButton 
-              onClick={(e) => handleSharePlaylist(playlist, e)}
-              $primary={true}
-              aria-label="Share playlist"
-            >
-              <Share2 size={16} />
-            </ActionButton>
+            <ShareButton
+              url={shareUrl}
+              title={playlist.name}
+              text={playlist.description || `Check out this anime playlist: ${playlist.name}`}
+              iconOnly={true}
+              size="small"
+              variant="primary"
+              style={{ 
+                padding: '0.5rem', 
+                borderRadius: '50%', 
+                minWidth: '32px',
+                height: '32px'
+              }}
+            />
           </ActionButtons>
         </PlaylistCover>
         

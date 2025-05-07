@@ -16,15 +16,15 @@ const getCurrentTheme = () => {
 const applyThemeDirectly = (themeName) => {
   const theme = themes[themeName];
   if (!theme) return false;
-  
+
   const root = document.documentElement;
-  
+
   // Apply all theme properties as CSS variables
   Object.entries(theme).forEach(([key, value]) => {
     if (key === 'name') return; // Skip the name property
-    
+
     root.style.setProperty(`--${key}`, value);
-    
+
     // Handle RGB conversion for certain properties
     if (typeof value === 'string' && value.startsWith('#') && !value.includes('gradient')) {
       const r = parseInt(value.slice(1, 3), 16);
@@ -33,15 +33,15 @@ const applyThemeDirectly = (themeName) => {
       root.style.setProperty(`--${key}-rgb`, `${r}, ${g}, ${b}`);
     }
   });
-  
+
   // Apply theme-specific class to body
   document.body.className = document.body.className
     .split(' ')
     .filter(cls => !cls.endsWith('-theme'))
     .join(' ');
-  
+
   document.body.classList.add(`${themeName}-theme`);
-  
+
   return true;
 };
 
@@ -60,22 +60,22 @@ export const AuthProvider = ({ children }) => {
   // Function to sync user preferences (theme, etc.) after setting user data
   const syncUserPreferences = useCallback((userData) => {
     if (!userData) return;
-    
+
     // Sync theme preference if available
     if (userData.settings && userData.settings.interfaceTheme) {
       const newTheme = userData.settings.interfaceTheme;
       const currentTheme = getCurrentTheme();
-      
-      
+
+
       // Save theme to localStorage
       saveUserTheme(newTheme);
-      
+
       // If the theme from the server is different from the current theme, apply it immediately
       if (newTheme !== currentTheme) {
         applyThemeDirectly(newTheme);
       }
     }
-    
+
     // Sync timezone preference if available
     if (userData.settings && userData.settings.timezone) {
       saveUserTimezone(userData.settings.timezone);
@@ -94,7 +94,7 @@ export const AuthProvider = ({ children }) => {
       setInitialAuthCheckComplete(true);
       return null;
     }
-    
+
     // Prevent concurrent calls
     if (fetchInProgress.current || authFailCount.current >= 3) {
       if (DEBUG_AUTH) console.log('[AUTH DEBUG] Fetch already in progress or too many failures, skipping');
@@ -104,19 +104,19 @@ export const AuthProvider = ({ children }) => {
     try {
       if (DEBUG_AUTH) console.log('[AUTH DEBUG] Starting fetch of current user');
       fetchInProgress.current = true;
-      
+
       // Only set loading if we're not preserving UI state
       if (!preserveUIState) {
         setLoading(true);
       }
-      
+
       setError(null);
-      
+
       const response = await authAPI.getCurrentUser();
-      
-      if (response && response.success && response.data) { 
+
+      if (response && response.success && response.data) {
         if (DEBUG_AUTH) console.log('[AUTH DEBUG] Fetch successful');
-        
+
         // Only update user object if we're not in UI preserving mode or if important data changed
         if (!preserveUIState) {
           setUser(response.data);
@@ -124,21 +124,23 @@ export const AuthProvider = ({ children }) => {
           // When preserving UI state, we still need to update user data, but we do it
           // carefully to avoid UI resets
           setUser(prevUser => {
-            // Merge the new settings with the existing user object
+            // Merge the new data with the existing user object, preserving UI state
             return {
               ...prevUser,
-              // Only update settings to preserve UI state
-              settings: response.data.settings || prevUser.settings
+              // Update settings and other non-UI-affecting properties
+              settings: response.data.settings || prevUser.settings,
+              // Always ensure we update playlists to keep them current
+              playlists: response.data.playlists || prevUser.playlists
             };
           });
         }
-        
+
         // Sync user preferences - this won't change UI state
         syncUserPreferences(response.data);
-        
+
         // Reset fail count on success
         authFailCount.current = 0;
-        
+
         // Return the user data for promise chaining
         return response.data;
       } else {
@@ -148,7 +150,7 @@ export const AuthProvider = ({ children }) => {
         }
         // Increment fail count
         authFailCount.current++;
-        
+
         return null;
       }
     } catch (err) {
@@ -157,7 +159,7 @@ export const AuthProvider = ({ children }) => {
         if (DEBUG_AUTH) console.log('[AUTH DEBUG] Auth request was throttled to prevent API spam');
         return null;
       }
-      
+
       console.error('[AUTH DEBUG] Error fetching current user:', err);
       if (!preserveUIState) {
         setUser(null);
@@ -165,7 +167,7 @@ export const AuthProvider = ({ children }) => {
       setError(err.message || 'Failed to authenticate');
       // Increment fail count on error
       authFailCount.current++;
-      
+
       throw err; // Propagate error for promise chaining
     } finally {
       if (!preserveUIState) {
@@ -180,7 +182,7 @@ export const AuthProvider = ({ children }) => {
   // Check auth status on mount
   useEffect(() => {
     fetchCurrentUser();
-    
+
     // Return early cleanup to prevent memory leaks
     return () => {
       fetchInProgress.current = false;
@@ -191,42 +193,31 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       setLoading(true);
-      
+
       // Important: Clear user state before API call to prevent UI flicker
       setUser(null);
-      
+
       // Reset counts and flags
       authFailCount.current = 0;
       resetAuthFailedState();
-      
-      // Clear all auth-related localStorage and sessionStorage items
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('auth_from_callback');
-      localStorage.removeItem('auth_checked');
-      localStorage.removeItem('has_valid_token');
-      sessionStorage.removeItem('auth_callback_processed');
-      
-      // Set a flag in sessionStorage to indicate we just logged out
-      // This will be used to ensure proper re-login flow
-      sessionStorage.setItem('from_logout', 'true');
-      
+
       // Call API to logout server-side
       await authAPI.logout();
-      
+
       // Show success toast
       showToast({
         type: 'success',
         message: 'Successfully logged out'
       });
-      
+
       // Redirect to login page after logout
       window.location.href = '/login';
     } catch (err) {
       console.error('[AUTH DEBUG] Error during logout:', err);
-      
+
       // Still clear user on frontend even if API call fails
       setUser(null);
-      
+
       // Clear auth data even if API call fails
       localStorage.removeItem('auth_token');
       localStorage.removeItem('auth_from_callback');
@@ -234,13 +225,13 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('has_valid_token');
       sessionStorage.removeItem('auth_callback_processed');
       sessionStorage.setItem('from_logout', 'true');
-      
+
       // Show error toast
       showToast({
         type: 'error',
         message: 'Error during logout, but session cleared'
       });
-      
+
       // Force redirect to login page even if logout fails
       window.location.href = '/login';
     } finally {
@@ -257,28 +248,28 @@ export const AuthProvider = ({ children }) => {
   }, [fetchCurrentUser]);
 
   // Function to handle login success from token in URL hash
-  const handleLoginSuccess = (userData, token) => {   
+  const handleLoginSuccess = (userData, token) => {
     if (userData) {
       setUser(userData);
       // Sync user preferences from login data
       syncUserPreferences(userData);
     }
-    
+
     // Store token
     if (token) {
       localStorage.setItem('auth_token', token);
     }
-    
+
     authFailCount.current = 0;
     resetAuthFailedState();
-    
+
     // Check if we're coming from auth callback
     const fromCallback = localStorage.getItem('auth_from_callback') === 'true';
-    
-    if (fromCallback) {      
+
+    if (fromCallback) {
       // Clear the flag
       localStorage.removeItem('auth_from_callback');
-      
+
       // Set initialAuthCheckComplete to true
       setInitialAuthCheckComplete(true);
     } else {
@@ -295,7 +286,7 @@ export const AuthProvider = ({ children }) => {
     resetAuthFailedState();
     // Clear any existing token to prevent confusion
     localStorage.removeItem('auth_token');
-    
+
     // Use the authAPI method for Google login
     authAPI.loginWithGoogle();
   };
@@ -317,7 +308,7 @@ export const AuthProvider = ({ children }) => {
       // creating a playlist or updating user settings
       // We use preserveUIState=true to avoid UI flickers
       try {
-        const userData = await fetchCurrentUser(true, true);
+        const userData = await fetchCurrentUser(true, false);
         return userData;
       } catch (error) {
         console.error('Error refreshing user data:', error);

@@ -388,7 +388,7 @@ const PlaylistCard = ({ playlist, onDelete, onEdit, refetchPlaylists }) => {
   const [likesCount, setLikesCount] = useState(playlist.likesCount || 0);
   const [isProcessingLike, setIsProcessingLike] = useState(false);
   
-  const { user } = useAuth();
+  const { user, refreshUserData } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
   
@@ -423,6 +423,9 @@ const PlaylistCard = ({ playlist, onDelete, onEdit, refetchPlaylists }) => {
       const response = await playlistAPI.deletePlaylist(playlist.id);
       
       if (response.success) {
+        // Refresh user data to update playlists
+        await refreshUserData();
+        
         showToast({
           type: 'success',
           message: 'Playlist deleted successfully'

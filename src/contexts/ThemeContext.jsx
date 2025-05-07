@@ -274,21 +274,6 @@ export const themes = {
   },
 };
 
-// Map from backend theme names to theme object keys for backward compatibility
-export const themeMapping = {
-  'default': 'default',
-  'dark': 'dark',
-  'light': 'light',
-  'theme1': 'default',      // Legacy mapping
-  'theme2': 'light',        // Legacy mapping
-  'naruto-dark': 'naruto-dark',
-  'narutoLight': 'light',   // Fallback if narutoLight theme is requested
-  'one-piece': 'one-piece',
-  'attack-on-titan': 'attack-on-titan',
-  'demon-slayer': 'demon-slayer',
-  'jujutsu-kaisen': 'jujutsu-kaisen',
-};
-
 // Set default theme key
 export const DEFAULT_THEME = 'naruto-dark';
 

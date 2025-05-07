@@ -28,7 +28,7 @@ const PlaylistDetailPage = () => {
   const playlistId = id || slug; // Use id if available, otherwise slug
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { user } = useAuth();
+  const { user, refreshUserData } = useAuth();
   
   const [playlist, setPlaylist] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -164,20 +164,23 @@ const PlaylistDetailPage = () => {
       const response = await playlistAPI.deletePlaylist(dbPlaylistId);
       
       if (response.success || (response.message && response.message.includes('deleted successfully'))) {
+        // Refresh user data to update playlists
+        await refreshUserData();
+        
         showToast({
           type: 'success',
           message: 'Playlist deleted successfully'
         });
         
         // Redirect to user's playlists
-        navigate('/playlists');
+        navigate(`/user/${user.username}`);
       } else {
         throw new Error(response.error?.message || 'Failed to delete playlist');
       }
     } catch (error) {
       // Check if the error message indicates a successful deletion
       if (error.message && error.message.toLowerCase().includes('deleted successfully')) {
-        showToast({
+       showToast({
           type: 'success',
           message: 'Playlist deleted successfully'
         });
@@ -268,36 +271,6 @@ const PlaylistDetailPage = () => {
     } finally {
       setIsProcessing(prev => ({ ...prev, removeAnime: false }));
       setAnimeToDelete(null);
-    }
-  };
-  
-  // Handle share playlist
-  const handleShare = () => {
-    // Use ID-based URL for sharing for more stability across renames
-    const dbPlaylistId = playlist.id || playlist._id;
-    const url = window.location.origin + `/playlist/id/${dbPlaylistId}`;
-    
-    if (navigator.share) {
-      navigator.share({
-        title: playlist.name,
-        text: playlist.description || `Check out this anime playlist: ${playlist.name}`,
-        url: url
-      })
-      .catch(() => {}); // Silent catch for share cancellations
-    } else {
-      navigator.clipboard.writeText(url)
-        .then(() => {
-          showToast({
-            type: 'success',
-            message: 'Link copied to clipboard'
-          });
-        })
-        .catch(() => {
-          showToast({
-            type: 'error',
-            message: 'Failed to copy link'
-          });
-        });
     }
   };
   
@@ -400,7 +373,6 @@ const PlaylistDetailPage = () => {
               formatDate={formatDateString}
               isProcessing={isProcessing}
               user={user}
-              onShare={handleShare}
               onLike={handleLike}
               onEdit={() => setShowEditModal(true)}
               onDelete={() => setShowDeleteConfirm(true)}

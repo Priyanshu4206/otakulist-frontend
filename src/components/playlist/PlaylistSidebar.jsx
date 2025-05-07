@@ -1,7 +1,8 @@
 import React from 'react';
 import styled from 'styled-components';
-import { Share2, Heart, Edit2, Trash2, BookOpen, Clock, Globe, Users } from 'lucide-react';
+import { Heart, Edit2, Trash2, BookOpen, Clock, Globe, Users } from 'lucide-react';
 import Card from '../common/Card';
+import ShareButton from '../common/ShareButton';
 
 const SidebarCard = styled(Card)`
   position: sticky;
@@ -151,7 +152,6 @@ const PlaylistSidebar = ({
   formatDate, 
   isProcessing, 
   user,
-  onShare, 
   onLike, 
   onEdit, 
   onDelete 
@@ -201,10 +201,15 @@ const PlaylistSidebar = ({
       </PlaylistStats>
       
       <ActionButtons>
-        <ActionButton onClick={onShare}>
-          <Share2 size={18} />
-          Share Playlist
-        </ActionButton>
+        <ShareButton
+          title={playlist.name}
+          text={playlist.description || `Check out this anime playlist: ${playlist.name}`}
+          label="Share Playlist"
+          successMessage="Playlist link copied to clipboard"
+          errorMessage="Failed to copy playlist link"
+          url={`${window.location.origin}/playlist/id/${playlist.id || playlist._id}`}
+          style={{ padding: '0.75rem', width: '100%', fontSize: '0.9rem' }}
+        />
         
         {/* Only show like button if user is not the owner and is logged in */}
         {user && !isOwner && (

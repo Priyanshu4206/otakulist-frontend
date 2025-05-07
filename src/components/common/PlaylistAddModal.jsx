@@ -7,6 +7,7 @@ import useAuth from '../../hooks/useAuth';
 import CustomSelect from './CustomSelect';
 import { createPortal } from 'react-dom';
 
+// All styled components remain the same...
 const ModalOverlay = styled.div`
   position: fixed;
   top: 0;
@@ -303,9 +304,9 @@ const LoadingSpinner = styled(Loader)`
   }
 `;
 
-const PlaylistAddModal = ({ 
-  show, 
-  onClose, 
+const PlaylistAddModal = ({
+  show,
+  onClose,
   anime,
   isScheduleAnime = false
 }) => {
@@ -315,60 +316,47 @@ const PlaylistAddModal = ({
   const [selectedPlaylistId, setSelectedPlaylistId] = useState(null);
   const [showNewPlaylistForm, setShowNewPlaylistForm] = useState(false);
   const [playlists, setPlaylists] = useState([]);
-  
+
   const [newPlaylistData, setNewPlaylistData] = useState({
     name: '',
     description: '',
     isPublic: true
   });
-  
-  // Sync playlists from user data when the modal is shown or user data changes
-  useEffect(() => {
-    if (show && user?.playlists) {
-      setPlaylists(user.playlists);
-    }
-  }, [show, user]);
-  
+
   // Get anime details based on the source (anime page vs schedule page)
-  const animeId = isScheduleAnime ? anime.malId : anime.malId || anime._id || anime.id;
-  
-  // Reset state when modal is opened/closed
+  const animeId = isScheduleAnime ? anime.malId : anime.malId || anime.mal_id || anime.id || anime._id;
+
+  // This effect runs whenever the show prop or user data changes
   useEffect(() => {
     if (show) {
+      // Reset all states when modal opens
       setSelectedPlaylistId(null);
       setShowNewPlaylistForm(false);
+      setLoading(false);
       setNewPlaylistData({
         name: '',
         description: '',
         isPublic: true
       });
       
-      // Update playlists list with latest user data - only once when modal opens
-      const fetchData = async () => {
-        try {
-          const userData = await refreshUserData();
-          if (userData?.playlists) {
-            setPlaylists(userData.playlists);
-          }
-        } catch (error) {
-          console.error('Error refreshing user data:', error);
-        }
-      };
-      
-      // Only fetch if we have a show transition (closed -> open)
-      fetchData();
+      // Always ensure we're using the latest playlists from user data
+      if (user?.playlists) {
+        setPlaylists(user.playlists);
+      } else {
+        setPlaylists([]);
+      }
     }
-  }, [show]); // Only depend on show, not refreshUserData
-  
+  }, [show, user]);
+
   const handleSelectPlaylist = (id) => {
     setSelectedPlaylistId(id);
   };
-  
+
   const toggleNewPlaylistForm = () => {
     setShowNewPlaylistForm(!showNewPlaylistForm);
     setSelectedPlaylistId(null);
   };
-  
+
   const handleNewPlaylistChange = (e) => {
     const { name, value, type, checked } = e.target;
     setNewPlaylistData(prev => ({
@@ -376,42 +364,61 @@ const PlaylistAddModal = ({
       [name]: type === 'checkbox' ? checked : value
     }));
   };
-  
+
   const addAnimeToExistingPlaylist = async () => {
     setLoading(true);
-    
+
     try {
       const response = await playlistAPI.addAnimeToPlaylist(selectedPlaylistId, animeId);
+
+      // Always refresh user data first to get the latest playlists
+      const updatedUserData = await refreshUserData();
       
+      // Update local playlists state if user data was refreshed successfully
+      if (updatedUserData && updatedUserData.playlists) {
+        setPlaylists(updatedUserData.playlists);
+      }
+
       if (response.success) {
-        // Update user data in background
-        refreshUserData();
-        
-        // Close modal first, then show toast
-        onClose();
-        
-        showToast({
+        // Store toast message data
+        const toastMessage = {
           type: 'success',
           message: response.data?.message || 'Anime added to playlist successfully'
-        });
+        };
+
+        // Close modal first
+        onClose();
+
+        // Show toast after modal closes
+        setTimeout(() => {
+          showToast(toastMessage);
+        }, 100);
       } else {
+        // Set loading to false before showing error
+        setLoading(false);
+
+        // Close modal first
+        onClose();
+        
         showToast({
           type: 'error',
           message: response.error?.message || 'Failed to add anime to playlist'
         });
-        setLoading(false);
       }
     } catch (error) {
       console.error('Error adding anime to playlist:', error);
+      setLoading(false);
       
+      // Close modal first
+      onClose();
+
       showToast({
         type: 'error',
         message: 'An error occurred while adding anime to playlist'
       });
-      setLoading(false);
     }
   };
-  
+
   const createNewPlaylistWithAnime = async () => {
     if (!newPlaylistData.name.trim()) {
       showToast({
@@ -420,9 +427,9 @@ const PlaylistAddModal = ({
       });
       return;
     }
-    
+
     setLoading(true);
-    
+
     try {
       // Use the quick create+add endpoint
       const response = await playlistAPI.createOrAddToPlaylist({
@@ -431,11 +438,19 @@ const PlaylistAddModal = ({
         description: newPlaylistData.description,
         isPublic: newPlaylistData.isPublic
       });
+
+      // Always refresh user data first to get the latest playlists
+      const updatedUserData = await refreshUserData();
       
+      // Update local playlists state if user data was refreshed successfully
+      if (updatedUserData && updatedUserData.playlists) {
+        setPlaylists(updatedUserData.playlists);
+      }
+
       if (response.success) {
         const status = response.data?.status;
         let message = 'Anime added to playlist successfully';
-        
+
         if (status === 'created_new') {
           message = 'Created new playlist with anime';
         } else if (status === 'added_to_existing') {
@@ -443,34 +458,46 @@ const PlaylistAddModal = ({
         } else if (status === 'already_exists') {
           message = 'Anime is already in this playlist';
         }
-        
-        // Update user data in background
-        refreshUserData();
-        
-        // Close modal first, then show toast
-        onClose();
-        
-        showToast({
+
+        // Store toast message
+        const toastMessage = {
           type: 'success',
           message
-        });
+        };
+
+        // Close modal first
+        onClose();
+
+        // Show toast after modal closes
+        setTimeout(() => {
+          showToast(toastMessage);
+        }, 100);
       } else {
+        // Set loading to false before showing error
+        setLoading(false);
+
+        // Close modal first
+        onClose();
+
         showToast({
           type: 'error',
           message: response.error?.message || 'Failed to create playlist'
         });
-        setLoading(false);
       }
     } catch (error) {
       console.error('Error creating playlist:', error);
+      setLoading(false);
+      
+      // Close modal first
+      onClose();
+
       showToast({
         type: 'error',
         message: 'An error occurred while creating the playlist'
       });
-      setLoading(false);
     }
   };
-  
+
   const handleSubmit = () => {
     if (showNewPlaylistForm) {
       createNewPlaylistWithAnime();
@@ -478,37 +505,47 @@ const PlaylistAddModal = ({
       addAnimeToExistingPlaylist();
     }
   };
-  
+
   // Helper to determine if the "Add" button should be disabled
   const isAddButtonDisabled = () => {
     if (loading) return true;
     if (showNewPlaylistForm) return !newPlaylistData.name.trim();
     return !selectedPlaylistId;
   };
-  
+
   // Format playlists for CustomSelect component
   const playlistOptions = playlists.map(playlist => ({
     value: playlist.id,
     label: playlist.name
   }));
-  
+
   // If not open, don't render anything
   if (!show) return null;
-  
+
+  const handleClose = () => {
+    setLoading(false); // Force loading to false when closing
+    onClose();
+  };
+
+  const handleOverlayClick = () => {
+    setLoading(false); // Force loading to false when closing via overlay
+    onClose();
+  };
+
   // Use createPortal to render the modal at the root DOM level
   return createPortal(
-    <ModalOverlay onClick={() => !loading && onClose()}>
+    <ModalOverlay onClick={handleOverlayClick}>
       <ModalContent onClick={e => e.stopPropagation()}>
         <ModalHeader>
           <ModalTitle>
             <BookOpen size={20} />
             Add to Playlist
           </ModalTitle>
-          <CloseButton onClick={() => !loading && onClose()}>
+          <CloseButton onClick={handleClose}>
             <X size={20} />
           </CloseButton>
         </ModalHeader>
-        
+
         <ModalBody>
           {!showNewPlaylistForm ? (
             <>
@@ -516,7 +553,7 @@ const PlaylistAddModal = ({
                 <BookOpen size={16} />
                 Select Playlist
               </SectionTitle>
-              
+
               {playlists.length > 0 ? (
                 <>
                   <PlaylistSelectWrapper>
@@ -528,7 +565,7 @@ const PlaylistAddModal = ({
                       variant="filled"
                     />
                   </PlaylistSelectWrapper>
-                  
+
                   <SwitchButton onClick={toggleNewPlaylistForm}>
                     <Plus size={16} />
                     Create New Playlist Instead
@@ -550,37 +587,37 @@ const PlaylistAddModal = ({
                 <Plus size={16} />
                 Create New Playlist
               </SectionTitle>
-              
+
               <FormGroup>
                 <Label htmlFor="name">Name</Label>
-                <Input 
-                  type="text" 
-                  id="name" 
-                  name="name" 
+                <Input
+                  type="text"
+                  id="name"
+                  name="name"
                   value={newPlaylistData.name}
                   onChange={handleNewPlaylistChange}
                   placeholder="Enter playlist name"
                   required
                 />
               </FormGroup>
-              
+
               <FormGroup>
                 <Label htmlFor="description">Description</Label>
-                <TextArea 
-                  id="description" 
-                  name="description" 
+                <TextArea
+                  id="description"
+                  name="description"
                   value={newPlaylistData.description}
                   onChange={handleNewPlaylistChange}
                   placeholder="Describe what this playlist is about..."
                 />
               </FormGroup>
-              
+
               <FormGroup>
                 <SwitchContainer>
                   <SwitchLabel>Make playlist public</SwitchLabel>
                   <Switch>
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       name="isPublic"
                       checked={newPlaylistData.isPublic}
                       onChange={handleNewPlaylistChange}
@@ -589,7 +626,7 @@ const PlaylistAddModal = ({
                   </Switch>
                 </SwitchContainer>
               </FormGroup>
-              
+
               {playlists.length > 0 && (
                 <SwitchButton onClick={toggleNewPlaylistForm}>
                   Back to Existing Playlists
@@ -598,14 +635,14 @@ const PlaylistAddModal = ({
             </NewPlaylistSection>
           )}
         </ModalBody>
-        
+
         <ModalFooter>
-          <CancelButton onClick={() => !loading && onClose()}>
+          <CancelButton onClick={handleClose}>
             Cancel
           </CancelButton>
-          
-          <SaveButton 
-            onClick={handleSubmit} 
+
+          <SaveButton
+            onClick={handleSubmit}
             disabled={isAddButtonDisabled()}
           >
             {loading ? (
@@ -627,4 +664,4 @@ const PlaylistAddModal = ({
   );
 };
 
-export default PlaylistAddModal; 
+export default PlaylistAddModal;

@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { Trophy, Award, Star, TrendingUp, Users, BookOpen, Heart, Filter } from 'lucide-react';
-import { userAPI } from '../../services/api';
-import useApiCache from '../../hooks/useApiCache';
 import useAuth from '../../hooks/useAuth';
 
 // Styled components for achievements
@@ -155,6 +153,12 @@ const ErrorText = styled.div`
   border-radius: 8px;
 `;
 
+const NoAchievementsText = styled.div`
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--textSecondary);
+`;
+
 // Achievement icons mapping
 const achievementIcons = {
   // Anime watching achievements
@@ -164,291 +168,158 @@ const achievementIcons = {
   'Otaku Master': <Trophy size={22} />,
   'Anime Sage': <Star size={22} />,
   'Legendary Weeb': <Trophy size={22} />,
-  
+
   // Collection achievements
   'Collector': <BookOpen size={22} />,
   'Curator': <BookOpen size={22} />,
   'Librarian': <BookOpen size={22} />,
-  
+
   // Social achievements
   'Socialite': <Users size={22} />,
   'Influencer': <Users size={22} />,
   'Celebrity': <Trophy size={22} />,
-  
+
   // Genre achievements
   'Action Fan': <Filter size={22} />,
   'Romance Expert': <Heart size={22} />,
   'Fantasy Enthusiast': <Filter size={22} />,
   'Sci-Fi Geek': <Star size={22} />,
-  
+
+  // Special achievements
+  'Early Adopter': <Star size={22} />,
+  'Loyal Fan': <Users size={22} />,
+  'Dedicated Reviewer': <Star size={22} />,
+
   // Default
   'default': <Award size={22} />
 };
 
-// Achievement thresholds and categories
-const achievementData = {
-  categories: [
-    {
-      id: 'watching',
-      name: 'Watching Progress',
-      achievements: [
-        { title: 'Newbie', description: 'Started your anime journey', threshold: 1 },
-        { title: 'Binge Watcher', description: 'Completed 10+ anime series', threshold: 10 },
-        { title: 'Anime Enthusiast', description: 'Completed 25+ anime series', threshold: 25 },
-        { title: 'Otaku Master', description: 'Completed 50+ anime series', threshold: 50 },
-        { title: 'Anime Sage', description: 'Completed 100+ anime series', threshold: 100 },
-        { title: 'Legendary Weeb', description: 'Completed 200+ anime series', threshold: 200 }
-      ]
-    },
-    {
-      id: 'social',
-      name: 'Social',
-      achievements: [
-        { title: 'Socialite', description: 'Followed by 10+ other users', threshold: 10 },
-        { title: 'Influencer', description: 'Followed by 50+ other users', threshold: 50 },
-        { title: 'Celebrity', description: 'Followed by 100+ other users', threshold: 100 }
-      ]
-    },
-    {
-      id: 'collection',
-      name: 'Collection',
-      achievements: [
-        { title: 'Collector', description: 'Added 50+ anime to your watchlist', threshold: 50 },
-        { title: 'Curator', description: 'Added 100+ anime to your watchlist', threshold: 100 },
-        { title: 'Librarian', description: 'Added 200+ anime to your watchlist', threshold: 200 }
-      ]
-    },
-    {
-      id: 'genre',
-      name: 'Genre Specialist',
-      achievements: [
-        { title: 'Action Fan', description: 'Completed 10+ action anime', threshold: 10 },
-        { title: 'Romance Expert', description: 'Completed 10+ romance anime', threshold: 10 },
-        { title: 'Fantasy Enthusiast', description: 'Completed 10+ fantasy anime', threshold: 10 },
-        { title: 'Sci-Fi Geek', description: 'Completed 10+ sci-fi anime', threshold: 10 }
-      ]
-    },
-    {
-      id: 'special',
-      name: 'Special',
-      achievements: [
-        { title: 'Early Adopter', description: 'Joined during the beta phase', threshold: 1 },
-        { title: 'Loyal Fan', description: 'Active member for over 1 year', threshold: 1 },
-        { title: 'Dedicated Reviewer', description: 'Rated 50+ anime', threshold: 50 }
-      ]
-    }
-  ]
-};
-
 /**
- * AchievementsList Component
+ * AchievementsList Component - Updated for new schema
  * 
  * @param {Object} props - Component props
  * @param {Object} props.userData - User data containing achievements
  * @param {boolean} props.showProgress - Whether to show progress bars
  * @param {boolean} props.showCategory - Whether to show category headers
  * @param {string} props.categoryFilter - Only show achievements from this category
+ * @param {boolean} props.isPublicProfile - Whether this is being shown on a public profile
  */
-const AchievementsList = ({ 
-  userData = null, 
+const AchievementsList = ({
+  userData = null,
   showProgress = true,
   showCategory = true,
-  categoryFilter = null
+  categoryFilter = null,
+  isPublicProfile = false,
 }) => {
-  const [achievements, setAchievements] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const { user } = useAuth();
   
-  useEffect(() => {
-    const processAchievements = () => {
-      try {
-        setLoading(true);
-        
-        // Use either provided userData or current user
-        const currentUser = userData || user;
-        
-        if (!currentUser) {
-          setError("User data not available");
-          setLoading(false);
-          return;
-        }
-        
-        // Get list of unlocked achievements
-        const unlockedTitles = currentUser.achievements?.unlockedTitles || [];
-        const followersCount = currentUser.followersCount || 0;
-        const animeWatchedCount = currentUser.achievements?.animeWatchedCount || 0;
-        const genreCounts = currentUser.achievements?.genreCounts || {
-          action: 0,
-          romance: 0,
-          fantasy: 0,
-          scifi: 0
-        };
-        
-        // Process achievements data
-        const processedCategories = achievementData.categories.map(category => {
-          // Skip if filtering by category and this isn't the target
-          if (categoryFilter && category.id !== categoryFilter) {
-            return null;
-          }
-          
-          const enhancedAchievements = category.achievements.map(achievement => {
-            // Check if achievement is unlocked
-            const unlockedInfo = unlockedTitles.find(a => a.title === achievement.title);
-            const isUnlocked = !!unlockedInfo;
-            
-            // Determine progress based on achievement type
-            let progress = { current: 0, target: achievement.threshold, percentage: 0 };
-            
-            // Always show Newbie as completed
-            if (achievement.title === 'Newbie') {
-              progress = { current: 1, target: 1, percentage: 100 };
-            }
-            // For social achievements, use followers count
-            else if (['Socialite', 'Influencer', 'Celebrity'].includes(achievement.title)) {
-              const current = Math.min(followersCount, achievement.threshold);
-              progress = {
-                current,
-                target: achievement.threshold,
-                percentage: Math.round((current / achievement.threshold) * 100)
-              };
-            }
-            // For watching progress achievements
-            else if (['Binge Watcher', 'Anime Enthusiast', 'Otaku Master', 'Anime Sage', 'Legendary Weeb'].includes(achievement.title)) {
-              const current = Math.min(animeWatchedCount, achievement.threshold);
-              progress = {
-                current,
-                target: achievement.threshold,
-                percentage: Math.round((current / achievement.threshold) * 100)
-              };
-            }
-            // For genre-specific achievements
-            else if (achievement.title === 'Action Fan') {
-              const current = Math.min(genreCounts.action || 0, achievement.threshold);
-              progress = {
-                current,
-                target: achievement.threshold,
-                percentage: Math.round((current / achievement.threshold) * 100)
-              };
-            }
-            else if (achievement.title === 'Romance Expert') {
-              const current = Math.min(genreCounts.romance || 0, achievement.threshold);
-              progress = {
-                current,
-                target: achievement.threshold,
-                percentage: Math.round((current / achievement.threshold) * 100)
-              };
-            }
-            else if (achievement.title === 'Fantasy Enthusiast') {
-              const current = Math.min(genreCounts.fantasy || 0, achievement.threshold);
-              progress = {
-                current,
-                target: achievement.threshold,
-                percentage: Math.round((current / achievement.threshold) * 100)
-              };
-            }
-            else if (achievement.title === 'Sci-Fi Geek') {
-              const current = Math.min(genreCounts.scifi || 0, achievement.threshold);
-              progress = {
-                current,
-                target: achievement.threshold,
-                percentage: Math.round((current / achievement.threshold) * 100)
-              };
-            }
-            
-            // If achievement is unlocked, ensure progress shows at least 100%
-            if (isUnlocked && progress.percentage < 100) {
-              progress = {
-                current: achievement.threshold,
-                target: achievement.threshold,
-                percentage: 100
-              };
-            }
-            
-            return {
-              ...achievement,
-              unlocked: isUnlocked,
-              unlockDate: unlockedInfo?.unlockedAt,
-              progress
-            };
-          });
-          
-          // Count unlocked achievements in this category
-          const unlockedCount = enhancedAchievements.filter(a => a.unlocked).length;
-          
-          return {
-            ...category,
-            achievements: enhancedAchievements,
-            unlockedCount,
-            totalCount: enhancedAchievements.length
-          };
-        }).filter(Boolean); // Remove null categories from filtering
-        
-        setAchievements(processedCategories);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error processing achievements:', error);
-        setError('Failed to process achievements data');
-        setLoading(false);
-      }
-    };
-    
-    processAchievements();
-  }, [user, userData, categoryFilter]);
-  
+  // Format date to a readable string
   const formatUnlockDate = (dateString) => {
-    if (!dateString) return null;
-    
+    if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
     });
   };
   
+  // Render a single achievement card
   const renderAchievementCard = (achievement) => {
-    const icon = achievementIcons[achievement.title] || achievementIcons.default;
+    const {
+      title,
+      description,
+      unlocked,
+      unlockedAt,
+      progress,
+      icon
+    } = achievement;
+    
+    // Skip achievements with 0 progress on public profile
+    if (isPublicProfile && !unlocked && (!progress || progress.percentage === 0)) {
+      return null;
+    }
+    
+    // Determine if we should show progress
+    const shouldShowProgress = showProgress && progress && progress.target > 0;
+    const percentage = progress?.percentage || 0;
+    
+    // Get appropriate icon, fallback to default if none found
+    const achievementIcon = achievementIcons[title] || achievementIcons['default'];
     
     return (
-      <AchievementCard key={achievement.title} unlocked={achievement.unlocked}>
-        <AchievementIcon unlocked={achievement.unlocked}>
-          {icon}
+      <AchievementCard key={title} unlocked={unlocked}>
+        <AchievementIcon unlocked={unlocked}>
+          {achievementIcon}
         </AchievementIcon>
-        
         <AchievementInfo>
-          <AchievementTitle unlocked={achievement.unlocked}>
-            {achievement.title}
+          <AchievementTitle unlocked={unlocked}>
+            {title}
           </AchievementTitle>
-          
           <AchievementDescription>
-            {achievement.description}
+            {description}
           </AchievementDescription>
           
-          {showProgress && (
+          {shouldShowProgress && (
             <>
-              <ProgressBar unlocked={achievement.unlocked}>
+              <ProgressBar unlocked={unlocked}>
                 <ProgressFill 
-                  percentage={achievement.progress.percentage} 
-                  unlocked={achievement.unlocked} 
+                  percentage={percentage} 
+                  unlocked={unlocked}
                 />
               </ProgressBar>
-              
-              <ProgressText unlocked={achievement.unlocked}>
-                {achievement.progress.current}/{achievement.progress.target} ({achievement.progress.percentage}%)
+              <ProgressText unlocked={unlocked}>
+                {progress.current} / {progress.target}
+                {percentage > 0 && ` (${percentage}%)`}
               </ProgressText>
-              
-              {achievement.unlocked && achievement.unlockDate && (
-                <UnlockDate>
-                  Unlocked: {formatUnlockDate(achievement.unlockDate)}
-                </UnlockDate>
-              )}
             </>
+          )}
+          
+          {unlocked && unlockedAt && (
+            <UnlockDate>
+              Unlocked: {formatUnlockDate(unlockedAt)}
+            </UnlockDate>
           )}
         </AchievementInfo>
       </AchievementCard>
     );
   };
+  
+  // Check if we have user data
+  if (!userData?.achievements) {
+    return (
+      <Container>
+        <ErrorText>No achievement data available.</ErrorText>
+      </Container>
+    );
+  }
+  
+  // Get achievements categories from user data
+  const achievementCategories = userData.achievements.categories || [];
+  
+  // Filter categories if a categoryFilter is provided
+  const filteredCategories = categoryFilter
+    ? achievementCategories.filter(category => category.id === categoryFilter)
+    : achievementCategories;
+
+  // For public profiles, filter categories that have at least one achievement with progress
+  const displayCategories = isPublicProfile
+    ? filteredCategories.map(category => {
+        // Filter achievements that have progress or are unlocked
+        const achievementsWithProgress = category.achievements.filter(a => 
+          a.unlocked || (a.progress && a.progress.percentage > 0)
+        );
+        
+        // Return category with filtered achievements
+        return {
+          ...category,
+          achievements: achievementsWithProgress,
+          hasProgress: achievementsWithProgress.length > 0
+        };
+      }).filter(category => category.hasProgress)
+    : filteredCategories;
   
   if (loading) {
     return <LoadingText>Loading achievements...</LoadingText>;
@@ -458,21 +329,37 @@ const AchievementsList = ({
     return <ErrorText>{error}</ErrorText>;
   }
   
+  // If no categories to display on public profile
+  if (isPublicProfile && displayCategories.length === 0) {
+    return (
+      <Container>
+        <NoAchievementsText>No achievements to display.</NoAchievementsText>
+      </Container>
+    );
+  }
+  
   return (
     <Container>
-      {achievements.map((category, index) => (
-        <CategoryContainer key={`${category.id}-${index}`}>
+      {displayCategories.map(category => (
+        <CategoryContainer key={category.id}>
           {showCategory && (
             <CategoryTitle>
+              {/* Choose icon based on category id */}
+              {category.id === 'anime' && <Trophy size={20} />}
+              {category.id === 'social' && <Users size={20} />}
+              {category.id === 'collection' && <BookOpen size={20} />}
+              {category.id === 'genre' && <Filter size={20} />}
+              {category.id === 'special' && <Star size={20} />}
+              
               {category.name}
               <CategoryProgress>
-                {category.unlockedCount}/{category.totalCount}
+                {category.unlockedCount} / {category.totalCount}
               </CategoryProgress>
             </CategoryTitle>
           )}
           
           <AchievementsGrid>
-            {category.achievements.map(renderAchievementCard)}
+            {category.achievements.map(achievement => renderAchievementCard(achievement))}
           </AchievementsGrid>
         </CategoryContainer>
       ))}

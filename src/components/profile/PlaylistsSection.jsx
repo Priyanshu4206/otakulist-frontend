@@ -25,7 +25,6 @@ const PlaylistsSection = ({
   playlistsPagination,
   setPlaylistsPage,
   handleLikePlaylist,
-  handleSharePlaylist,
   getPageNumbers
 }) => {
   return (
@@ -69,7 +68,6 @@ const PlaylistsSection = ({
                   likeCount={likeCount}
                   isProcessingLike={isProcessingLike}
                   handleLikePlaylist={handleLikePlaylist}
-                  handleSharePlaylist={handleSharePlaylist}
                 />
               );
             })}

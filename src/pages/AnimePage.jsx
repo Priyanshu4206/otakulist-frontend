@@ -1,250 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import styled, { keyframes } from 'styled-components';
 import Layout from '../components/layout/Layout';
 import AnimeInfo from '../components/anime/AnimeInfo';
 import CharactersList from '../components/anime/CharactersList';
 import RecommendationsList from '../components/anime/RecommendationsList';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import { animeAPI } from '../services/api';
+import { animeAPI, userAPI } from '../services/api';
 import useApiCache from '../hooks/useApiCache';
-
-const fadeIn = keyframes`
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-`;
-
-const scaleIn = keyframes`
-  from {
-    transform: scale(0.95);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-`;
-
-const shimmer = keyframes`
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
-`;
-
-const PageContainer = styled.div`
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 2rem;
-  animation: ${fadeIn} 0.6s ease-out;
-  
-  @media (max-width: 768px) {
-    padding: 1.5rem;
-  }
-`;
-
-const AnimeHeader = styled.div`
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 2.5rem;
-  margin-bottom: 3rem;
-  position: relative;
-  
-  @media (min-width: 768px) {
-    grid-template-columns: 350px 1fr;
-  }
-`;
-
-const PosterContainer = styled.div`
-  position: relative;
-  width: 100%;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 15px 25px rgba(0, 0, 0, 0.2);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  animation: ${scaleIn} 0.7s ease-out;
-  height: fit-content;
-
-  &:hover {
-    box-shadow: 0 20px 30px rgba(0, 0, 0, 0.3);
-  }
-  
-  @media (min-width: 768px) {
-    max-width: 350px;
-  }
-  
-  &::before {
-    content: '';
-    display: block;
-    padding-top: 140%;
-  }
-  
-  img {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    transition: transform 0.5s ease;
-  }
-`;
-
-const ShimmerOverlay = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.1) 50%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  background-size: 200% 100%;
-  animation: ${shimmer} 3s infinite linear;
-  pointer-events: none;
-`;
-
-const AnimeContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  animation: ${fadeIn} 0.8s ease-out;
-`;
-
-const AnimeTitle = styled.h1`
-  font-size: 2.5rem;
-  color: var(--textPrimary);
-  margin-bottom: 0.6rem;
-  font-weight: 800;
-  background: var(--gradientPrimary);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  
-  @media (max-width: 768px) {
-    font-size: 1.8rem;
-  }
-`;
-
-const AlternativeTitles = styled.div`
-  margin-bottom: 1.5rem;
-  color: var(--textSecondary);
-  font-size: 1rem;
-  padding: 1rem;
-  background-color: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  border-left: 4px solid var(--secondary);
-  backdrop-filter: blur(5px);
-  
-  div {
-    margin: 0.5rem 0;
-  }
-`;
-
-const SectionHeading = styled.h2`
-  font-size: 1.8rem;
-  margin-bottom: 1.2rem;
-  position: relative;
-  color: var(--textPrimary);
-  padding-bottom: 0.6rem;
-  
-  &::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 60px;
-    height: 4px;
-    background: var(--gradientSecondary);
-    border-radius: 2px;
-  }
-`;
-
-const Synopsis = styled.div`
-  margin: 2rem 0;
-  color: var(--textPrimary);
-  line-height: 1.8;
-  position: relative;
-  background-color: var(--cardBackground);
-  padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-  animation: ${fadeIn} 0.9s ease-out;
-  
-  p {
-    margin-bottom: 1.2rem;
-    font-size: 1.05rem;
-  }
-`;
-
-const VideoContainer = styled.div`
-  position: relative;
-  padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
-  height: 0;
-  overflow: hidden;
-  border-radius: 12px;
-  box-shadow: 0 15px 25px rgba(0, 0, 0, 0.2);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  
-  &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 20px 30px rgba(0, 0, 0, 0.3);
-  }
-  
-  iframe {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    border: 0;
-  }
-`;
-
-const GradientBackground = styled.div`
-  position: absolute;
-  top: -100px;
-  left: 0;
-  right: 0;
-  height: 500px;
-  background: linear-gradient(180deg, var(--backgroundDark) 0%, transparent 100%);
-  z-index: -1;
-  opacity: 0.6;
-`;
-
-const ContentSection = styled.section`
-  position: relative;
-  margin: 3rem 0;
-  animation: ${fadeIn} ${props => props.delay || '0.8s'} ease-out;
-  border-radius: 16px;
-  overflow: hidden;
-`;
-
-const ErrorMessage = styled.div`
-  text-align: center;
-  padding: 3rem;
-  color: var(--error);
-  background-color: var(--cardBackground);
-  border-radius: 12px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-  max-width: 800px;
-  margin: 0 auto;
-  
-  h3 {
-    font-size: 1.5rem;
-    margin-bottom: 1rem;
-  }
-`;
+import { Star, Calendar, Clock, Globe, Tv, Hash, Music, ExternalLink, BookOpen, Users } from 'lucide-react';
+import AnimeRatingModal from '../components/common/AnimeRatingModal';
+// Styles
+import { PageContainer,  AnimePageGrid,  LeftSidebar, MainContent, PosterContainer, ShimmerOverlay, QuickInfoCard, QuickInfoTitle, QuickInfoGrid, InfoLabel, InfoValue, ScoreDisplay, ScoreValue, ScoreLabel, AnimeHeaderSection, AnimeTitle, AlternativeTitles, ContentSection, SectionHeading, Synopsis, VideoContainer, GradientBackground, ErrorMessage, NoContentMessage, ThemeSongsSection, ThemeCategory, ThemeCategoryTitle, ThemeItem, ExternalLinksGrid, ExternalLinkButton, GenreBadge, GenresContainer } from '../components/anime/AnimePageStyles'; 
+import formatNumberShort from '../utils/formatShortNumber';
 
 const AnimePage = () => {
   const { id } = useParams();
@@ -253,7 +20,8 @@ const AnimePage = () => {
   const { 
     loading: animeLoading, 
     error: animeError, 
-    fetchWithCache: fetchAnime 
+    fetchWithCache: fetchAnime,
+    clearCacheItem: clearAnimeCacheItem
   } = useApiCache('sessionStorage');
   
   const { 
@@ -270,6 +38,7 @@ const AnimePage = () => {
   const [anime, setAnime] = useState(null);
   const [characters, setCharacters] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
+  const [showRatingModal, setShowRatingModal] = useState(false);
   
   // Create cache keys
   const animeCacheKey = `anime_${id}`;
@@ -327,6 +96,43 @@ const AnimePage = () => {
     getAnimeDetails();
   }, [id, fetchAnime, fetchCharacters, fetchRecommendations]);
   
+  // Format helpers
+  const formatSeason = (season, year) => {
+    if (!season) return 'Unknown';
+    return `${season.charAt(0).toUpperCase() + season.slice(1)} ${year || ''}`;
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'TBA';
+
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const formatDuration = (duration) => {
+    if (!duration) return 'Unknown';
+    return duration.includes('hr') || duration.includes('min') ? duration : `${duration} min per ep`;
+  };
+  
+  // Helper to clear cache and refetch anime details
+  const handleRatingSuccess = async () => {
+    if (animeCacheKey) {
+      clearAnimeCacheItem(animeCacheKey);
+      // Refetch details
+      const animeResponse = await fetchAnime(
+        animeCacheKey,
+        () => animeAPI.getAnimeById(id),
+        true // force refresh
+      );
+      const animeData = animeResponse.data || animeResponse;
+      setAnime(animeData);
+    }
+  };
+  
   // Show loading spinner when anime details are loading
   if (animeLoading && !anime) {
     return (
@@ -348,13 +154,85 @@ const AnimePage = () => {
     );
   }
   
+  if (!anime) {
+    return (
+      <Layout>
+        <LoadingSpinner fullScreen />
+      </Layout>
+    );
+  }
+  
+  // Extract anime data with fallbacks
+  const {
+    status: animeStatus = 'Unknown',
+    episodes,
+    genres = [],
+    aired,
+    season,
+    year,
+    broadcast,
+    studios = [],
+    source,
+    duration,
+    type,
+    themes = [],
+    theme = {},
+    external = [],
+    background,
+    streaming = [],
+    score,
+    scoredBy,
+  } = anime;
+  
   return (
     <Layout>
       <GradientBackground />
       <PageContainer>
-        {anime && (
-          <>
-            <AnimeHeader>
+        <AnimeRatingModal
+          show={showRatingModal}
+          onClose={() => setShowRatingModal(false)}
+          animeId={anime?.malId || anime?.id || anime?._id}
+          animeTitle={anime?.titles?.english || anime?.titles?.default || anime?.title}
+          userAPI={userAPI}
+          onSuccess={handleRatingSuccess}
+        />
+        {/* Main anime page layout */}
+        <AnimeHeaderSection>
+          <AnimeTitle>
+            {anime.titles?.english || 
+             anime.titles?.default || 
+             anime.title_english || 
+             anime.title || 
+             'Untitled Anime'}
+          </AnimeTitle>
+          
+          <AlternativeTitles>
+            {/* Handle different title formats with fallbacks */}
+            {(anime.title_japanese || anime.titles?.japanese) && (
+              <div>Japanese: {anime.titles?.japanese || anime.title_japanese}</div>
+            )}
+            
+            {anime.title_english && anime.title_english !== anime.title && (
+              <div>English: {anime.title_english}</div>
+            )}
+            {anime.titles?.english && anime.titles.english !== anime.titles?.default && (
+              <div>English: {anime.titles.english}</div>
+            )}
+            
+            {/* Handle synonyms with fallbacks */}
+            {anime.title_synonyms && anime.title_synonyms.length > 0 && (
+              <div>Also known as: {anime.title_synonyms.join(', ')}</div>
+            )}
+            {anime.titles?.synonyms && anime.titles.synonyms.length > 0 && (
+              <div>Also known as: {anime.titles.synonyms.join(', ')}</div>
+            )}
+          </AlternativeTitles>
+        </AnimeHeaderSection>
+        
+        <AnimePageGrid>
+          {/* Left sidebar with poster and quick info */}
+          <LeftSidebar>
+            {/* Anime poster */}
               <PosterContainer>
                 <img 
                   src={
@@ -366,74 +244,243 @@ const AnimePage = () => {
                     anime.images?.webp?.large_image_url || 
                     'https://via.placeholder.com/225x350?text=No+Image'
                   } 
-                  alt={anime.title || anime.titles?.default} 
+                alt={anime.titles?.english || anime.titles?.default || anime.title || 'Anime Poster'} 
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = 'https://via.placeholder.com/225x350?text=No+Image';
+                }}
                 />
                 <ShimmerOverlay />
               </PosterContainer>
               
-              <AnimeContent>
-                <AnimeTitle>{anime.titles?.english || anime.titles?.default || anime.title_english || anime.title}</AnimeTitle>
+            {/* Quick info card */}
+            <QuickInfoCard>
+              <QuickInfoTitle>Information</QuickInfoTitle>
+              
+              {score && (
+                <ScoreDisplay>
+                  <Star size={24} />
+                  <ScoreValue>{score}</ScoreValue>
+                  <ScoreLabel>/ 10</ScoreLabel>
+                  <ScoreLabel>
+                  ({formatNumberShort(scoredBy)} user{scoredBy === 1 ? '' : 's'})
+                  </ScoreLabel>
+                </ScoreDisplay>
+              )}
+              
+              <QuickInfoGrid>
+                {type && (
+                  <>
+                    <InfoLabel><Tv size={16} /> Type</InfoLabel>
+                    <InfoValue>{type}</InfoValue>
+                  </>
+                )}
                 
-                <AlternativeTitles>
-                  {/* Handle different title formats */}
-                  {anime.title_japanese && <div>Japanese: {anime.title_japanese}</div>}
-                  {anime.titles?.japanese && <div>Japanese: {anime.titles.japanese}</div>}
-                  
-                  {anime.title_english && anime.title_english !== anime.title && (
-                    <div>English: {anime.title_english}</div>
-                  )}
-                  {anime.titles?.english && anime.titles.english !== anime.titles?.default && (
-                    <div>English: {anime.titles.english}</div>
-                  )}
-                  
-                  {/* Handle synonyms - format from MAL API */}
-                  {anime.title_synonyms && anime.title_synonyms.length > 0 && (
-                    <div>Also known as: {anime.title_synonyms.join(', ')}</div>
-                  )}
-                  {/* Handle synonyms - format from our backend */}
-                  {anime.titles?.synonyms && anime.titles.synonyms.length > 0 && (
-                    <div>Also known as: {anime.titles.synonyms.join(', ')}</div>
-                  )}
-                </AlternativeTitles>
+                <InfoLabel><Hash size={16} /> Episodes</InfoLabel>
+                <InfoValue>{episodes || 'Unknown'}</InfoValue>
                 
-                <AnimeInfo anime={anime} />
-              </AnimeContent>
-            </AnimeHeader>
+                {duration && (
+                  <>
+                    <InfoLabel><Clock size={16} /> Duration</InfoLabel>
+                    <InfoValue>{formatDuration(duration)}</InfoValue>
+                  </>
+                )}
+                
+                <InfoLabel><Calendar size={16} /> Aired</InfoLabel>
+                <InfoValue>
+                  {season ? formatSeason(season, year) : aired?.string || aired?.from ? formatDate(aired.from) : 'TBA'}
+                </InfoValue>
+                
+                {broadcast?.day && (
+                  <>
+                    <InfoLabel><Clock size={16} /> Broadcast</InfoLabel>
+                    <InfoValue>{`${broadcast.day}${broadcast.time ? ` at ${broadcast.time}` : ''}`}</InfoValue>
+                  </>
+                )}
+                
+                {source && (
+                  <>
+                    <InfoLabel><Globe size={16} /> Source</InfoLabel>
+                    <InfoValue>{source}</InfoValue>
+                  </>
+                )}
+              
+                {studios && studios.length > 0 && (
+                  <>
+                    <InfoLabel><Tv size={16} /> Studios</InfoLabel>
+                    <InfoValue>
+                      {studios.map((studio, index) => (
+                        <span key={index}>
+                          {typeof studio === 'string' ? studio : studio.name || ''}
+                          {index < studios.length - 1 ? ', ' : ''}
+                        </span>
+                      ))}
+                    </InfoValue>
+                  </>
+                )}
+                
+                <InfoLabel><Globe size={16} /> Status</InfoLabel>
+                <InfoValue>{animeStatus}</InfoValue>
+              </QuickInfoGrid>
+            </QuickInfoCard>
             
+            {/* Genres card */}
+            {(genres.length > 0 || themes.length > 0) && (
+              <QuickInfoCard>
+                <QuickInfoTitle>Genres & Themes</QuickInfoTitle>
+                <GenresContainer>
+                  {genres.map((genre, index) => (
+                    <GenreBadge key={`genre-${index}`} index={index}>
+                      {typeof genre === 'object' ? genre.name : genre}
+                    </GenreBadge>
+                  ))}
+                  
+                  {themes.map((theme, index) => (
+                    <GenreBadge key={`theme-${index}`} index={genres.length + index}>
+                      {typeof theme === 'object' ? theme.name : theme}
+                    </GenreBadge>
+                  ))}
+                </GenresContainer>
+              </QuickInfoCard>
+            )}
+            
+            {/* Streaming services */}
+            {streaming && streaming.length > 0 && (
+              <QuickInfoCard>
+                <QuickInfoTitle>Where to Watch</QuickInfoTitle>
+                <ExternalLinksGrid>
+                  {streaming.map((service, index) => (
+                    <ExternalLinkButton
+                      key={`stream-${index}`}
+                      href={service.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <ExternalLink size={16} />
+                      {service.name}
+                    </ExternalLinkButton>
+                  ))}
+                </ExternalLinksGrid>
+              </QuickInfoCard>
+            )}
+          </LeftSidebar>
+          
+          {/* Main content area */}
+          <MainContent>
+            {/* Action buttons */}
+            <ContentSection>
+              <AnimeInfo anime={anime} onOpenRatingModal={() => setShowRatingModal(true)} />
+            </ContentSection>
+            
+            {/* Synopsis section */}
+            <ContentSection>
+              <SectionHeading><BookOpen size={24} /> Synopsis</SectionHeading>
+              {anime.synopsis ? (
             <Synopsis>
-              <SectionHeading>Synopsis</SectionHeading>
               <p>{anime.synopsis}</p>
             </Synopsis>
+              ) : (
+                <NoContentMessage>No synopsis available for this anime.</NoContentMessage>
+              )}
+            </ContentSection>
             
-            {/* Display trailer if available directly from the anime object */}
+            {/* Trailer section */}
             {(anime.trailer?.youtubeId || anime.trailer?.youtube_id) && (
-              <ContentSection delay="1s">
-                <SectionHeading>Trailer</SectionHeading>
+              <ContentSection>
+                <SectionHeading><Tv size={24} /> Trailer</SectionHeading>
                 <VideoContainer>
                   <iframe
                     src={`https://www.youtube.com/embed/${anime.trailer?.youtubeId || anime.trailer?.youtube_id}`}
-                    title={`${anime.titles?.english || anime.titles?.default || anime.title} Trailer`}
+                    title={`${anime.titles?.english || anime.titles?.default || anime.title || 'Anime'} Trailer`}
                     allowFullScreen
                   />
                 </VideoContainer>
               </ContentSection>
             )}
             
-            {/* Display characters with their loading state */}
-            {!charactersLoading && characters.length > 0 && (
-              <ContentSection delay="1.1s">
-                <CharactersList characters={characters} />
+            {/* Theme songs section */}
+            {((theme?.openings && theme.openings.length > 0) || 
+              (theme?.endings && theme.endings.length > 0)) && (
+              <ContentSection>
+                <SectionHeading><Music size={24} /> Theme Songs</SectionHeading>
+                <ThemeSongsSection>
+                  {theme.openings && theme.openings.length > 0 && (
+                    <ThemeCategory>
+                      <ThemeCategoryTitle><Music size={18} /> Opening Themes</ThemeCategoryTitle>
+                      {theme.openings.map((opening, index) => (
+                        <ThemeItem key={`opening-${index}`}>
+                          {opening}
+                        </ThemeItem>
+                      ))}
+                    </ThemeCategory>
+                  )}
+                  
+                  {theme.endings && theme.endings.length > 0 && (
+                    <ThemeCategory>
+                      <ThemeCategoryTitle><Music size={18} /> Ending Themes</ThemeCategoryTitle>
+                      {theme.endings.map((ending, index) => (
+                        <ThemeItem key={`ending-${index}`}>
+                          {ending}
+                        </ThemeItem>
+                      ))}
+                    </ThemeCategory>
+                  )}
+                </ThemeSongsSection>
               </ContentSection>
             )}
             
-            {/* Display recommendations with their loading state */}
-            {!recommendationsLoading && recommendations.length > 0 && (
-              <ContentSection delay="1.2s">
-                <RecommendationsList recommendations={recommendations} />
+            {/* Background info section */}
+            {background && (
+              <ContentSection>
+                <SectionHeading><BookOpen size={24} /> Background</SectionHeading>
+                <Synopsis>
+                  <p>{background}</p>
+                </Synopsis>
               </ContentSection>
             )}
-          </>
-        )}
+            
+            {/* External links section */}
+            {external && external.length > 0 && (
+              <ContentSection>
+                <SectionHeading><ExternalLink size={24} /> External Links</SectionHeading>
+                <ExternalLinksGrid>
+                  {external.map((link, index) => (
+                    <ExternalLinkButton
+                      key={`external-${index}`}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <ExternalLink size={16} />
+                      {link.name}
+                    </ExternalLinkButton>
+                  ))}
+                </ExternalLinksGrid>
+              </ContentSection>
+            )}
+          </MainContent>
+            {/* Characters section */}
+            <ContentSection>
+              {charactersLoading ? (
+                <LoadingSpinner size="medium" centered />
+              ) : characters && characters.length > 0 ? (
+                <CharactersList characters={characters} />
+              ) : (
+                <NoContentMessage>No character information available for this anime.</NoContentMessage>
+              )}
+            </ContentSection>
+            
+            {/* Recommendations section */}
+            <ContentSection>
+              {recommendationsLoading ? (
+                <LoadingSpinner size="medium" centered />
+              ) : recommendations && recommendations.length > 0 ? (
+                <RecommendationsList recommendations={recommendations} />
+              ) : (
+                <NoContentMessage>No recommendations available for this anime.</NoContentMessage>
+              )}
+            </ContentSection>
+        </AnimePageGrid>
       </PageContainer>
     </Layout>
   );

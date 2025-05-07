@@ -4,7 +4,7 @@ import { TrendingUp, Trophy, Users, Award, Check, Calendar, Film, Heart, List, C
 import Card from '../common/Card';
 import UserAvatar from '../common/UserAvatar';
 import useAuth from '../../hooks/useAuth';
-import { userAPI, watchlistAPI } from '../../services/api';
+import { watchlistAPI } from '../../services/api';
 import AchievementsList from '../common/AchievementsList';
 import { Link } from 'react-router-dom';
 import useToast from '../../hooks/useToast';
@@ -249,14 +249,6 @@ const StatsSection = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [watchlistStats, setWatchlistStats] = useState({
-    watching: 0,
-    completed: 0,
-    plan_to_watch: 0,
-    on_hold: 0,
-    dropped: 0,
-    total: 0
-  });
   
   useEffect(() => {
     const fetchData = async () => {
@@ -266,24 +258,14 @@ const StatsSection = () => {
       }
       
       try {
-        // Fetch watchlist stats
-        const watchlistResponse = await watchlistAPI.getWatchlist();
-        if (watchlistResponse.success) {
-          setWatchlistStats(watchlistResponse.data.counts || {});
-        } else {
-          console.error('Failed to load watchlist stats:', watchlistResponse);
-          showToast({
-            type: 'error',
-            message: 'Failed to load watchlist statistics'
-          });
-        }
+        // No need to fetch watchlist stats separately, they're included in user data
+        setLoading(false);
       } catch (error) {
         console.error('Error fetching stats data:', error);
         showToast({
           type: 'error',
           message: 'Error loading dashboard statistics'
         });
-      } finally {
         setLoading(false);
       }
     };
@@ -291,39 +273,23 @@ const StatsSection = () => {
     fetchData();
   }, [user, showToast]);
   
-  // Calculate watchlist total
-  const calculateWatchlistTotal = () => {
-    // If total is provided, use it
-    if (watchlistStats.total) return watchlistStats.total;
-    
-    // Otherwise calculate from individual statuses
-    return (
-      (watchlistStats.watching || 0) + 
-      (watchlistStats.completed || 0) + 
-      (watchlistStats.plan_to_watch || 0) + 
-      (watchlistStats.on_hold || 0) + 
-      (watchlistStats.dropped || 0)
-    );
-  };
-  
-  // Get anime watched count from user data
-  const getAnimeWatchedCount = () => {
-    // If available in user achievements, use that
-    if (user?.achievements?.animeWatchedCount !== undefined) {
-      return user.achievements.animeWatchedCount;
-    }
-    
-    // Otherwise fallback to completed from watchlist
-    return watchlistStats.completed || 0;
-  };
-  
   if (loading) {
     return <LoadingText>Loading stats...</LoadingText>;
   }
   
-  const animeWatchedCount = getAnimeWatchedCount();
-  const watchlistTotal = calculateWatchlistTotal();
-  const followersCount = user?.followersCount || 0;
+  if (!user) {
+    return <LoadingText>Please log in to view your stats</LoadingText>;
+  }
+  
+  // Get values from user data
+  const watching = user.watchlistStats?.watching || 0;
+  const completed = user.achievements?.animeWatchedCount || 0;
+  const totalInWatchlist = user.watchlistStats?.total || 0;
+  const followersCount = user.followersCount || 0;
+  const currentRank = user.achievements?.current || 'Newbie';
+  const unlockedCount = user.achievements?.unlockedCount || 0;
+  const totalAchievements = user.achievements?.totalAchievements || 0;
+  const completionPercentage = user.achievements?.completionPercentage || 0;
   
   return (
     <>
@@ -333,7 +299,7 @@ const StatsSection = () => {
           <StatIcon>
             <TrendingUp size={24} />
           </StatIcon>
-          <StatValue>{watchlistStats.watching || 0}</StatValue>
+          <StatValue>{watching}</StatValue>
           <StatLabel>Watching</StatLabel>
         </StatItem>
         
@@ -341,7 +307,7 @@ const StatsSection = () => {
           <StatIcon>
             <Check size={24} />
           </StatIcon>
-          <StatValue>{animeWatchedCount}</StatValue>
+          <StatValue>{completed}</StatValue>
           <StatLabel>Completed</StatLabel>
         </StatItem>
         
@@ -349,7 +315,7 @@ const StatsSection = () => {
           <StatIcon>
             <List size={24} />
           </StatIcon>
-          <StatValue>{watchlistTotal}</StatValue>
+          <StatValue>{totalInWatchlist}</StatValue>
           <StatLabel>In Watchlist</StatLabel>
         </StatItem>
         
@@ -369,18 +335,18 @@ const StatsSection = () => {
       </SectionTitle>
       
       <TopAchievements>
-        {user?.achievements?.current && (
+        {currentRank && (
           <StatItem style={{ maxWidth: '350px', margin: '0 auto 2rem auto' }}>
             <StatIcon style={{ backgroundColor: 'var(--primary)', color: 'white' }}>
               <Trophy size={24} />
             </StatIcon>
-            <StatValue>{user.achievements.current}</StatValue>
-            <StatLabel>Current Rank</StatLabel>
+            <StatValue>{currentRank}</StatValue>
+            <StatLabel>Current Rank ({unlockedCount}/{totalAchievements} - {completionPercentage}% Complete)</StatLabel>
           </StatItem>
         )}
       </TopAchievements>
       
-      <AchievementsList userData={user} showProgress={true} showCategory={true} />
+      {user.achievements && <AchievementsList userData={user} showProgress={true} showCategory={true} />}
       
       <SectionDivider />
       
