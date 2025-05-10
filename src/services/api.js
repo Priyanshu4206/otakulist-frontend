@@ -255,97 +255,116 @@ export const authAPI = {
 
 // User APIs
 export const userAPI = {
-  // We don't need userId - according to userRoutes.js, it uses the current user from auth middleware
-  updateProfile: (data) => api.patch("/users/update", data),
-  updatePassword: (data) => api.put("/auth/password", data),
-  getFollowers: (page = 1, limit = 20) =>
-    api.get("/users/followers", { params: { page, limit } }),
-  getFollowing: (page = 1, limit = 20) =>
-    api.get("/users/following", { params: { page, limit } }),
-  uploadAvatar: (formData) =>
-    api.post("/users/upload-avatar", formData, {
+  /**
+   * Fetch a user's public profile and stats by username
+   * @param {string} username
+   * @returns {Promise}
+   */
+  getProfile: (username) => api.get(`/users/profile/${username}`),
+
+  /**
+   * Update profile details and/or avatar in one atomic request (multipart/form-data)
+   * @param {FormData} formData
+   * @returns {Promise}
+   */
+  updateProfile: (formData) =>
+    api.patch("/users/profile", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     }),
-  getProfile: (username) => api.get(`/users/${username}`),
-  followUser: (userId) => api.post(`/users/follow/${userId}`),
-  unfollowUser: (userId) => api.post(`/users/unfollow/${userId}`),
-  getActivityFeed: (page = 1, limit = 20) =>
-    api.get("/users/feed", { params: { page, limit } }),
-  getRecommendedUsers: (limit = 5) =>
-    api.get("/users/recommended", { params: { limit } }),
-  deleteAccount: async () => {
-    try {
-      // First call the server endpoint to delete the account
-      const response = await api.delete("/auth/delete-account");
 
-      // Reset auth failed state
-      resetAuthFailedState();
-
-      // Clear auth token
-      setAuthToken(null);
-
-      // Clear all auth-related localStorage items
-      localStorage.removeItem("auth_checked");
-      localStorage.removeItem("auth_from_callback");
-      localStorage.removeItem("has_valid_token");
-
-      // Clear session storage items
-      sessionStorage.removeItem("auth_callback_processed");
-
-      // Set logout flag
-      sessionStorage.setItem("from_logout", "true");
-
-      // Clear the specific items mentioned
-      const itemsToClear = [
-        "all_achievements",
-        "genres_list",
-        "preferred_theme",
-        "theme",
-      ];
-
-      // Remove each item
-      itemsToClear.forEach((item) => localStorage.removeItem(item));
-
-      // Clear cookies that might be related to auth
-      document.cookie =
-        "jwt=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; domain=" +
-        window.location.hostname;
-      document.cookie =
-        "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; domain=" +
-        window.location.hostname;
-      document.cookie = "jwt=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;";
-      document.cookie =
-        "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;";
-
-      return response;
-    } catch (error) {
-      console.error("Error during account deletion:", error);
-      throw error;
-    }
-  },
-  updateAchievements: (data) => api.post("/users/achievements", data),
-  getAllAchievements: () => api.get("/users/achievements/all"),
-  getUserAchievements: (username) => {
-    if (username) {
-      return api.get(`/users/${username}/achievements`);
-    }
-    return api.get("/users/achievements");
-  },
   /**
-   * Get all available timezones
-   * @returns {Promise} API response with timezones list
+   * Follow a user by userId
+   * @param {string} userId
+   * @returns {Promise}
    */
-  getTimezones: async () => {
-    try {
-      const response = await api.get("/users/timezones");
-      return response;
-    } catch (error) {
-      handleError(error);
-      return { success: false, message: error.message };
-    }
-  },
-  getUserAnimeRating: (animeId) => api.get(`/anime/${animeId}/rating`),
-  rateAnime: (animeId, data) => api.post(`/anime/${animeId}/rate`, data),
+  followUser: (userId) => api.post(`/users/follow/${userId}`),
+
+  /**
+   * Unfollow a user by userId
+   * @param {string} userId
+   * @returns {Promise}
+   */
+  unfollowUser: (userId) => api.post(`/users/unfollow/${userId}`),
+
+  /**
+   * Get followers of a user
+   * @param {string} userId
+   * @param {number} [page]
+   * @param {number} [limit]
+   * @returns {Promise}
+   */
+  getFollowers: (userId, page = 1, limit = 20) =>
+    api.get(`/users/${userId}/followers`, { params: { page, limit } }),
+
+  /**
+   * Get following of a user
+   * @param {string} userId
+   * @param {number} [page]
+   * @param {number} [limit]
+   * @returns {Promise}
+   */
+  getFollowing: (userId, page = 1, limit = 20) =>
+    api.get(`/users/${userId}/following`, { params: { page, limit } }),
+
+  /**
+   * Get notifications for the current user
+   * @param {number} [page]
+   * @param {number} [limit]
+   * @returns {Promise}
+   */
+  getNotifications: (page = 1, limit = 20) =>
+    api.get("/users/notifications", { params: { page, limit } }),
+
+  /**
+   * Mark a notification as read
+   * @param {string} notificationId
+   * @returns {Promise}
+   */
+  markNotificationRead: (notificationId) =>
+    api.patch(`/users/notifications/${notificationId}/read`),
+
+  /**
+   * Mark all notifications as read
+   * @returns {Promise}
+   */
+  markAllNotificationsRead: () => api.patch("/users/notifications/read-all"),
+
+  /**
+   * Get user achievements by userId
+   * @param {string} userId
+   * @param {number} [page]
+   * @param {number} [limit]
+   * @returns {Promise}
+   */
+  getUserAchievements: (userId, page = 1, limit = 20) =>
+    api.get(`/users/${userId}/achievements`, { params: { page, limit } }),
+
+  /**
+   * Get all available achievements
+   * @returns {Promise}
+   */
+  getAllAchievements: () => api.get("/users/achievements"),
+
+  /**
+   * Get user settings (current user)
+   * @returns {Promise}
+   */
+  getSettings: () => api.get("/users/settings"),
+
+  /**
+   * Update user settings (current user)
+   * @param {string} category
+   * @param {object} settings
+   * @returns {Promise}
+   */
+  updateSettings: (category, settings) =>
+    api.patch("/users/settings", { category, settings }),
+
+  /**
+   * Get available timezones
+   * @returns {Promise}
+   */
+  getTimezones: () => api.get("/users/timezones"),
 };
 
 // Watchlist APIs
@@ -711,6 +730,148 @@ export const genreAPI = {
     api.get("/genres/popular", { params: { limit } }),
   getAnimeByGenre: (genreId, params = {}) =>
     api.get(`/genres/${genreId}/anime`, { params }),
+};
+
+// Anime Rating API
+export const animeRatingAPI = {
+  /**
+   * Rate an anime with score and optional comment
+   * @param {string} animeId - The ID of the anime to rate
+   * @param {number} score - Rating score (1-10)
+   * @param {string} comment - Optional comment about the rating
+   * @returns {Promise} - Standardized response
+   */
+  rateAnime: async (animeId, score, comment = "") => {
+    try {
+      const response = await api.post("/ratings", {
+        animeId,
+        score,
+        comment
+      });
+      
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      handleError(error);
+      return {
+        success: false,
+        error: {
+          message: error.response?.data?.error?.message || "Failed to rate anime"
+        }
+      };
+    }
+  },
+
+  /**
+   * Delete a rating for an anime
+   * @param {string} animeId - The ID of the anime to remove rating for
+   * @returns {Promise} - Standardized response
+   */
+  deleteRating: async (animeId) => {
+    try {
+      const response = await api.delete(`/ratings/${animeId}`);
+      
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      handleError(error);
+      return {
+        success: false,
+        error: {
+          message: error.response?.data?.error?.message || "Failed to delete anime rating"
+        }
+      };
+    }
+  },
+
+  /**
+   * Get all ratings by the current user
+   * @param {number} page - Page number for pagination
+   * @param {number} limit - Number of items per page
+   * @returns {Promise} - Standardized response with pagination
+   */
+  getUserRatings: async (page = 1, limit = 20) => {
+    try {
+      const response = await api.get(`/ratings/me?page=${page}&limit=${limit}`);
+      
+      return {
+        success: true,
+        data: response.data,
+        pagination: response.pagination
+      };
+    } catch (error) {
+      handleError(error);
+      return {
+        success: false,
+        error: {
+          message: error.response?.data?.error?.message || "Failed to fetch user ratings"
+        }
+      };
+    }
+  },
+
+  /**
+   * Get ratings for a specific anime
+   * @param {string} animeId - The ID of the anime
+   * @param {number} page - Page number for pagination
+   * @param {number} limit - Number of items per page
+   * @returns {Promise} - Standardized response with pagination
+   */
+  getAnimeRatings: async (animeId, page = 1, limit = 20) => {
+    try {
+      const response = await api.get(`/ratings/anime/${animeId}?page=${page}&limit=${limit}`);
+      
+      return {
+        success: true,
+        data: response.data,
+        pagination: response.pagination
+      };
+    } catch (error) {
+      handleError(error);
+      return {
+        success: false,
+        error: {
+          message: error.response?.data?.error?.message || "Failed to fetch anime ratings"
+        }
+      };
+    }
+  },
+
+  /**
+   * Get user's rating for a specific anime
+   * @param {string} animeId - The ID of the anime
+   * @returns {Promise} - Standardized response
+   */
+  getUserRatingForAnime: async (animeId) => {
+    try {
+      const response = await api.get(`/ratings/me/${animeId}`);
+      
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      // If 404, it means no rating exists, which is not an error
+      if (error.response?.status === 404) {
+        return {
+          success: true,
+          data: null
+        };
+      }
+      
+      handleError(error);
+      return {
+        success: false,
+        error: {
+          message: error.response?.data?.error?.message || "Failed to fetch user rating"
+        }
+      };
+    }
+  }
 };
 
 export default api;

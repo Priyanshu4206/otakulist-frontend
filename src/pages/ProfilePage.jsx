@@ -61,23 +61,19 @@ const ProfilePage = () => {
     const fetchProfileData = async () => {
       try {
         setLoading(true);
-        
-        // Fetch user profile data
+        setError(null);
+        // Fetch user profile data (new API)
         const profileResponse = await userAPI.getProfile(username);
-        
         if (profileResponse && profileResponse.success) {
           setProfileData(profileResponse.data);
-          
-          if(user && user.username === profileResponse.data.username) {
+          if (user && user.username === profileResponse.data.username) {
             setIsOwner(true);
+          } else {
+            setIsOwner(false);
           }
-          
-          // Check if current user is following this profile
-          if (user && profileResponse.data.followers) {
-            setIsFollowing(profileResponse.data.followers.some(
-              follower => follower.id === user.id
-            ));
-          }
+          // TODO: Optionally, fetch follow status if needed (not in new API response)
+        } else {
+          throw new Error(profileResponse?.error || 'Failed to load profile');
         }
       } catch (err) {
         console.error('Error fetching profile:', err);
@@ -86,7 +82,6 @@ const ProfilePage = () => {
         setLoading(false);
       }
     };
-    
     if (username) {
       fetchProfileData();
     }
@@ -143,41 +138,45 @@ const ProfilePage = () => {
       navigate('/login');
       return;
     }
-    
     setFollowLoading(true);
     try {
       if (isFollowing) {
-        const response = await userAPI.unfollowUser(profileData.id);
+        const response = await userAPI.unfollowUser(profileData._id);
         if (response.success) {
           showToast({
             type: 'success',
             message: `Unfollowed ${profileData.displayName || profileData.username}`
           });
+          setIsFollowing(false);
+          setProfileData(prev => ({
+            ...prev,
+            stats: {
+              ...prev.stats,
+              followersCount: prev.stats.followersCount - 1
+            }
+          }));
         } else {
           throw new Error(response.message || 'Failed to unfollow user');
         }
       } else {
-        const response = await userAPI.followUser(profileData.id);
+        const response = await userAPI.followUser(profileData._id);
         if (response.success) {
           showToast({
             type: 'success',
             message: `Now following ${profileData.displayName || profileData.username}`
           });
+          setIsFollowing(true);
+          setProfileData(prev => ({
+            ...prev,
+            stats: {
+              ...prev.stats,
+              followersCount: prev.stats.followersCount + 1
+            }
+          }));
         } else {
           throw new Error(response.message || 'Failed to follow user');
         }
       }
-      
-      // Toggle following state
-      setIsFollowing(!isFollowing);
-      
-      // Update follower count
-      setProfileData(prev => ({
-        ...prev,
-        followersCount: isFollowing 
-          ? prev.followersCount - 1 
-          : prev.followersCount + 1
-      }));
     } catch (error) {
       console.error('Error toggling follow status:', error);
       showToast({
@@ -347,19 +346,13 @@ const ProfilePage = () => {
                   
                   {activeTab === TABS.ACHIEVEMENTS && (
                     <div>
-                      {profileData.settings?.showWatchlist !== false ? (
-                        profileData.achievements ? (
-                          <AchievementsList 
-                            userData={profileData} 
-                            showProgress={true} 
-                            showCategory={true} 
-                            isPublicProfile={true} 
-                          />
-                        ) : (
-                          <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--textSecondary)' }}>
-                            No achievements data available.
-                          </div>
-                        )
+                      {profileData.settings?.privacy?.showAchievements !== false ? (
+                        <AchievementsList 
+                          userData={profileData} 
+                          showProgress={true} 
+                          showCategory={true} 
+                          isPublicProfile={true} 
+                        />
                       ) : (
                         <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--textSecondary)' }}>
                           This user has chosen to keep their achievements private.

@@ -95,11 +95,11 @@ const ProfileInfo = ({
         
         <SocialStats>
           <StatItem>
-            <StatValue>{profileData.followersCount || 0}</StatValue>
+            <StatValue>{profileData.stats?.followersCount ?? 0}</StatValue>
             <StatLabel>Followers</StatLabel>
           </StatItem>
           <StatItem>
-            <StatValue>{profileData.followingCount || 0}</StatValue>
+            <StatValue>{profileData.stats?.followingCount ?? 0}</StatValue>
             <StatLabel>Following</StatLabel>
           </StatItem>
         </SocialStats>

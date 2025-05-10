@@ -75,7 +75,7 @@ const ErrorMessage = styled.div`
 const WatchlistSection = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
-  
+
   // State
   const [watchlistData, setWatchlistData] = useState([]);
   const [activeTab, setActiveTab] = useState('all');
@@ -100,32 +100,32 @@ const WatchlistSection = () => {
   const [currentAnime, setCurrentAnime] = useState(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  
+
   // Fetch watchlist data
   const fetchWatchlist = async () => {
     setLoading(true);
     setError(null);
     try {
       const response = await watchlistAPI.getWatchlist();
-      
+
       if (response && response.success) {
         // Ensure data is an array, handle different API response structures
-        const watchlistData = Array.isArray(response.data) 
-          ? response.data 
+        const watchlistData = Array.isArray(response.data)
+          ? response.data
           : (response.data?.watchlist || []);
-        
+
         setWatchlistData(watchlistData);
-        
+
         // Calculate counts
         const newCounts = {
           all: watchlistData.length || 0,
         };
-        
+
         // Count items for each status
         STATUSES.forEach(status => {
           newCounts[status.id] = watchlistData.filter(item => item.status === status.id).length;
         });
-        
+
         setCounts(newCounts);
       } else {
         setError('Failed to load watchlist');
@@ -139,31 +139,31 @@ const WatchlistSection = () => {
       setLoading(false);
     }
   };
-  
+
   useEffect(() => {
     fetchWatchlist();
   }, []);
-  
+
   // Handle tab change
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
   };
-  
+
   // Handle filter change
   const handleFilterChange = (filterData) => {
     setFilters(filterData);
   };
-  
+
   // Handle sort change
   const handleSortChange = (value) => {
     setSortBy(value);
   };
-  
+
   // Toggle sort order
   const handleSortOrderToggle = () => {
     setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
   };
-  
+
   // Handle anime status change
   const handleStatusChange = async (anime, newStatus) => {
     const statusLabel = STATUSES.find(s => s.id === newStatus)?.label || newStatus;
@@ -171,24 +171,22 @@ const WatchlistSection = () => {
       animeId: anime.animeId.toString(),
       status: newStatus,
     };
-    
+
     try {
       // Send the update to the API
       const response = await watchlistAPI.addOrUpdateAnime(updateData);
-      
+
       if (response && response.success) {
-        const updatedEntry = response.data;
-        
         // Update local state
         setWatchlistData(prev => {
           return prev.map(item => {
-            if (item.animeId === updatedEntry.animeId) {
-              return updatedEntry;
+            if (item.animeId === anime.animeId) {
+              return { ...anime, status: newStatus };
             }
             return item;
           });
         });
-        
+
         // Update counts if status changed
         if (anime.status !== newStatus) {
           setCounts(prev => ({
@@ -197,7 +195,7 @@ const WatchlistSection = () => {
             [newStatus]: prev[newStatus] + 1,
           }));
         }
-        
+
         // Show success toast
         showToast({
           type: 'success',
@@ -219,45 +217,45 @@ const WatchlistSection = () => {
       });
     }
   };
-  
+
   // Delete anime from watchlist
   const openDeleteModal = (anime) => {
     setCurrentAnime(anime);
     setDeleteModalOpen(true);
   };
-  
+
   const closeDeleteModal = () => {
     setDeleteModalOpen(false);
     setCurrentAnime(null);
   };
-  
+
   const handleDelete = async () => {
     if (!currentAnime) return;
-    
+
     setDeleting(true);
     try {
       // Call the API to remove the anime from watchlist
       const response = await watchlistAPI.removeFromWatchlist(currentAnime.animeId);
-      
+
       if (response && response.success) {
         // Update local state by removing the deleted anime
-        setWatchlistData(prev => 
+        setWatchlistData(prev =>
           prev.filter(item => item.animeId !== currentAnime.animeId)
         );
-        
+
         // Update counts
         setCounts(prev => ({
           ...prev,
           all: Math.max(0, prev.all - 1),
           [currentAnime.status]: Math.max(0, prev[currentAnime.status] - 1),
         }));
-        
+
         // Show success toast
         showToast({
           type: 'success',
           message: 'Anime removed from your watchlist'
         });
-        
+
         // Close modal
         closeDeleteModal();
       } else {
@@ -279,17 +277,17 @@ const WatchlistSection = () => {
       setDeleting(false);
     }
   };
-  
+
   // Filter and sort the watchlist data
   const getFilteredAnimeList = () => {
     // Create a copy of the array to avoid modifying the original
     let filteredList = [...watchlistData];
-    
+
     // First filter by tab (status)
     if (activeTab !== 'all') {
       filteredList = filteredList.filter(anime => anime.status === activeTab);
     }
-    
+
     // Apply search filter
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
@@ -299,21 +297,21 @@ const WatchlistSection = () => {
         return title.toLowerCase().includes(searchLower);
       });
     }
-    
+
     // Apply genre filter
     if (filters.genres && filters.genres.length > 0) {
       filteredList = filteredList.filter(anime => {
         const animeData = anime.anime || anime;
         if (!animeData.genres || animeData.genres.length === 0) return false;
-        
-        const animeGenres = animeData.genres.map(g => 
+
+        const animeGenres = animeData.genres.map(g =>
           typeof g === 'string' ? g.toLowerCase() : g.name.toLowerCase()
         );
-        
+
         return filters.genres.some(g => animeGenres.includes(g.toLowerCase()));
       });
     }
-    
+
     // Apply season filter
     if (filters.seasons && filters.seasons.length > 0) {
       filteredList = filteredList.filter(anime => {
@@ -322,7 +320,7 @@ const WatchlistSection = () => {
         return filters.seasons.includes(animeData.season.toLowerCase());
       });
     }
-    
+
     // Apply year filter
     if (filters.years && filters.years.length > 0) {
       filteredList = filteredList.filter(anime => {
@@ -331,16 +329,16 @@ const WatchlistSection = () => {
         return filters.years.includes(animeData.year.toString());
       });
     }
-    
+
     // Only sort if filteredList is an array with items
     if (Array.isArray(filteredList) && filteredList.length > 0) {
       // Sort the list
       return filteredList.sort((a, b) => {
         const aData = a.anime || a;
         const bData = b.anime || b;
-        
+
         let valueA, valueB;
-        
+
         switch (sortBy) {
           case 'title':
             valueA = aData.titles?.english || aData.titles?.default || aData.title || '';
@@ -359,7 +357,7 @@ const WatchlistSection = () => {
             valueA = new Date(a.updatedAt || 0).getTime();
             valueB = new Date(b.updatedAt || 0).getTime();
         }
-        
+
         if (sortOrder === 'asc') {
           return valueA > valueB ? 1 : -1;
         } else {
@@ -367,56 +365,56 @@ const WatchlistSection = () => {
         }
       });
     }
-    
+
     return filteredList;
   };
-  
+
   const filteredAnimeList = getFilteredAnimeList();
-  
+
   return (
     <WatchlistContainer>
-      <WatchlistTabs 
-        activeTab={activeTab} 
-        counts={counts} 
-        onTabChange={handleTabChange} 
+      <WatchlistTabs
+        activeTab={activeTab}
+        counts={counts}
+        onTabChange={handleTabChange}
       />
-      
+
       <ControlsRow>
-        <WatchlistFilter 
+        <WatchlistFilter
           filters={filters}
           onChange={handleFilterChange}
         />
-        
-        <SortingControls 
+
+        <SortingControls
           sortBy={sortBy}
           sortOrder={sortOrder}
           onSortChange={handleSortChange}
           onSortOrderToggle={handleSortOrderToggle}
         />
       </ControlsRow>
-      
+
       {error && (
         <ErrorMessage>
           <X size={18} />
           {error}
         </ErrorMessage>
       )}
-      
+
       <AnimatePresence mode="wait">
         {loading ? (
           <LoadingContainer key="loading">
             <LoadingSpinner size={40} />
           </LoadingContainer>
         ) : filteredAnimeList.length === 0 ? (
-          <EmptyWatchlist 
+          <EmptyWatchlist
             key="empty"
-            onAddAnime={() => navigate('/schedule')} 
+            onAddAnime={() => navigate('/schedule')}
           />
         ) : (
           <AnimeList key="list">
             <AnimatePresence>
               {filteredAnimeList.map(anime => (
-                <WatchlistAnimeItem 
+                <WatchlistAnimeItem
                   key={anime.animeId}
                   anime={anime}
                   onStatusChange={handleStatusChange}
@@ -427,7 +425,7 @@ const WatchlistSection = () => {
           </AnimeList>
         )}
       </AnimatePresence>
-      
+
       <DeleteConfirmationModal
         isOpen={deleteModalOpen}
         onClose={closeDeleteModal}

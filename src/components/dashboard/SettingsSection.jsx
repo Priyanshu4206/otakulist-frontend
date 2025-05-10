@@ -9,6 +9,7 @@ import TimezoneSelect from './TimezoneSelect';
 import { saveUserTimezone } from '../../utils/simpleTimezoneUtils';
 import useToast from '../../hooks/useToast';
 import MiniLoadingSpinner from '../common/MiniLoadingSpinner';
+import DeleteModal from '../common/DeleteModal';
 
 const SettingsGrid = styled.div`
   display: grid;
@@ -162,77 +163,6 @@ const LogoutButton = styled.button`
     background-color: var(--dangerLight);
     color: var(--danger);
     border-color: var(--danger);
-  }
-`;
-
-const Modal = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.6);
-  display: ${props => props.show ? 'flex' : 'none'};
-  justify-content: center;
-  align-items: center;
-  z-index: 100;
-`;
-
-const ModalContent = styled.div`
-  background-color: var(--cardBackground);
-  border-radius: 8px;
-  padding: 1.5rem;
-  width: 90%;
-  max-width: 500px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-`;
-
-const ModalHeader = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-  color: var(--danger);
-  font-weight: 600;
-  font-size: 1.2rem;
-`;
-
-const ModalButtons = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 1.5rem;
-`;
-
-const CancelButton = styled.button`
-  background-color: var(--cardBackground);
-  color: var(--textPrimary);
-  border: 1px solid var(--borderColor);
-  border-radius: 4px;
-  padding: 0.75rem 1.5rem;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  
-  &:hover {
-    background-color: var(--borderColor);
-  }
-`;
-
-const ConfirmButton = styled.button`
-  background-color: var(--danger);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 0.75rem 1.5rem;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  
-  &:hover {
-    background-color: var(--dangerDark);
   }
 `;
 
@@ -431,674 +361,315 @@ const Input = styled.input`
 `;
 
 const SettingsSection = () => {
-  const { logout, user, refreshUser, updateUserPreferences } = useAuth();
-  const { currentTheme, changeTheme, availableThemes } = useTheme();
+  const { logout, user, refreshUser } = useAuth();
   const { showToast } = useToast();
-  
-  const [settings, setSettings] = useState({
-    receiveNotifications: true,
-    showWatchlist: true,
-    showFollowing: true,
-    interfaceTheme: getUserTheme() // Initialize with localStorage value
-  });
-  
+  const { theme, changeTheme, availableThemes } = useTheme();
+
+  const [settings, setSettings] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [updatingTheme, setUpdatingTheme] = useState(null);
-  const [syncedWithBackend, setSyncedWithBackend] = useState(false);
-  
-  // Track which specific settings are being updated
-  const [updatingSettings, setUpdatingSettings] = useState({
-    receiveNotifications: false,
-    showWatchlist: false,
-    showFollowing: false,
-    timezone: false
-  });
-  
-  const [updatingPassword, setUpdatingPassword] = useState(false);
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  });
-  const [passwordErrors, setPasswordErrors] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-    general: ''
-  });
-  
-  // Initialize theme from localStorage if not already set
-  useEffect(() => {
-    const storedTheme = getUserTheme();
-    
-    // Apply theme if different from current
-    if (storedTheme !== currentTheme) {
-      changeTheme(storedTheme);
-    }
-    
-    // Update settings state with stored theme
-    setSettings(prev => ({
-      ...prev,
-      interfaceTheme: storedTheme
-    }));
-  }, []);
-  
-  // Sync with user settings when user object changes
-  useEffect(() => {
-    if (user && user.settings) {
-      // Check for theme from user settings
-      if (user.settings.interfaceTheme) {
-        const userTheme = user.settings.interfaceTheme;
-        
-        // Save user's theme to localStorage
-        saveUserTheme(userTheme);
-        
-        // Update theme if different from current
-        if (userTheme !== currentTheme) {
-          changeTheme(userTheme);
-        }
-        
-        // Update settings state
-        setSettings(prev => ({
-          ...prev,
-          interfaceTheme: userTheme,
-          receiveNotifications: user.settings.receiveNotifications !== undefined ? user.settings.receiveNotifications : true,
-          showWatchlist: user.settings.showWatchlist !== undefined ? user.settings.showWatchlist : true,
-          showFollowing: user.settings.showFollowing !== undefined ? user.settings.showFollowing : true
-        }));
-      }
-    }
-  }, [user, currentTheme, changeTheme]);
-  
-  // Reset synced state when user changes (logout/login)
-  useEffect(() => {
-    if (!user) {
-      setSyncedWithBackend(false);
-    }
-  }, [user]);
-  
-  const handleThemeChange = async (newTheme) => {
-    // If already updating, don't allow another update
-    if (updatingTheme) return;
-    
-    // Mark the theme that's changing
-    setUpdatingTheme(newTheme);
+  const [themeChanging, setThemeChanging] = useState(false);
 
+  // Fetch settings on mount
+  useEffect(() => {
+    const fetchSettings = async () => {
+      setLoading(true);
+      try {
+        const response = await userAPI.getSettings();
+        if (response && response.success) {
+          setSettings(response.data);
+        } else {
+          throw new Error(response?.message || 'Failed to load settings');
+        }
+      } catch (err) {
+        showToast({ type: 'error', message: err.message || 'Failed to load settings' });
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSettings();
+  }, [showToast]);
+
+  // Handle setting update
+  const handleSettingChange = async (category, key, value) => {
+    if (!settings) return;
+    setSaving(true);
     try {
-      // Get the theme name for the toast message
-      const themeName = availableThemes[newTheme]?.name || newTheme;
-      
-      // 1. Update local state immediately for better UX
-      setSettings(prev => ({ ...prev, interfaceTheme: newTheme }));
-      
-      // 2. Save to localStorage immediately (this creates immediate visual change)
-      saveUserTheme(newTheme);
-      
-      // 3. Apply theme change immediately for better UX
+      const updatedCategory = { ...settings[category], [key]: value };
+      const response = await userAPI.updateSettings(category, updatedCategory);
+      if (response && response.success) {
+        setSettings(prev => ({ ...prev, [category]: response.data[category] }));
+        showToast({ type: 'success', message: 'Settings updated!' });
+        await refreshUser(true);
+      } else {
+        throw new Error(response?.message || 'Failed to update settings');
+      }
+    } catch (err) {
+      showToast({ type: 'error', message: err.message || 'Failed to update settings' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Handle theme change
+  const handleThemeChange = async (newTheme) => {
+    setThemeChanging(true);
+    try {
+      // Update theme in context
       changeTheme(newTheme);
       
-      // 4. Save theme setting to backend if user is logged in
-      if (user) {
-        try {
-          // Make the API call to update theme and wait for completion
-          const response = await userAPI.updateProfile({
-            settings: { interfaceTheme: newTheme }
-          });
-          
-          if (response.success) {        
-            await refreshUser(true); // true = preserveUIState
-            showToast({
-              type: 'success',
-              message: `Theme updated to "${themeName}"`
-            });
-          } else {
-            throw new Error('Failed to update theme on server');
-          }
-        } catch (error) {
-          console.error('Error saving theme to server:', error);
-          // Show warning toast
-          showToast({
-            type: 'warning',
-            message: 'Theme applied locally, but could not be saved to your account'
-          });
-        }
-      } else {
-        // If user is not logged in, just show toast immediately
-        showToast({
-          type: 'success',
-          message: `Theme "${themeName}" applied`
-        });
-      }
-    } catch (error) {
-      console.error('Error updating theme:', error);
-      // Reset theme if something went wrong
-      if (currentTheme && currentTheme !== newTheme) {
-        changeTheme(currentTheme);
-        setSettings(prev => ({ ...prev, interfaceTheme: currentTheme }));
+      // Update theme in settings if we have them loaded
+      if (settings && settings.display) {
+        await handleSettingChange('display', 'theme', newTheme);
       }
       
-      showToast({
-        type: 'error',
-        message: 'Failed to update theme'
-      });
+      showToast({ type: 'success', message: `Theme changed to ${newTheme}!` });
+    } catch (err) {
+      showToast({ type: 'error', message: err.message || 'Failed to change theme' });
     } finally {
-      // Wait a moment before removing loading state for better UX
-      setTimeout(() => {
-        setUpdatingTheme(null);
-      }, 500);
+      setThemeChanging(false);
     }
   };
-  
-  const updateUserSettings = async (updatedSettings) => {
-    if (!user) return; // Don't attempt API call if user not logged in
-    
-    // Don't set isUpdating if we're updating theme (handled separately by updatingTheme state)
-    const isThemeUpdate = updatedSettings.hasOwnProperty('interfaceTheme');
-    if (!isThemeUpdate) {
-      setIsUpdating(true);
-    }
-    
+
+  // Handle timezone change
+  const handleTimezoneChange = async (timezone) => {
     try {
-      // Make the API call to update settings
-      const response = await userAPI.updateProfile({
-        settings: updatedSettings
-      });
+      // Save to localStorage
+      saveUserTimezone(timezone);
       
-      if (response.success) {
-        // Refresh user data but PRESERVE UI STATE to avoid dashboard reset
-        const userData = await refreshUser(true); // true = preserveUIState 
-        return userData; // Return updated user data for promise chaining
-      } else {
-        console.error('Error updating settings: API returned error');
-        if (!isThemeUpdate) {
-          showToast({
-            type: 'error',
-            message: 'Failed to update settings'
-          });
-        }
-        return null;
+      // Update in settings API
+      if (settings && settings.display) {
+        await handleSettingChange('display', 'timezone', timezone);
       }
-    } catch (error) {
-      console.error('Error updating settings:', error);
-      if (!isThemeUpdate) {
-        showToast({
-          type: 'error',
-          message: 'Failed to update settings'
-        });
-      }
-      throw error; // Propagate error for promise chaining
-    } finally {
-      if (!isThemeUpdate) {
-        setIsUpdating(false);
-      }
+      
+      showToast({ type: 'success', message: 'Timezone updated!' });
+    } catch (err) {
+      showToast({ type: 'error', message: err.message || 'Failed to update timezone' });
     }
   };
-  
-  const handleToggle = (setting) => {
-    const newValue = !settings[setting];
-    
-    // Update local state immediately for better UX
-    setSettings(prev => ({ 
-      ...prev, 
-      [setting]: newValue
-    }));
-    
-    // Show loading state for this specific setting
-    setUpdatingSettings(prev => ({
-      ...prev,
-      [setting]: true
-    }));
-    
-    // Save settings to backend
-    const settingKey = setting === 'receiveNotifications' ? 'receiveNotifications' : 
-                        setting === 'showWatchlist' ? 'showWatchlist' : 'showFollowing';
-    
-    // Use updateUserSettings which now preserves UI state
-    updateUserSettings({ [settingKey]: newValue })
-      .then(() => {
-        // Success - we already updated local state
-      })
-      .catch(error => {
-        console.error(`Error toggling ${setting}:`, error);
-        
-        // Revert local state on error
-        setSettings(prev => ({
-          ...prev,
-          [setting]: !newValue
-        }));
-        
-        // Show error toast
-        showToast({
-          type: 'error',
-          message: `Failed to update ${setting.replace(/([A-Z])/g, ' $1').toLowerCase()}`
-        });
-      })
-      .finally(() => {
-        // Hide loading state after a short delay for better UX
-        setTimeout(() => {
-          setUpdatingSettings(prev => ({
-            ...prev,
-            [setting]: false
-          }));
-        }, 300);
-      });
-  };
-  
-  // Determine if a theme is dark for icon selection
-  const isDarkTheme = (themeKey) => {
-    return themeKey !== 'light' && themeKey !== 'one-piece';
-  };
-  
+
+  // Handle logout
   const handleLogout = () => {
     logout();
   };
-  
+
+  // Handle account deletion
   const handleDeleteAccount = () => {
-    // Show confirmation modal
     setShowDeleteModal(true);
   };
   
   const confirmDeleteAccount = async () => {
+    setIsUpdating(true);
     try {
-      // Show loading indicator
-      setIsUpdating(true);
-      
-      // Call API to delete account
       const response = await userAPI.deleteAccount();
-      
       if (response && response.success) {
-        // Show success toast
-        showToast({
-          type: 'success',
-          message: 'Account successfully deleted'
-        });
-        
-        // Logout after successful deletion
+        showToast({ type: 'success', message: 'Account successfully deleted' });
         logout();
       } else {
-        // Show error toast for unsuccessful response
-        showToast({
-          type: 'error',
-          message: response?.message || 'Failed to delete account'
-        });
-        setShowDeleteModal(false);
+        throw new Error(response?.message || 'Failed to delete account');
       }
     } catch (error) {
-      console.error('Error deleting account:', error);
-      
-      // Show error toast
-      showToast({
-        type: 'error',
-        message: error.message || 'An error occurred while deleting your account'
-      });
-      
+      showToast({ type: 'error', message: error.message || 'An error occurred while deleting your account' });
       setShowDeleteModal(false);
     } finally {
       setIsUpdating(false);
     }
   };
-  
-  // Handle timezone save
-  const handleSaveTimezone = async (timezone) => {
-    if (!timezone) return;
-    
-    // Set timezone loading state
-    setUpdatingSettings(prev => ({
-      ...prev,
-      timezone: true
-    }));
-    
-    try {
-      // Save to localStorage first for immediate effect
-      saveUserTimezone(timezone.code);
-      
-      // If user is logged in, save to user settings via API
-      if (user) {
-        // Use the same updateUserSettings function for consistency
-        await updateUserSettings({ timezone: timezone.code });
-        
-        showToast({
-          type: 'success',
-          message: 'Timezone updated successfully'
-        });
-      } else {
-        showToast({
-          type: 'success',
-          message: 'Timezone saved to local settings'
-        });
-      }
-    } catch (error) {
-      console.error('Error saving timezone:', error);
-      showToast({
-        type: 'error',
-        message: 'Failed to update timezone settings'
-      });
-    } finally {
-      // Hide loading state after a short delay
-      setTimeout(() => {
-        setUpdatingSettings(prev => ({
-          ...prev,
-          timezone: false
-        }));
-      }, 300);
-    }
-  };
-  
-  // Handle password form change
-  const handlePasswordChange = (e) => {
-    const { name, value } = e.target;
-    setPasswordForm(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    
-    // Clear specific error when user types
-    setPasswordErrors(prev => ({
-      ...prev,
-      [name]: '',
-      general: ''
-    }));
-  };
-  
-  // Handle password update
-  const handlePasswordUpdate = async (e) => {
-    e.preventDefault();
-    
-    // Reset errors
-    setPasswordErrors({
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: '',
-      general: ''
-    });
-    
-    // Validate input
-    let hasErrors = false;
-    const errors = {
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: '',
-      general: ''
-    };
-    
-    if (!passwordForm.currentPassword) {
-      errors.currentPassword = 'Current password is required';
-      hasErrors = true;
-    }
-    
-    if (!passwordForm.newPassword) {
-      errors.newPassword = 'New password is required';
-      hasErrors = true;
-    } else if (passwordForm.newPassword.length < 8) {
-      errors.newPassword = 'Password must be at least 8 characters';
-      hasErrors = true;
-    }
-    
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      errors.confirmPassword = 'Passwords do not match';
-      hasErrors = true;
-    }
-    
-    if (hasErrors) {
-      setPasswordErrors(errors);
-      return;
-    }
-    
-    // Update password
-    setUpdatingPassword(true);
-    
-    try {
-      const response = await userAPI.updatePassword({
-        currentPassword: passwordForm.currentPassword,
-        newPassword: passwordForm.newPassword
-      });
-      
-      if (response && response.success) {
-        // Show success toast
-        showToast({
-          type: 'success',
-          message: 'Password updated successfully'
-        });
-        
-        // Clear form
-        setPasswordForm({
-          currentPassword: '',
-          newPassword: '',
-          confirmPassword: ''
-        });
-      } else {
-        // Show error toast
-        const errorMessage = response?.message || 'Failed to update password';
-        showToast({
-          type: 'error',
-          message: errorMessage
-        });
-        
-        setPasswordErrors({
-          ...errors,
-          general: errorMessage
-        });
-      }
-    } catch (error) {
-      console.error('Error updating password:', error);
-      
-      // Show error toast
-      showToast({
-        type: 'error',
-        message: error.message || 'An error occurred while updating password'
-      });
-      
-      setPasswordErrors({
-        ...errors,
-        general: error.message || 'An error occurred while updating password'
-      });
-    } finally {
-      setUpdatingPassword(false);
-    }
-  };
-  
+
+  if (loading || !settings) {
+    return <Card title="Account Settings"><MiniLoadingSpinner size="24px" /> Loading settings...</Card>;
+  }
+
   return (
     <>
-      <Card 
-        title="Account Settings" 
-        icon={<Settings size={18} />}
-        marginBottom="0rem"
-      >
+      <Card title="Account Settings" icon={<Settings size={18} />} marginBottom="0rem">
         <SettingsGrid>
+          {/* Notifications */}
           <Card padding="0rem">
-            <SettingsHeader>
-              <Settings size={20} />
-              <h3>Theme Settings</h3>
-            </SettingsHeader>
-            
-            <ThemeOptions>
-              {Object.entries(availableThemes).map(([themeKey, theme]) => (
-                <ThemeOption 
-                  key={themeKey}
-                  active={settings.interfaceTheme === themeKey} 
-                  onClick={() => updatingTheme ? null : handleThemeChange(themeKey)}
-                  isLoading={updatingTheme === themeKey}
-                >
-                  {isDarkTheme(themeKey) ? <Moon size={18} /> : <Sun size={18} />}
-                  <span>{theme.name}</span>
-                  {updatingTheme === themeKey && (
-                    <InlineLoading>
-                      <LoadingDot />
-                      <LoadingDot />
-                      <LoadingDot />
-                    </InlineLoading>
-                  )}
-                </ThemeOption>
-              ))}
-            </ThemeOptions>
+            <h3>Notifications</h3>
+            <SettingItem>
+              <SettingInfo>
+                <SettingTitle>Email Notifications</SettingTitle>
+                <SettingDescription>Receive email notifications</SettingDescription>
+              </SettingInfo>
+              <ToggleSwitch>
+                <input
+                  type="checkbox"
+                  checked={settings.notifications?.email?.enabled}
+                  onChange={e => handleSettingChange('notifications', 'email', { ...settings.notifications.email, enabled: e.target.checked })}
+                  disabled={saving}
+                />
+                <Slider />
+              </ToggleSwitch>
+            </SettingItem>
+            <SettingItem>
+              <SettingInfo>
+                <SettingTitle>Push Notifications</SettingTitle>
+                <SettingDescription>Receive push notifications</SettingDescription>
+              </SettingInfo>
+              <ToggleSwitch>
+                <input
+                  type="checkbox"
+                  checked={settings.notifications?.push?.enabled}
+                  onChange={e => handleSettingChange('notifications', 'push', { ...settings.notifications.push, enabled: e.target.checked })}
+                  disabled={saving}
+                />
+                <Slider />
+              </ToggleSwitch>
+            </SettingItem>
+            <SettingItem>
+              <SettingInfo>
+                <SettingTitle>In-App Notifications</SettingTitle>
+                <SettingDescription>Receive in-app notifications</SettingDescription>
+              </SettingInfo>
+              <ToggleSwitch>
+                <input
+                  type="checkbox"
+                  checked={settings.notifications?.inApp?.enabled}
+                  onChange={e => handleSettingChange('notifications', 'inApp', { ...settings.notifications.inApp, enabled: e.target.checked })}
+                  disabled={saving}
+                />
+                <Slider />
+              </ToggleSwitch>
+            </SettingItem>
           </Card>
-          
-          {/* Timezone settings card */}
+
+          {/* Privacy */}
           <Card padding="0rem">
-            <TimezoneSelect onSave={handleSaveTimezone} />
+            <h3>Privacy</h3>
+            {Object.entries(settings.privacy || {}).map(([key, value]) => (
+              <SettingItem key={key}>
+                <SettingInfo>
+                  <SettingTitle>{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</SettingTitle>
+                </SettingInfo>
+                <ToggleSwitch>
+                  <input
+                    type="checkbox"
+                    checked={!!value}
+                    onChange={e => handleSettingChange('privacy', key, e.target.checked)}
+                    disabled={saving}
+                  />
+                  <Slider />
+                </ToggleSwitch>
+              </SettingItem>
+            ))}
           </Card>
-          
-          {/* Security Settings Card */}
+
+          {/* Display */}
           <Card padding="0rem">
-            <SettingsHeader>
-              <Lock size={20} />
-              <h3>Security Settings</h3>
-            </SettingsHeader>
+            <h3>Display</h3>
             
-            <div style={{ padding: '1rem' }}>
-              <form onSubmit={handlePasswordUpdate}>
-                <FormGroup>
-                  <Label htmlFor="currentPassword">Current Password</Label>
-                  <Input 
-                    type="password" 
-                    id="currentPassword" 
-                    name="currentPassword" 
-                    value={passwordForm.currentPassword}
-                    onChange={handlePasswordChange}
-                    placeholder="Enter current password"
-                  />
-                  {passwordErrors.currentPassword && (
-                    <ErrorText>{passwordErrors.currentPassword}</ErrorText>
-                  )}
-                </FormGroup>
-                
-                <FormGroup>
-                  <Label htmlFor="newPassword">New Password</Label>
-                  <Input 
-                    type="password" 
-                    id="newPassword" 
-                    name="newPassword" 
-                    value={passwordForm.newPassword}
-                    onChange={handlePasswordChange}
-                    placeholder="Enter new password"
-                  />
-                  {passwordErrors.newPassword && (
-                    <ErrorText>{passwordErrors.newPassword}</ErrorText>
-                  )}
-                </FormGroup>
-                
-                <FormGroup>
-                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                  <Input 
-                    type="password" 
-                    id="confirmPassword" 
-                    name="confirmPassword" 
-                    value={passwordForm.confirmPassword}
-                    onChange={handlePasswordChange}
-                    placeholder="Confirm new password"
-                  />
-                  {passwordErrors.confirmPassword && (
-                    <ErrorText>{passwordErrors.confirmPassword}</ErrorText>
-                  )}
-                </FormGroup>
-                
-                {passwordErrors.general && (
-                  <ErrorMessage>
-                    <X size={16} />
-                    {passwordErrors.general}
-                  </ErrorMessage>
-                )}
-                
-                <div style={{ textAlign: 'right', marginTop: '1rem' }}>
-                  <Button 
-                    type="submit"
-                    disabled={updatingPassword}
+            {/* Theme Selection */}
+            <SettingItem>
+              <SettingInfo>
+                <SettingTitle>
+                  {theme?.includes('dark') || theme === 'default' ? <Moon size={16} /> : <Sun size={16} />}
+                  Theme
+                </SettingTitle>
+                <SettingDescription>Choose your preferred theme</SettingDescription>
+              </SettingInfo>
+              <ThemeOptions>
+                {availableThemes && Object.keys(availableThemes).map((themeName) => (
+                  <ThemeOption
+                    key={themeName}
+                    active={theme === themeName}
+                    onClick={() => handleThemeChange(themeName)}
+                    isLoading={themeChanging && theme === themeName}
                   >
-                    {updatingPassword ? 'Updating...' : 'Update Password'}
-                  </Button>
-                </div>
-              </form>
-            </div>
+                    {themeName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    {themeChanging && theme === themeName && (
+                      <InlineLoading>
+                        <LoadingDot />
+                        <LoadingDot />
+                        <LoadingDot />
+                      </InlineLoading>
+                    )}
+                  </ThemeOption>
+                ))}
+              </ThemeOptions>
+            </SettingItem>
+            
+            {/* Timezone Selection */}
+            <TimezoneSelect 
+              onSave={handleTimezoneChange} 
+              currentTimezone={settings.display?.timezone} 
+            />
+            
+            {/* Other display settings */}
+            {Object.entries(settings.display || {}).map(([key, value]) => {
+              // Skip theme and timezone as they have custom UI
+              if (key === 'theme' || key === 'timezone') return null;
+              
+              return (
+                <SettingItem key={key}>
+                  <SettingInfo>
+                    <SettingTitle>{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</SettingTitle>
+                  </SettingInfo>
+                    <ToggleSwitch>
+                      <input
+                        type="checkbox"
+                        checked={!!value}
+                        onChange={e => handleSettingChange('display', key, e.target.checked)}
+                        disabled={saving}
+                      />
+                      <Slider />
+                    </ToggleSwitch>
+                </SettingItem>
+              )
+            })}
           </Card>
-          
-          <SettingItem>
-            <SettingInfo>
-              <SettingTitle>
-                <Bell size={16} />
-                Notifications
-              </SettingTitle>
-              <SettingDescription>
-                Receive activity notifications from users you follow
-              </SettingDescription>
-            </SettingInfo>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              {updatingSettings.receiveNotifications && (
-                <MiniLoadingSpinner size="10px" marginLeft="0" />
-              )}
-              <ToggleSwitch>
-                <input 
-                  type="checkbox" 
-                  checked={settings.receiveNotifications}
-                  onChange={() => handleToggle('receiveNotifications')}
-                  disabled={updatingSettings.receiveNotifications}
-                />
-                <Slider />
-              </ToggleSwitch>
-            </div>
-          </SettingItem>
-          
-          <SettingItem>
-            <SettingInfo>
-              <SettingTitle>
-                <EyeOff size={16} />
-                Show Watchlist
-              </SettingTitle>
-              <SettingDescription>
-                Allow other users to see your watchlist
-              </SettingDescription>
-            </SettingInfo>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              {updatingSettings.showWatchlist && (
-                <MiniLoadingSpinner size="10px" marginLeft="0" />
-              )}
-              <ToggleSwitch>
-                <input 
-                  type="checkbox" 
-                  checked={settings.showWatchlist}
-                  onChange={() => handleToggle('showWatchlist')}
-                  disabled={updatingSettings.showWatchlist}
-                />
-                <Slider />
-              </ToggleSwitch>
-            </div>
-          </SettingItem>
-          
-          <SettingItem>
-            <SettingInfo>
-              <SettingTitle>
-                <EyeOff size={16} />
-                Show Following
-              </SettingTitle>
-              <SettingDescription>
-                Allow other users to see who you follow
-              </SettingDescription>
-            </SettingInfo>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              {updatingSettings.showFollowing && (
-                <MiniLoadingSpinner size="10px" marginLeft="0" />
-              )}
-              <ToggleSwitch>
-                <input 
-                  type="checkbox" 
-                  checked={settings.showFollowing}
-                  onChange={() => handleToggle('showFollowing')}
-                  disabled={updatingSettings.showFollowing}
-                />
-                <Slider />
-              </ToggleSwitch>
-            </div>
-          </SettingItem>
-          
+
+          {/* Content */}
+          <Card padding="0rem">
+            <h3>Content</h3>
+            {Object.entries(settings.content || {}).map(([key, value]) => (
+              <SettingItem key={key}>
+                <SettingInfo>
+                  <SettingTitle>{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</SettingTitle>
+                </SettingInfo>
+                <ToggleSwitch>
+                  <input
+                    type="checkbox"
+                    checked={!!value}
+                    onChange={e => handleSettingChange('content', key, e.target.checked)}
+                    disabled={saving}
+                  />
+                  <Slider />
+                </ToggleSwitch>
+              </SettingItem>
+            ))}
+          </Card>
+
+          {/* Watchlist */}
+          <Card padding="0rem">
+            <h3>Watchlist</h3>
+            {Object.entries(settings.watchlist || {}).map(([key, value]) => (
+              <SettingItem key={key}>
+                <SettingInfo>
+                  <SettingTitle>{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</SettingTitle>
+                </SettingInfo>
+                <ToggleSwitch>
+                  <input
+                    type="checkbox"
+                    checked={!!value}
+                    onChange={e => handleSettingChange('watchlist', key, e.target.checked)}
+                    disabled={saving}
+                  />
+                  <Slider />
+                </ToggleSwitch>
+              </SettingItem>
+            ))}
+          </Card>
+
+          {/* Logout and Danger Zone */}
           <SettingItem>
             <SettingInfo>
               <SettingTitle>
                 <LogOut size={16} />
                 Logout
               </SettingTitle>
-              <SettingDescription>
-                Sign out of your account
-              </SettingDescription>
             </SettingInfo>
             <LogoutButton onClick={handleLogout}>
               <LogOut size={16} />
@@ -1106,7 +677,6 @@ const SettingsSection = () => {
             </LogoutButton>
           </SettingItem>
         </SettingsGrid>
-        
         <DangerZone>
           <DangerTitle>
             <AlertTriangle size={18} />
@@ -1129,37 +699,15 @@ const SettingsSection = () => {
         </DangerZone>
       </Card>
       
-      {/* Delete Account Confirmation Modal */}
-      <Modal show={showDeleteModal}>
-        <ModalContent>
-          <ModalHeader>
-            <AlertTriangle size={20} />
-            Delete Account?
-          </ModalHeader>
-          <p>
-            Are you sure you want to permanently delete your account? This action cannot be undone and will:
-          </p>
-          <ul>
-            <li>Delete all your profile data</li>
-            <li>Remove all your watchlists and playlists</li>
-            <li>Remove your comments and activity history</li>
-          </ul>
-          <ModalButtons>
-            <CancelButton 
-              onClick={() => setShowDeleteModal(false)}
-              disabled={isUpdating}
-            >
-              Cancel
-            </CancelButton>
-            <ConfirmButton 
-              onClick={confirmDeleteAccount}
-              disabled={isUpdating}
-            >
-              {isUpdating ? 'Deleting...' : 'Delete Account'}
-            </ConfirmButton>
-          </ModalButtons>
-        </ModalContent>
-      </Modal>
+      <DeleteModal
+        show={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDeleteAccount}
+        title="Delete Account?"
+        message="Are you sure you want to permanently delete your account? This action cannot be undone and will delete all your profile data, remove all your watchlists and playlists, and remove your comments and activity history."
+        isDeleting={isUpdating}
+        confirmButtonText="Delete Account"
+      />
     </>
   );
 };

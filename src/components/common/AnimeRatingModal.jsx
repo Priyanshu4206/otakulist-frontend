@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { Star, X } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import useToast from '../../hooks/useToast';
+import { animeRatingAPI } from '../../services/api';
 
 const fadeIn = keyframes`
   from { opacity: 0; transform: translateY(20px); }
@@ -13,7 +15,7 @@ const ModalOverlay = styled.div`
   top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0,0,0,0.6);
   z-index: 1000;
-  display: ${props => (props.show ? 'flex' : 'none')};
+  display: flex;
   align-items: center;
   justify-content: center;
   animation: ${fadeIn} 0.2s ease;
@@ -127,12 +129,39 @@ const CharCount = styled.div`
   margin-bottom: 0.5rem;
 `;
 
+const LoadingSpinner = styled.div`
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(var(--primary-rgb), 0.3);
+  border-radius: 50%;
+  border-top-color: var(--primary);
+  animation: spin 1s ease-in-out infinite;
+  margin: 0 auto;
+  
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+`;
+
+const LoadingContainer = styled.div`
+  text-align: center;
+  padding: 2rem 0;
+  color: var(--textSecondary);
+`;
+
+const ErrorMessage = styled.div`
+  color: var(--danger);
+  margin-bottom: 1rem;
+  text-align: center;
+  font-size: 0.9rem;
+`;
+
 export default function AnimeRatingModal({
   show,
   onClose,
   animeId,
   animeTitle,
-  userAPI,
   onSuccess,
 }) {
   const { showToast } = useToast();
@@ -144,50 +173,58 @@ export default function AnimeRatingModal({
 
   // Fetch user's previous rating on open
   useEffect(() => {
-    if (show && animeId && userAPI) {
+    if (show && animeId) {
       setFetching(true);
       setError(null);
-      userAPI.getUserAnimeRating(animeId)
+      
+      animeRatingAPI.getUserRatingForAnime(animeId)
         .then(res => {
-          if (res && res.data && res.data.rating) {
-            setScore(res.data.rating.score || 0);
-            setComment(res.data.rating.comment || '');
+          if (res && res.success && res.data) {
+            setScore(res.data.score || 0);
+            setComment(res.data.comment || '');
           } else {
+            // Reset if no rating found
             setScore(0);
             setComment('');
           }
         })
         .catch(() => {
+          // Reset on error
           setScore(0);
           setComment('');
         })
         .finally(() => setFetching(false));
     } else if (!show) {
+      // Reset when modal closes
       setScore(0);
       setComment('');
       setError(null);
     }
-  }, [show, animeId, userAPI]);
+  }, [show, animeId]);
 
   const handleSubmit = async () => {
     if (!score || score < 1 || score > 10) {
       setError('Please select a score between 1 and 10.');
       return;
     }
+    
     if (comment.length > 500) {
       setError('Comment must be 500 characters or less.');
       return;
     }
+    
     setLoading(true);
     setError(null);
+    
     try {
-      const res = await userAPI.rateAnime(animeId, { score, comment });
+      const res = await animeRatingAPI.rateAnime(animeId, score, comment);
+      
       if (res && res.success) {
         showToast({ type: 'success', message: 'Your rating has been saved!' });
         onClose();
-        if (onSuccess) onSuccess();
+        if (onSuccess) onSuccess(res.data);
       } else {
-        throw new Error(res?.message || 'Failed to save rating');
+        throw new Error(res?.error?.message || 'Failed to save rating');
       }
     } catch (err) {
       setError(err.message || 'Failed to save rating');
@@ -197,13 +234,45 @@ export default function AnimeRatingModal({
     }
   };
 
-  return (
-    <ModalOverlay show={show}>
-      <ModalContent>
+  const handleDeleteRating = async () => {
+    if (!animeId) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const res = await animeRatingAPI.deleteRating(animeId);
+      
+      if (res && res.success) {
+        showToast({ type: 'success', message: 'Your rating has been removed!' });
+        onClose();
+        if (onSuccess) onSuccess(null);
+      } else {
+        throw new Error(res?.error?.message || 'Failed to remove rating');
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to remove rating');
+      showToast({ type: 'error', message: err.message || 'Failed to remove rating' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // If not shown, don't render
+  if (!show) return null;
+
+  // Use createPortal to render the modal at the root level of the DOM
+  return createPortal(
+    <ModalOverlay onClick={onClose}>
+      <ModalContent onClick={(e) => e.stopPropagation()}>
         <CloseButton onClick={onClose}><X size={22} /></CloseButton>
         <ModalTitle>Rate {animeTitle}</ModalTitle>
+        
         {fetching ? (
-          <div style={{ textAlign: 'center', padding: '2rem 0' }}>Loading...</div>
+          <LoadingContainer>
+            <LoadingSpinner />
+            <div style={{ marginTop: '1rem' }}>Loading your rating...</div>
+          </LoadingContainer>
         ) : (
           <>
             <StarsRow>
@@ -218,9 +287,11 @@ export default function AnimeRatingModal({
                 </StarButton>
               ))}
             </StarsRow>
+            
             <RatingValue>
               {score > 0 ? `Your rating: ${score}/10` : 'Select a rating'}
             </RatingValue>
+            
             <CharCount>{comment.length}/500</CharCount>
             <CommentInput
               maxLength={500}
@@ -228,16 +299,38 @@ export default function AnimeRatingModal({
               value={comment}
               onChange={e => setComment(e.target.value)}
             />
-            {error && <div style={{ color: 'var(--danger)', marginBottom: '1rem', textAlign: 'center' }}>{error}</div>}
+            
+            {error && <ErrorMessage>{error}</ErrorMessage>}
+            
             <ModalActions>
-              <ModalButton className="cancel" onClick={onClose} disabled={loading}>Cancel</ModalButton>
-              <ModalButton className="submit" onClick={handleSubmit} disabled={loading || !score}>
+              {score > 0 && (
+                <ModalButton 
+                  className="cancel" 
+                  onClick={handleDeleteRating} 
+                  disabled={loading || !animeId}
+                >
+                  Remove Rating
+                </ModalButton>
+              )}
+              <ModalButton 
+                className="cancel" 
+                onClick={onClose} 
+                disabled={loading}
+              >
+                Cancel
+              </ModalButton>
+              <ModalButton 
+                className="submit" 
+                onClick={handleSubmit} 
+                disabled={loading || !score}
+              >
                 {loading ? 'Saving...' : 'Submit Rating'}
               </ModalButton>
             </ModalActions>
           </>
         )}
       </ModalContent>
-    </ModalOverlay>
+    </ModalOverlay>,
+    document.body
   );
 } 
