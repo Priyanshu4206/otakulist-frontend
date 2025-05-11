@@ -7,7 +7,6 @@ import UnknownTimeSlot from '../components/schedule/UnknownTimeSlot';
 import { scheduleAPI } from '../services/api';
 import useApiCache from '../hooks/useApiCache';
 import { getUserTimezone, getIANATimezone } from '../utils/simpleTimezoneUtils';
-import useAuth from '../hooks/useAuth';
 
 // Import our new animated components
 import AnimatedDayTabs from '../components/schedule/AnimatedDayTabs';
@@ -192,9 +191,6 @@ const SchedulePage = () => {
     return days[new Date().getDay()];
   };
   
-  // Get user from auth context
-  const { user } = useAuth();
-  
   // Get user's timezone preference (the code, e.g., IST)
   const userTimezoneCode = getUserTimezone();
   // Get the IANA timezone for API calls
@@ -223,17 +219,9 @@ const SchedulePage = () => {
   // UseApiCache hook for caching API calls
   const { 
     loading: cacheLoading, 
-    error, 
     fetchWithCache, 
-    clearCacheItem,
     getFromCache
   } = useApiCache('localStorage', 30 * 60 * 1000); // 30 minutes (shorter cache for timezone-specific data)
-  
-  // Create cache key from activeDay, page and user timezone
-  const cacheKey = useMemo(() => 
-    `schedule_${activeDay}_${page}_${userTimezoneCode}`, 
-    [activeDay, page, userTimezoneCode]
-  );
   
   // Group anime by broadcast time
   const groupedByTime = useMemo(() => {

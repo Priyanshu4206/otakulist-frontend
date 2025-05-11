@@ -1,7 +1,5 @@
-import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Trophy, Award, Star, TrendingUp, Users, BookOpen, Heart, Filter } from 'lucide-react';
-import useAuth from '../../hooks/useAuth';
+import { Award } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 
 // Styled components for achievements
@@ -182,60 +180,11 @@ const UnlockDate = styled.div`
   gap: 0.5rem;
 `;
 
-const LoadingText = styled.div`
-  padding: 1.5rem;
-  text-align: center;
-  color: var(--textSecondary);
-`;
-
-const ErrorText = styled.div`
-  padding: 1.5rem;
-  text-align: center;
-  color: var(--danger);
-  background-color: rgba(var(--danger-rgb), 0.05);
-  border-radius: 8px;
-`;
-
 const NoAchievementsText = styled.div`
   padding: 1.5rem;
   text-align: center;
   color: var(--textSecondary);
 `;
-
-// Achievement icons mapping
-const achievementIcons = {
-  // Anime watching achievements
-  'Newbie': <Award size={22} />,
-  'Binge Watcher': <TrendingUp size={22} />,
-  'Anime Enthusiast': <Award size={22} />,
-  'Otaku Master': <Trophy size={22} />,
-  'Anime Sage': <Star size={22} />,
-  'Legendary Weeb': <Trophy size={22} />,
-
-  // Collection achievements
-  'Collector': <BookOpen size={22} />,
-  'Curator': <BookOpen size={22} />,
-  'Librarian': <BookOpen size={22} />,
-
-  // Social achievements
-  'Socialite': <Users size={22} />,
-  'Influencer': <Users size={22} />,
-  'Celebrity': <Trophy size={22} />,
-
-  // Genre achievements
-  'Action Fan': <Filter size={22} />,
-  'Romance Expert': <Heart size={22} />,
-  'Fantasy Enthusiast': <Filter size={22} />,
-  'Sci-Fi Geek': <Star size={22} />,
-
-  // Special achievements
-  'Early Adopter': <Star size={22} />,
-  'Loyal Fan': <Users size={22} />,
-  'Dedicated Reviewer': <Star size={22} />,
-
-  // Default
-  'default': <Award size={22} />
-};
 
 /**
  * AchievementsList Component - Fixed for consistent behavior

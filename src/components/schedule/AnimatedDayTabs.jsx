@@ -86,7 +86,7 @@ const ActiveTabIndicator = styled(motion.div)`
   bottom: -3px;
   left: 0;
   right: 0;
-  height: 3px;
+  height: ${props => props.active ? '3px' : '0'};
   background: var(--gradientPrimary);
   border-radius: 3px;
 `;
@@ -133,7 +133,7 @@ const TodayLabel = styled(motion.div)`
   font-size: 0.7rem;
   font-weight: 600;
   padding: 0.15rem 0.5rem;
-  border-radius: 4px;
+  border-bottom: 0;
   z-index: 1;
   
   &::after {
@@ -214,8 +214,9 @@ const AnimatedDayTabs = ({ activeDay, onDayChange }) => {
             <DateNumber>{date}</DateNumber>
             
             {/* Active indicator */}
-            {activeDay === day && (
+            {activeDay === day && !isToday && (
               <ActiveTabIndicator 
+                active={activeDay === day}
                 layoutId="activeTabIndicator"
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
               />

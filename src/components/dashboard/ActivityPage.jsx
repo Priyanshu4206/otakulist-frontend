@@ -17,38 +17,6 @@ const Container = styled.div`
   min-height: calc(100vh - 250px);
 `;
 
-const TabsContainer = styled.div`
-  display: flex;
-  border-bottom: 1px solid var(--borderColor);
-  margin-bottom: 1.5rem;
-  overflow-x: auto;
-  scrollbar-width: none;
-  
-  &::-webkit-scrollbar {
-    display: none;
-  }
-`;
-
-const Tab = styled.button`
-  padding: 0.75rem 1.5rem;
-  font-size: 0.95rem;
-  font-weight: ${props => props.active ? '600' : '400'};
-  color: ${props => props.active ? 'var(--primary)' : 'var(--textSecondary)'};
-  background: none;
-  border: none;
-  border-bottom: 2px solid ${props => props.active ? 'var(--primary)' : 'transparent'};
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  
-  &:hover {
-    color: var(--primary);
-  }
-`;
-
 const SectionHeader = styled.div`
   display: flex;
   justify-content: space-between;
@@ -95,26 +63,6 @@ const SearchIcon = styled.div`
   color: var(--textSecondary);
   display: flex;
   align-items: center;
-`;
-
-const MainLayout = styled.div`
-  display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 1.5rem;
-  
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const SidePanel = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-`;
-
-const StatsCard = styled(Card)`
-  padding: 1rem;
 `;
 
 const StatsGrid = styled.div`
@@ -257,19 +205,6 @@ const ActionButton = styled.button`
   }
 `;
 
-const ProfileLink = styled(Link)`
-  text-decoration: none;
-  color: var(--primary);
-  font-size: 0.85rem;
-  display: flex;
-  align-items: center;
-  margin-left: auto;
-  
-  &:hover {
-    text-decoration: underline;
-  }
-`;
-
 const EmptyState = styled.div`
   display: flex;
   flex-direction: column;
@@ -325,11 +260,6 @@ const PageButton = styled.button`
 // Enum for tab values
 const TABS = {
   ACTIVITY: 'activity',
-  FOLLOWERS: 'followers',
-  FOLLOWING: 'following'
-};
-
-const SOCIAL_TABS = {
   FOLLOWERS: 'followers',
   FOLLOWING: 'following'
 };
@@ -596,16 +526,16 @@ const AvtivityPage = () => {
   const fetchFollowers = async () => {
     if (!user) return;
     setFollowersLoading(true);
-    
     try {
       const response = await userAPI.getFollowers(user._id, page, 10);
       if (response.success) {
+        // Defensive: always use array, even if API returns undefined/null
+        const followersArray = Array.isArray(response.data) ? response.data : [];
         // Mark each follower with isFollowing status
-        const followersWithStatus = response.data.map(follower => ({
+        const followersWithStatus = followersArray.map(follower => ({
           ...follower,
           isFollowing: following.some(user => user._id === follower._id)
         }));
-        
         setFollowers(followersWithStatus);
         setPagination(response.pagination || {
           page: 1,
@@ -613,12 +543,19 @@ const AvtivityPage = () => {
           total: 0,
           pages: 1
         });
-        setFollowersCount(user.stats.followersCount || response.pagination?.total || 0);
+        // Defensive: always use a number, fallback to array length or 0
+        setFollowersCount(
+          (user.stats && typeof user.stats.followersCount === 'number')
+            ? user.stats.followersCount
+            : (response.pagination?.total ?? followersWithStatus.length ?? 0)
+        );
       } else {
         showToast({
           type: 'error',
           message: 'Failed to load followers'
         });
+        setFollowers([]);
+        setFollowersCount(0);
       }
     } catch (error) {
       console.error('Error fetching followers:', error);
@@ -626,6 +563,8 @@ const AvtivityPage = () => {
         type: 'error',
         message: 'Error loading followers'
       });
+      setFollowers([]);
+      setFollowersCount(0);
     } finally {
       setFollowersLoading(false);
     }
@@ -635,16 +574,16 @@ const AvtivityPage = () => {
   const fetchFollowing = async () => {
     if (!user) return;
     setFollowingLoading(true);
-    
     try {
       const response = await userAPI.getFollowing(user._id, page, 10);
       if (response.success) {
+        // Defensive: always use array, even if API returns undefined/null
+        const followingArray = Array.isArray(response.data) ? response.data : [];
         // Mark each following user as followed
-        const followingWithStatus = response.data.map(user => ({
+        const followingWithStatus = followingArray.map(user => ({
           ...user,
           isFollowing: true
         }));
-        
         setFollowing(followingWithStatus);
         setPagination(response.pagination || {
           page: 1,
@@ -652,12 +591,19 @@ const AvtivityPage = () => {
           total: 0,
           pages: 1
         });
-        setFollowingCount(user.stats.followingCount || response.pagination?.total || 0);
+        // Defensive: always use a number, fallback to array length or 0
+        setFollowingCount(
+          (user.stats && typeof user.stats.followingCount === 'number')
+            ? user.stats.followingCount
+            : (response.pagination?.total ?? followingWithStatus.length ?? 0)
+        );
       } else {
         showToast({
           type: 'error',
           message: 'Failed to load following users'
         });
+        setFollowing([]);
+        setFollowingCount(0);
       }
     } catch (error) {
       console.error('Error fetching following users:', error);
@@ -665,6 +611,8 @@ const AvtivityPage = () => {
         type: 'error',
         message: 'Error loading following users'
       });
+      setFollowing([]);
+      setFollowingCount(0);
     } finally {
       setFollowingLoading(false);
     }
