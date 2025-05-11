@@ -301,12 +301,12 @@ const UserListComponent = ({
   setPage, 
   handleFollowToggle,
   showFollowAction,
-  currentUserId
+  currentUserId,
+  userKey
 }) => {
   // Function to filter users based on search query
   const filterUsers = (users) => {
     if (!searchQuery) return users;
-    
     return users.filter(user => {
       const displayName = user.displayName || user.username || '';
       const username = user.username || '';
@@ -393,35 +393,38 @@ const UserListComponent = ({
           <>
             <UserList>
               {filteredUsers.map((person) => (
-                <UserItem key={person._id}>
-                  <Link to={`/user/${person.username}`}>
+                <UserItem key={person[userKey]._id}>
+                  <Link to={`/user/${person[userKey].username}`}>
                     <UserAvatar 
-                      src={person.avatarUrl} 
-                      alt={person.displayName || person.username}
+                      src={person[userKey].avatarUrl} 
+                      alt={person[userKey].displayName || person[userKey].username}
                       size={45}
                     />
                   </Link>
                   
                   <UserInfo>
-                    <h4>{person.displayName || person.username}</h4>
-                    {person.username && person.displayName && (
-                      <p>@{person.username}</p>
+                    <h4>{person[userKey].displayName || person[userKey].username}</h4>
+                    {person[userKey].username && person[userKey].displayName && (
+                      <p>@{person[userKey].username}</p>
                     )}
                   </UserInfo>
                   
                   <UserActions>
-                    {showFollowAction && person._id !== currentUserId && (
+                    {showFollowAction && person[userKey]._id !== currentUserId && (
                       <ActionButton
                         $primary={!person.isFollowing}
                         $danger={person.isFollowing}
-                        onClick={() => handleFollowToggle(person._id, person.isFollowing)}
-                        title={person.isFollowing ? "Unfollow" : "Follow"}
+                        onClick={() => handleFollowToggle(person[userKey]._id, person.isFollowing)}
+                        title={person.isFollowing ? (userKey === 'followeeId' ? "Unfollow" : "Unfollow") : (userKey === 'followerId' ? "Follow Back" : "Follow")}
                       >
-                        {person.isFollowing ? "Unfollow" : "Follow"}
+                        {person.isFollowing
+                          ? "Unfollow"
+                          : userKey === 'followerId'
+                            ? "Follow Back"
+                            : "Follow"}
                       </ActionButton>
                     )}
-                    
-                    <Link to={`/user/${person.username}`}>
+                    <Link to={`/user/${person[userKey].username}`}>
                       <ActionButton title="View profile">
                         View
                       </ActionButton>
@@ -477,7 +480,7 @@ const UserListComponent = ({
 };
 
 const AvtivityPage = () => {
-  const { user } = useAuth();
+  const { user,stats } = useAuth();
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState(TABS.ACTIVITY);
   const [searchQuery, setSearchQuery] = useState('');
@@ -494,8 +497,8 @@ const AvtivityPage = () => {
   // User data
   const [followers, setFollowers] = useState([]);
   const [following, setFollowing] = useState([]);
-  const [followersCount, setFollowersCount] = useState(user?.followersCount || 0);
-  const [followingCount, setFollowingCount] = useState(user?.followingCount || 0);
+  const [followersCount, setFollowersCount] = useState(stats?.followersCount || 0);
+  const [followingCount, setFollowingCount] = useState(stats?.followingCount || 0);
   
   // Tab loading states
   const [followersLoading, setFollowersLoading] = useState(false);
@@ -508,8 +511,6 @@ const AvtivityPage = () => {
     } else if (activeTab === TABS.FOLLOWING) {
       fetchFollowing();
     }
-    
-    // Reset page when changing tabs
     setPage(1);
   }, [activeTab]);
   
@@ -529,12 +530,11 @@ const AvtivityPage = () => {
     try {
       const response = await userAPI.getFollowers(user._id, page, 10);
       if (response.success) {
-        // Defensive: always use array, even if API returns undefined/null
         const followersArray = Array.isArray(response.data) ? response.data : [];
-        // Mark each follower with isFollowing status
+        // Mark each follower with isFollowing status (check if in following list)
         const followersWithStatus = followersArray.map(follower => ({
           ...follower,
-          isFollowing: following.some(user => user._id === follower._id)
+          isFollowing: following.some(f => f.followeeId && f.followeeId._id === follower.followerId._id)
         }));
         setFollowers(followersWithStatus);
         setPagination(response.pagination || {
@@ -543,10 +543,9 @@ const AvtivityPage = () => {
           total: 0,
           pages: 1
         });
-        // Defensive: always use a number, fallback to array length or 0
         setFollowersCount(
-          (user.stats && typeof user.stats.followersCount === 'number')
-            ? user.stats.followersCount
+          (stats && typeof stats.followersCount === 'number')
+            ? stats.followersCount
             : (response.pagination?.total ?? followersWithStatus.length ?? 0)
         );
       } else {
@@ -577,11 +576,10 @@ const AvtivityPage = () => {
     try {
       const response = await userAPI.getFollowing(user._id, page, 10);
       if (response.success) {
-        // Defensive: always use array, even if API returns undefined/null
         const followingArray = Array.isArray(response.data) ? response.data : [];
-        // Mark each following user as followed
-        const followingWithStatus = followingArray.map(user => ({
-          ...user,
+        // Use followeeId as the user object
+        const followingWithStatus = followingArray.map(follow => ({
+          ...follow,
           isFollowing: true
         }));
         setFollowing(followingWithStatus);
@@ -591,10 +589,9 @@ const AvtivityPage = () => {
           total: 0,
           pages: 1
         });
-        // Defensive: always use a number, fallback to array length or 0
         setFollowingCount(
-          (user.stats && typeof user.stats.followingCount === 'number')
-            ? user.stats.followingCount
+          (stats && typeof stats.followingCount === 'number')
+            ? stats.followingCount
             : (response.pagination?.total ?? followingWithStatus.length ?? 0)
         );
       } else {
@@ -621,21 +618,17 @@ const AvtivityPage = () => {
   // Handle follow/unfollow user
   const handleFollowToggle = async (userId, isFollowing) => {
     if (!user) return;
-    
     try {
       if (isFollowing) {
         const response = await userAPI.unfollowUser(userId);
         if (response.success) {
-          // Update following list by removing the user
-          setFollowing(prev => prev.filter(user => user._id !== userId));
-          
-          // Update followers list by marking the user as not followed
-          setFollowers(prev => prev.map(user => 
-            user._id === userId ? { ...user, isFollowing: false } : user
+          // Remove from following
+          setFollowing(prev => prev.filter(f => f.followeeId._id !== userId));
+          // Update followers: mark as not following
+          setFollowers(prev => prev.map(f =>
+            f.followerId._id === userId ? { ...f, isFollowing: false } : f
           ));
-          
           setFollowingCount(prev => Math.max(0, prev - 1));
-          
           showToast({
             type: 'success',
             message: 'Unfollowed user successfully'
@@ -646,14 +639,13 @@ const AvtivityPage = () => {
       } else {
         const response = await userAPI.followUser(userId);
         if (response.success) {
-          // Fetch following list to keep it updated
+          // Optionally refetch following, or optimistically add
           fetchFollowing();
-          
-          // Update followers list by marking the user as followed
-          setFollowers(prev => prev.map(user => 
-            user._id === userId ? { ...user, isFollowing: true } : user
+          // Update followers: mark as following
+          setFollowers(prev => prev.map(f =>
+            f.followerId._id === userId ? { ...f, isFollowing: true } : f
           ));
-          
+          setFollowingCount(prev => prev + 1);
           showToast({
             type: 'success',
             message: 'Now following user'
@@ -720,6 +712,7 @@ const AvtivityPage = () => {
           handleFollowToggle={handleFollowToggle}
           showFollowAction={true}
           currentUserId={user?._id}
+          userKey="followerId"
         />
       )}
       
@@ -739,6 +732,7 @@ const AvtivityPage = () => {
           handleFollowToggle={handleFollowToggle}
           showFollowAction={true}
           currentUserId={user?._id}
+          userKey="followeeId"
         />
       )}
     </Container>
