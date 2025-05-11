@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Users, Activity, Search, Clock, Bell, UserPlus } from 'lucide-react';
+import { Users, Activity, Search, Clock, UserPlus } from 'lucide-react';
 import Card from '../common/Card';
 import UserAvatar from '../common/UserAvatar';
 import useAuth from '../../hooks/useAuth';
 import { userAPI } from '../../services/api';
 import { Link } from 'react-router-dom';
 import useToast from '../../hooks/useToast';
+import GameScreenLoader from '../settings/GameScreenLoader';
 
 // Styled Components
 const Container = styled.div`
@@ -321,14 +322,6 @@ const PageButton = styled.button`
   }
 `;
 
-const LoadingState = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 2rem;
-  color: var(--textSecondary);
-`;
-
 // Enum for tab values
 const TABS = {
   ACTIVITY: 'activity',
@@ -465,7 +458,7 @@ const UserListComponent = ({
         </SectionHeader>
         
         {isLoading ? (
-          <LoadingState>Loading users...</LoadingState>
+          <GameScreenLoader text="" />
         ) : filteredUsers.length > 0 ? (
           <>
             <UserList>
@@ -553,11 +546,10 @@ const UserListComponent = ({
   );
 };
 
-const ActivitySection = () => {
+const AvtivityPage = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState(TABS.ACTIVITY);
-  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
   // Pagination state
@@ -606,7 +598,7 @@ const ActivitySection = () => {
     setFollowersLoading(true);
     
     try {
-      const response = await userAPI.getFollowers(page, 10);
+      const response = await userAPI.getFollowers(user._id, page, 10);
       if (response.success) {
         // Mark each follower with isFollowing status
         const followersWithStatus = response.data.map(follower => ({
@@ -621,7 +613,7 @@ const ActivitySection = () => {
           total: 0,
           pages: 1
         });
-        setFollowersCount(user.followersCount || response.pagination?.total || 0);
+        setFollowersCount(user.stats.followersCount || response.pagination?.total || 0);
       } else {
         showToast({
           type: 'error',
@@ -645,7 +637,7 @@ const ActivitySection = () => {
     setFollowingLoading(true);
     
     try {
-      const response = await userAPI.getFollowing(page, 10);
+      const response = await userAPI.getFollowing(user._id, page, 10);
       if (response.success) {
         // Mark each following user as followed
         const followingWithStatus = response.data.map(user => ({
@@ -660,7 +652,7 @@ const ActivitySection = () => {
           total: 0,
           pages: 1
         });
-        setFollowingCount(user.followingCount || response.pagination?.total || 0);
+        setFollowingCount(user.stats.followingCount || response.pagination?.total || 0);
       } else {
         showToast({
           type: 'error',
@@ -805,4 +797,4 @@ const ActivitySection = () => {
   );
 };
 
-export default ActivitySection; 
+export default AvtivityPage; 

@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect } from 'react';
-import { getUserTheme, saveUserTheme } from '../components/dashboard/SettingsSection';
+import { getUserTheme, saveUserTheme } from '../components/dashboard/SettingsPage';
 
 // Helper function to convert hex to rgb values
 const hexToRgb = (hex) => {

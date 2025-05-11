@@ -7,10 +7,11 @@ import RecommendationsList from '../components/anime/RecommendationsList';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { animeAPI, userAPI } from '../services/api';
 import useApiCache from '../hooks/useApiCache';
-import { Star, Calendar, Clock, Globe, Tv, Hash, Music, ExternalLink, BookOpen, Users } from 'lucide-react';
+import { Star, Calendar, Clock, Globe, Tv, Hash, Music, ExternalLink, BookOpen, Users, ChevronDown, ChevronUp } from 'lucide-react';
 import AnimeRatingModal from '../components/common/AnimeRatingModal';
+import QuickActionButtons from '../components/anime/QuickActionButtons';
 // Styles
-import { PageContainer,  AnimePageGrid,  LeftSidebar, MainContent, PosterContainer, ShimmerOverlay, QuickInfoCard, QuickInfoTitle, QuickInfoGrid, InfoLabel, InfoValue, ScoreDisplay, ScoreValue, ScoreLabel, AnimeHeaderSection, AnimeTitle, AlternativeTitles, ContentSection, SectionHeading, Synopsis, VideoContainer, GradientBackground, ErrorMessage, NoContentMessage, ThemeSongsSection, ThemeCategory, ThemeCategoryTitle, ThemeItem, ExternalLinksGrid, ExternalLinkButton, GenreBadge, GenresContainer } from '../components/anime/AnimePageStyles'; 
+import { PageContainer,  AnimePageGrid,  LeftSidebar, MainContent, PosterContainer, ShimmerOverlay, QuickInfoCard, QuickInfoTitle, QuickInfoGrid, InfoLabel, InfoValue, ScoreDisplay, ScoreValue, ScoreLabel, AnimeHeaderSection, AnimeTitle, AlternativeTitles, ContentSection, SectionHeading, Synopsis, ViewMoreButton, VideoContainer, GradientBackground, ErrorMessage, NoContentMessage, ThemeSongsSection, ThemeCategory, ThemeCategoryTitle, ThemeItem, ExternalLinksGrid, ExternalLinkButton, GenreBadge, GenresContainer } from '../components/anime/AnimePageStyles'; 
 import formatNumberShort from '../utils/formatShortNumber';
 
 const AnimePage = () => {
@@ -39,6 +40,9 @@ const AnimePage = () => {
   const [characters, setCharacters] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [showRatingModal, setShowRatingModal] = useState(false);
+  const [showWatchlistModal, setShowWatchlistModal] = useState(false);
+  const [showPlaylistModal, setShowPlaylistModal] = useState(false);
+  const [synopsisExpanded, setSynopsisExpanded] = useState(false);
   
   // Create cache keys
   const animeCacheKey = `anime_${id}`;
@@ -193,7 +197,7 @@ const AnimePage = () => {
           onClose={() => setShowRatingModal(false)}
           animeId={anime?.malId || anime?.id || anime?._id}
           animeTitle={anime?.titles?.english || anime?.titles?.default || anime?.title}
-          userAPI={userAPI}
+          userRating={anime?.userRating}
           onSuccess={handleRatingSuccess}
         />
         {/* Main anime page layout */}
@@ -255,7 +259,14 @@ const AnimePage = () => {
               
             {/* Quick info card */}
             <QuickInfoCard>
-              <QuickInfoTitle>Information</QuickInfoTitle>
+              <QuickInfoTitle>
+                Information
+                <QuickActionButtons 
+                  onOpenRatingModal={() => setShowRatingModal(true)}
+                  onOpenWatchlistModal={() => setShowWatchlistModal(true)}
+                  onOpenPlaylistModal={() => setShowPlaylistModal(true)}
+                />
+              </QuickInfoTitle>
               
               {score && (
                 <ScoreDisplay>
@@ -376,9 +387,18 @@ const AnimePage = () => {
             <ContentSection>
               <SectionHeading><BookOpen size={24} /> Synopsis</SectionHeading>
               {anime.synopsis ? (
-            <Synopsis>
-              <p>{anime.synopsis}</p>
-            </Synopsis>
+                <>
+                  <Synopsis expanded={synopsisExpanded}>
+                    <p>{anime.synopsis}</p>
+                  </Synopsis>
+                  <ViewMoreButton onClick={() => setSynopsisExpanded(!synopsisExpanded)}>
+                    {synopsisExpanded ? (
+                      <>Show Less <ChevronUp size={16} /></>
+                    ) : (
+                      <>View More <ChevronDown size={16} /></>
+                    )}
+                  </ViewMoreButton>
+                </>
               ) : (
                 <NoContentMessage>No synopsis available for this anime.</NoContentMessage>
               )}
@@ -433,7 +453,7 @@ const AnimePage = () => {
             {background && (
               <ContentSection>
                 <SectionHeading><BookOpen size={24} /> Background</SectionHeading>
-                <Synopsis>
+                <Synopsis expanded={true}>
                   <p>{background}</p>
                 </Synopsis>
               </ContentSection>
@@ -459,8 +479,10 @@ const AnimePage = () => {
               </ContentSection>
             )}
           </MainContent>
+          
             {/* Characters section */}
             <ContentSection>
+              <SectionHeading><Users size={24} /> Characters</SectionHeading>
               {charactersLoading ? (
                 <LoadingSpinner size="medium" centered />
               ) : characters && characters.length > 0 ? (
@@ -472,6 +494,7 @@ const AnimePage = () => {
             
             {/* Recommendations section */}
             <ContentSection>
+              <SectionHeading><Calendar size={24} /> Recommendations</SectionHeading>
               {recommendationsLoading ? (
                 <LoadingSpinner size="medium" centered />
               ) : recommendations && recommendations.length > 0 ? (

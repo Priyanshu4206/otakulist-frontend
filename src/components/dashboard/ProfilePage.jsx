@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { User, Save, Upload, Check, X, ExternalLink } from 'lucide-react';
+import { User, Upload, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Card from '../common/Card';
 import UserAvatar from '../common/UserAvatar';
-import { userAPI, genreAPI } from '../../services/api';
+import { userAPI } from '../../services/api';
 import useAuth from '../../hooks/useAuth';
-import useApiCache from '../../hooks/useApiCache';
 import { motion } from 'framer-motion';
 import useToast from '../../hooks/useToast';
 
@@ -46,12 +45,24 @@ const DashboardHeader = styled(motion.div)`
   
   @media (max-width: 768px) {
     padding: 1.5rem;
-    margin-top: 1.5rem;
+    margin-top: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 1.25rem;
+    border-radius: 16px;
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
   }
 `;
 
 const WelcomeMessage = styled.div`
   margin-bottom: 1.5rem;
+  
+  @media (max-width: 480px) {
+    margin-bottom: 1rem;
+  }
 `;
 
 const Greeting = styled.h1`
@@ -66,6 +77,11 @@ const Greeting = styled.h1`
   
   @media (max-width: 768px) {
     font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 1.75rem;
   }
 `;
 
@@ -74,18 +90,29 @@ const SubGreeting = styled.p`
   color: var(--textSecondary);
   max-width: 700px;
   line-height: 1.6;
+  
+  @media (max-width: 768px) {
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 0.9rem;
+  }
 `;
 
 const Row = styled.div`
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   gap: 1.25rem;
   margin-top: 2rem;
   
   @media (max-width: 768px) {
     flex-direction: column;
     gap: 1rem;
+    margin-top: 1rem;
+    width: 100%;
   }
 `;
 
@@ -96,6 +123,7 @@ const FormGrid = styled.div`
   
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
 `;
 
@@ -103,6 +131,10 @@ const AvatarSection = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
+  
+  @media (max-width: 768px) {
+    margin-bottom: 1rem;
+  }
 `;
 
 const AvatarWrapper = styled.div`
@@ -136,6 +168,10 @@ const AvatarInput = styled.input`
 
 const FormGroup = styled.div`
   margin-bottom: 1.5rem;
+  
+  @media (max-width: 480px) {
+    margin-bottom: 1rem;
+  }
 `;
 
 const Label = styled.label`
@@ -143,6 +179,11 @@ const Label = styled.label`
   margin-bottom: 0.5rem;
   font-weight: 500;
   color: var(--textPrimary);
+  
+  @media (max-width: 480px) {
+    margin-bottom: 0.35rem;
+    font-size: 0.9rem;
+  }
 `;
 
 const Input = styled.input`
@@ -159,6 +200,11 @@ const Input = styled.input`
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 2px rgba(70, 54, 113, 0.2);
+  }
+  
+  @media (max-width: 480px) {
+    padding: 0.65rem 0.85rem;
+    font-size: 0.9rem;
   }
 `;
 
@@ -178,6 +224,12 @@ const TextArea = styled.textarea`
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 2px rgba(70, 54, 113, 0.2);
+  }
+  
+  @media (max-width: 480px) {
+    padding: 0.65rem 0.85rem;
+    font-size: 0.9rem;
+    min-height: 80px;
   }
 `;
 
@@ -203,6 +255,12 @@ const Button = styled.button`
     background-color: var(--textSecondary);
     cursor: not-allowed;
   }
+  
+  @media (max-width: 480px) {
+    width: 100%;
+    justify-content: center;
+    padding: 0.7rem 1rem;
+  }
 `;
 
 const ViewProfileButton = styled(Link)`
@@ -224,15 +282,67 @@ const ViewProfileButton = styled(Link)`
     background-color: var(--backgroundLight);
     border-color: var(--primary);
   }
+  
+  @media (max-width: 480px) {
+    width: 100%;
+    justify-content: center;
+    padding: 0.7rem 1rem;
+  }
 `;
 
-const ProfileSection = () => {
-  const { user, refreshUser } = useAuth();
+const ProfileSummary = styled(Card)`
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+  text-align: center;
+  border: 1px solid var(--borderColor);
+  box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.1);
+  
+  h2 {
+    margin: 0.5rem 0 0.25rem;
+    font-weight: 700;
+    font-size: 2rem;
+    
+    @media (max-width: 480px) {
+      font-size: 1.5rem;
+    }
+  }
+  
+  .username {
+    color: var(--textSecondary);
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+    
+    @media (max-width: 480px) {
+      font-size: 0.9rem;
+    }
+  }
+  
+  .bio {
+    color: var(--textPrimary);
+    margin-bottom: 12px;
+    padding: 0 1rem;
+    
+    @media (max-width: 480px) {
+      font-size: 0.9rem;
+    }
+  }
+`;
+
+const EditProfileCard = styled(Card)`
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  margin-top: 0;
+`;
+
+const ProfilePage = () => {
+  const { user } = useAuth();
   // DEBUG: Log user object to diagnose structure issues
-  console.debug('Dashboard ProfileSection user:', user);
+  console.debug('Dashboard ProfilePage user:', user);
 
   // Support both user and user.user (from /auth/me)
-  const userData = user?.user || user || {};
+  const userData = user || {};
 
   const [formData, setFormData] = useState({
     displayName: '',
@@ -280,7 +390,7 @@ const ProfileSection = () => {
       }
       const response = await userAPI.updateProfile(data);
       if (response.success) {
-        await refreshUser();
+        // await refreshUser();
         showToast({ type: 'success', message: 'Profile updated successfully!' });
       } else {
         showToast({ type: 'error', message: response.message || 'Failed to update profile' });
@@ -308,8 +418,8 @@ const ProfileSection = () => {
         </WelcomeMessage>
       </DashboardHeader>
       <Row>
-      {/* Profile Summary Card */}
-        <Card style={{ maxWidth: 500, margin: '0 auto', textAlign: 'center', border: '1px solid var(--borderColor)', boxShadow: '0 0 0 2px rgba(70, 54, 113, 0.2)'}}>
+        {/* Profile Summary Card */}
+        <ProfileSummary>
           <UserAvatar
             src={userData.avatarUrl}
             alt={userData.displayName || userData.username}
@@ -317,16 +427,20 @@ const ProfileSection = () => {
             showBorder
             style={{ margin: '0 auto', marginBottom: 16 }}
           />
-          <h2 style={{ margin: '0.5rem 0 0.25rem', fontWeight: 700, fontSize: '2rem' }}>{userData.displayName || userData.username}</h2>
-          <div style={{ color: 'var(--textSecondary)', fontSize: '1.1rem', marginBottom: 8 }}>@{userData.username}</div>
-          {userData.bio && <div style={{ color: 'var(--textPrimary)', marginBottom: 12 }}>{userData.bio}</div>}
+          <h2>{userData.displayName || userData.username}</h2>
+          <div className="username">@{userData.username}</div>
+          {userData.bio && <div className="bio">{userData.bio}</div>}
           <ViewProfileButton to={`/user/${userData.username}`} style={{ marginTop: 8 }}>
             <ExternalLink size={16} />
             View Public Profile
           </ViewProfileButton>
-        </Card>
-        <Card title="Edit Profile" icon={<User size={18} />}
-          style={{ maxWidth: 600, margin: '0 auto', marginTop: 0 }}>
+        </ProfileSummary>
+        
+        {/* Edit Profile Card */}
+        <EditProfileCard 
+          title="Edit Profile" 
+          icon={<User size={18} />}
+        >
           <form onSubmit={handleSubmit}>
             <FormGrid>
               <AvatarSection>
@@ -380,17 +494,17 @@ const ProfileSection = () => {
                   </small>
                 </FormGroup>
                 <FormGroup>
-                  <Button type="submit" disabled={isSubmitting} style={{ minWidth: 120 }}>
+                  <Button type="submit" disabled={isSubmitting}>
                     {isSubmitting ? 'Saving...' : 'Save Changes'}
                   </Button>
                 </FormGroup>
               </div>
             </FormGrid>
           </form>
-        </Card>
+        </EditProfileCard>
       </Row>
     </>
   );
 };
 
-export default ProfileSection; 
+export default ProfilePage; 

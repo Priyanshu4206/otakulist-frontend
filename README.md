@@ -91,4 +91,51 @@ This frontend connects to the Anime-Share backend API at:
 ## License
 
 MIT
+
+## Profile Page Updates
+
+### Instagram-like Mobile Experience
+
+The profile page has been updated to provide an Instagram-like experience on mobile devices while preserving all functionality:
+
+1. **Mobile-specific Header**
+   - Custom header component that only appears on mobile screens
+   - User avatar alongside username and display name in a horizontal layout
+   - Followers/Following stats displayed prominently
+   - Action buttons (Follow/Unfollow, Share) optimized for mobile
+
+2. **Responsive Layout**
+   - Desktop view shows sidebar with profile info and main content area
+   - Mobile view hides sidebar and shows the mobile-specific header instead
+   - Content adapts to screen size with appropriate spacing and font sizes
+
+3. **Improved Component Styling**
+   - Profile info reorganized for better mobile experience
+   - Achievements grid adjusts columns based on screen size
+   - Playlists display in a grid optimized for mobile viewing
+   - Pagination controls sized appropriately for touch interactions
+
+4. **Visual Enhancements**
+   - Consistent styling across all profile components
+   - Better use of whitespace on mobile screens
+   - Optimized touch targets for mobile interactions
+   - Improved visual hierarchy for important information
+
+### Web View Improvements
+
+The desktop experience has also been enhanced:
+
+1. **Better Grid Layout**
+   - More balanced column proportions for profile sidebar and content
+   - Improved spacing between elements
+
+2. **Visual Consistency**
+   - Updated styling for cards, buttons, and interactive elements
+   - Consistent hover and active states
+
+3. **Enhanced Playlists**
+   - Updated playlist card design
+   - Better visual feedback for interactive elements
+
+These changes ensure a cohesive experience across all device sizes while maintaining the application's functionality.
 "# otakulist-frontend" 

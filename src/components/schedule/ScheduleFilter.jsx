@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, X, SlidersHorizontal, Star, Calendar, Tag } from 'lucide-react';
+import { Search, X, SlidersHorizontal, Star, Calendar, Tag, Filter, ChevronDown, ChevronUp } from 'lucide-react';
 import CustomSelect from '../common/CustomSelect';
 import MultiSelect from '../common/MultiSelect';
 import ChevronIcon from '../common/ChevronIcon';

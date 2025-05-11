@@ -7,33 +7,38 @@ import ThemeSwitcher from './ThemeSwitcher';
 
 const HeaderContainer = styled.header`
   display: none;
-  background-color: ${props => props.transparent ? 'transparent' : 'var(--cardBackground)'};
-  border-bottom: ${props => props.transparent ? 'none' : '1px solid var(--borderColor)'};
-  padding: 0 1rem;
-  height: var(--header-height);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  backdrop-filter: ${props => props.transparent ? 'none' : 'blur(10px)'};
-  box-shadow: ${props => props.transparent ? 'none' : '0 2px 10px rgba(0,0,0,0.1)'};
-  
   @media (max-width: 768px) {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    background-color: ${props => props.transparent ? 'transparent' : 'var(--cardBackground)'};
+    border-bottom: ${props => props.transparent ? 'none' : '1px solid var(--borderColor)'};
+    padding: 0 1rem;
+    height: var(--header-height);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1030;
+    backdrop-filter: ${props => props.transparent ? 'none' : 'blur(10px)'};
+    box-shadow: ${props => props.transparent ? 'none' : '0 2px 10px rgba(0,0,0,0.1)'};
+    width: 100%;
+    transition: all 0.3s ease;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 0 0.75rem;
   }
 `;
 
 const LogoContainer = styled.div`
   display: flex;
   align-items: center;
-  
   img {
     height: 28px;
     width: 28px;
     margin-right: 8px;
   }
-  
   span {
     font-weight: 700;
     font-size: 1.2rem;
@@ -42,18 +47,24 @@ const LogoContainer = styled.div`
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }
+  
+  @media (max-width: 480px) {
+    span {
+      font-size: 1.1rem;
+    }
+  }
 `;
 
 const NavActions = styled.div`
   display: flex;
   align-items: center;
+  gap: 0.5rem;
 `;
 
 const IconButton = styled.button`
   background: none;
   border: none;
   color: var(--textPrimary);
-  margin-left: 1rem;
   padding: 0.5rem;
   cursor: pointer;
   display: flex;
@@ -61,24 +72,24 @@ const IconButton = styled.button`
   justify-content: center;
   transition: all 0.3s ease;
   border-radius: 50%;
-  
   &:hover {
     color: var(--primary);
     background-color: rgba(var(--primary-rgb), 0.1);
     transform: translateY(-2px);
   }
-  
   &:active {
     transform: translateY(0);
   }
-  
   svg {
     stroke-width: 2px;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 0.4rem;
   }
 `;
 
 const UserIconLink = styled(Link)`
-  margin-left: 1rem;
   color: var(--textPrimary);
   display: flex;
   align-items: center;
@@ -86,42 +97,39 @@ const UserIconLink = styled(Link)`
   padding: 0.5rem;
   border-radius: 50%;
   transition: all 0.3s ease;
-  
   &:hover {
     color: var(--primary);
     background-color: rgba(var(--primary-rgb), 0.1);
     transform: translateY(-2px);
   }
-  
   &:active {
     transform: translateY(0);
   }
-  
   svg {
     stroke-width: 2px;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 0.4rem;
   }
 `;
 
 const Header = ({ transparent = false }) => {
   const { toggleSidebar } = useUI();
   const { isAuthenticated, user } = useAuth();
-  
   return (
     <HeaderContainer transparent={transparent}>
       <LogoContainer>
         {/* <img src="/favicon.ico" alt="Anime-Share" /> */}
         <span>OtakuList</span>
       </LogoContainer>
-      
       <NavActions>
         <ThemeSwitcher />
-        
         {isAuthenticated && (
-          <UserIconLink to={`/user/${user.username}`} aria-label="Profile">
+          <UserIconLink to={`/user/${user?.username || ''}`} aria-label="Profile">
             <User size={22} />
           </UserIconLink>
         )}
-        
         <IconButton onClick={toggleSidebar} aria-label="Menu">
           <Menu size={22} />
         </IconButton>
@@ -130,4 +138,4 @@ const Header = ({ transparent = false }) => {
   );
 };
 
-export default Header; 
+export default Header;

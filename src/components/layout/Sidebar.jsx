@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import styled from 'styled-components';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { Home, Calendar, Search, User, LogOut, Settings, Tv, LogIn } from 'lucide-react';
 import useUI from '../../hooks/useUI';
 import useAuth from '../../hooks/useAuth';
@@ -14,7 +14,7 @@ const SidebarContainer = styled.div`
   border-right: 1px solid var(--borderColor);
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   width: var(--sidebar-collapsed-width);
-  z-index: 1000;
+  z-index: 1050;
   overflow-x: hidden;
   overflow-y: auto;
   backdrop-filter: blur(10px);
@@ -309,6 +309,24 @@ const LoginLink = styled(NavLink)`
   }
 `;
 
+const SidebarOverlay = styled.div`
+  display: ${({ show }) => (show ? 'block' : 'none')};
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.4);
+  z-index: 1040;
+  backdrop-filter: blur(2px);
+  transition: opacity 0.3s ease;
+  opacity: ${({ show }) => (show ? 1 : 0)};
+  
+  @media (min-width: 769px) {
+    display: none;
+  }
+`;
+
 const Sidebar = () => {
   const { 
     isSidebarOpen, 
@@ -319,6 +337,37 @@ const Sidebar = () => {
     handleNavMouseLeave 
   } = useUI();
   const { isAuthenticated, logout, user } = useAuth();
+  const location = useLocation();
+  const sidebarRef = useRef();
+  
+  // Close sidebar on route change (mobile only)
+  useEffect(() => {
+    if (isMobileView && isSidebarOpen) {
+      closeSidebar();
+    }
+    // eslint-disable-next-line
+  }, [location.pathname]);
+
+  // Click outside to close (mobile only)
+  useEffect(() => {
+    if (!isMobileView) return;
+    
+    function handleClick(e) {
+      if (sidebarRef.current && !sidebarRef.current.contains(e.target)) {
+        closeSidebar();
+      }
+    }
+    
+    if (isSidebarOpen) {
+      document.addEventListener('mousedown', handleClick);
+      document.addEventListener('touchstart', handleClick);
+    }
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('touchstart', handleClick);
+    };
+  }, [isSidebarOpen, isMobileView, closeSidebar]);
   
   // Close sidebar on mobile when clicking a link
   const handleNavClick = () => {
@@ -327,123 +376,121 @@ const Sidebar = () => {
     }
   };
   
-  // Handle route changes to ensure sidebar returns to collapsed state if previously opened
-  useEffect(() => {
-    if (!isMobileView) {
-      closeSidebar();
-    }
-  }, [window.location.pathname]);
-  
   return (
-    <SidebarContainer 
-      isOpen={isSidebarOpen} 
-      isNavHovered={isNavHovered}
-      isMobileView={isMobileView}
-    >
-      <SidebarHeader isOpen={isSidebarOpen} isNavHovered={isNavHovered}>
-        <LogoContainer isOpen={isSidebarOpen} isNavHovered={isNavHovered}>
-          <Tv size={32} color="var(--primary)" />
-          <span>OtakuList</span>
-        </LogoContainer>
-      </SidebarHeader>
-      
-      <NavList onMouseEnter={handleNavMouseEnter} onMouseLeave={handleNavMouseLeave}>
-        <NavItemContainer>
-          <StyledNavLink 
-            to="/" 
-            onClick={handleNavClick}
-            isOpen={isSidebarOpen} 
-            isNavHovered={isNavHovered}
-          >
-            <Home size={22} />
-            <span>Home</span>
-          </StyledNavLink>
-        </NavItemContainer>
+    <>
+      {/* Overlay for mobile click-outside */}
+      <SidebarOverlay show={isSidebarOpen && isMobileView} onClick={closeSidebar} />
+      <SidebarContainer 
+        ref={sidebarRef}
+        isOpen={isSidebarOpen} 
+        isNavHovered={isNavHovered}
+        isMobileView={isMobileView}
+      >
+        <SidebarHeader isOpen={isSidebarOpen} isNavHovered={isNavHovered}>
+          <LogoContainer isOpen={isSidebarOpen} isNavHovered={isNavHovered}>
+            <Tv size={32} color="var(--primary)" />
+            <span>OtakuList</span>
+          </LogoContainer>
+        </SidebarHeader>
         
-        <NavItemContainer>
-          <StyledNavLink 
-            to="/schedule" 
-            onClick={handleNavClick}
-            isOpen={isSidebarOpen} 
-            isNavHovered={isNavHovered}
-          >
-            <Calendar size={22} />
-            <span>Schedule</span>
-          </StyledNavLink>
-        </NavItemContainer>
-        
-        <NavItemContainer>
-          <StyledNavLink 
-            to="/search" 
-            onClick={handleNavClick}
-            isOpen={isSidebarOpen} 
-            isNavHovered={isNavHovered}
-          >
-            <Search size={22} />
-            <span>Search</span>
-          </StyledNavLink>
-        </NavItemContainer>
-        
-        {isAuthenticated && (
+        <NavList onMouseEnter={handleNavMouseEnter} onMouseLeave={handleNavMouseLeave}>
           <NavItemContainer>
             <StyledNavLink 
-              to={`/user/${user.username}`} 
+              to="/" 
               onClick={handleNavClick}
               isOpen={isSidebarOpen} 
               isNavHovered={isNavHovered}
             >
-              <User size={22} />
-              <span>Profile</span>
+              <Home size={22} />
+              <span>Home</span>
             </StyledNavLink>
           </NavItemContainer>
-        )}
-      </NavList>
-      
-      {/* Footer with conditionally rendered content based on authentication status */}
-      <Footer isOpen={isSidebarOpen} isNavHovered={isNavHovered}>
-        <FooterNav onMouseEnter={handleNavMouseEnter} onMouseLeave={handleNavMouseLeave}>
-          {isAuthenticated ? (
-            <>
-              <NavItemContainer>
-                <StyledNavLink 
-                  to="/dashboard" 
-                  onClick={handleNavClick}
-                  isOpen={isSidebarOpen} 
-                  isNavHovered={isNavHovered}
-                >
-                  <Settings size={22} />
-                  <span>Dashboard</span>
-                </StyledNavLink>
-              </NavItemContainer>
-              
-              <NavItemContainer>
-                <LogoutLink 
-                  href="#" 
-                  onClick={(e) => { e.preventDefault(); logout(); }}
-                  isOpen={isSidebarOpen} 
-                  isNavHovered={isNavHovered}
-                >
-                  <LogOut size={22} />
-                  <span>Logout</span>
-                </LogoutLink>
-              </NavItemContainer>
-            </>
-          ) : (
+          
+          <NavItemContainer>
+            <StyledNavLink 
+              to="/schedule" 
+              onClick={handleNavClick}
+              isOpen={isSidebarOpen} 
+              isNavHovered={isNavHovered}
+            >
+              <Calendar size={22} />
+              <span>Schedule</span>
+            </StyledNavLink>
+          </NavItemContainer>
+          
+          <NavItemContainer>
+            <StyledNavLink 
+              to="/search" 
+              onClick={handleNavClick}
+              isOpen={isSidebarOpen} 
+              isNavHovered={isNavHovered}
+            >
+              <Search size={22} />
+              <span>Search</span>
+            </StyledNavLink>
+          </NavItemContainer>
+          
+          {isAuthenticated && (
             <NavItemContainer>
-              <LoginLink
-                to="/login"
+              <StyledNavLink 
+                to={`/user/${user ? user.username : ''}`} 
                 onClick={handleNavClick}
-                isOpen={isSidebarOpen}
+                isOpen={isSidebarOpen} 
                 isNavHovered={isNavHovered}
               >
-                <LogIn size={22} />
-                <span>Login</span>
-              </LoginLink>
+                <User size={22} />
+                <span>Profile</span>
+              </StyledNavLink>
             </NavItemContainer>
           )}
-        </FooterNav>
-      </Footer>
-    </SidebarContainer>
+        </NavList>
+        
+        {/* Footer with conditionally rendered content based on authentication status */}
+        <Footer isOpen={isSidebarOpen} isNavHovered={isNavHovered}>
+          <FooterNav onMouseEnter={handleNavMouseEnter} onMouseLeave={handleNavMouseLeave}>
+            {isAuthenticated ? (
+              <>
+                <NavItemContainer>
+                  <StyledNavLink 
+                    to="/dashboard" 
+                    onClick={handleNavClick}
+                    isOpen={isSidebarOpen} 
+                    isNavHovered={isNavHovered}
+                  >
+                    <Settings size={22} />
+                    <span>Dashboard</span>
+                  </StyledNavLink>
+                </NavItemContainer>
+                
+                <NavItemContainer>
+                  <LogoutLink 
+                    href="#" 
+                    onClick={(e) => { e.preventDefault(); logout(); handleNavClick(); }}
+                    isOpen={isSidebarOpen} 
+                    isNavHovered={isNavHovered}
+                  >
+                    <LogOut size={22} />
+                    <span>Logout</span>
+                  </LogoutLink>
+                </NavItemContainer>
+              </>
+            ) : (
+              <NavItemContainer>
+                <LoginLink
+                  to="/login"
+                  onClick={handleNavClick}
+                  isOpen={isSidebarOpen}
+                  isNavHovered={isNavHovered}
+                >
+                  <LogIn size={22} />
+                  <span>Login</span>
+                </LoginLink>
+              </NavItemContainer>
+            )}
+          </FooterNav>
+        </Footer>
+      </SidebarContainer>
+    </>
   );
 };
 

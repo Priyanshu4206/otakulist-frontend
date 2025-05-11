@@ -3,11 +3,11 @@ import styled from 'styled-components';
 import { BookOpen, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import Card from '../common/Card';
 import { playlistAPI } from '../../services/api';
-import LoadingSpinner from '../common/LoadingSpinner';
 import useToast from '../../hooks/useToast';
 import PlaylistCard from '../common/PlaylistCard';
 import PlaylistEditModal from '../common/PlaylistEditModal';
 import { useNavigate } from 'react-router-dom';
+import GameScreenLoader from '../settings/GameScreenLoader';
 
 const PlaylistGrid = styled.div`
   display: grid;
@@ -112,14 +112,7 @@ const PageInfo = styled.div`
   color: var(--textSecondary);
 `;
 
-const LoadingContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 2rem;
-`;
-
-const PlaylistsSection = () => {
+const PlaylistsPage = () => {
   const [playlists, setPlaylists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -278,9 +271,7 @@ const PlaylistsSection = () => {
     <>
       <Card title="Playlists" icon={<BookOpen size={18} />}>
         {loading ? (
-          <LoadingContainer>
-            <LoadingSpinner size={36} />
-          </LoadingContainer>
+            <GameScreenLoader text="" />
         ) : error ? (
           <EmptyState>
             <p>{error}</p>
@@ -355,4 +346,4 @@ const PlaylistsSection = () => {
   );
 };
 
-export default PlaylistsSection;
+export default PlaylistsPage;

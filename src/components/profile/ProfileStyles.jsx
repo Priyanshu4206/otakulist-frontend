@@ -1,13 +1,12 @@
 import styled from 'styled-components';
 
 export const PageContainer = styled.div`
-  padding: 2rem;
   max-width: 1600px;
   margin: 0 auto;
   width: 100%;
   
   @media (max-width: 768px) {
-    padding: 1rem;
+    padding: 1rem 0.5rem;
   }
 `;
 
@@ -39,7 +38,13 @@ export const ProfileContainer = styled.div`
   gap: 2rem;
   
   @media (max-width: 1024px) {
+    grid-template-columns: 1fr 2fr;
+    gap: 1.5rem;
+  }
+  
+  @media (max-width: 768px) {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
 `;
 
@@ -47,6 +52,10 @@ export const ProfileSidebar = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  
+  @media (max-width: 768px) {
+    display: none;
+  }
 `;
 
 export const ProfileContent = styled.div`
@@ -60,7 +69,40 @@ export const ProfileInfo = styled.div`
   flex-direction: column;
   align-items: center;
   text-align: center;
+  gap: 1rem;
   padding: 1.5rem;
+  
+  @media (max-width: 768px) {
+    flex-direction: row;
+    text-align: left;
+    padding: 1rem;
+    flex-wrap: wrap;
+  }
+`;
+
+export const ProfileHeader = styled.div`
+  display: flex;
+  width: 100%;
+  
+  @media (max-width: 768px) {
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+`;
+
+export const ProfileAvatar = styled.div`
+  @media (max-width: 768px) {
+    margin-right: 1rem;
+    flex-shrink: 0;
+  }
+`;
+
+export const ProfileMeta = styled.div`
+  @media (max-width: 768px) {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
 `;
 
 export const Username = styled.h2`
@@ -68,6 +110,11 @@ export const Username = styled.h2`
   font-size: 1.5rem;
   font-weight: 600;
   color: var(--textPrimary);
+  
+  @media (max-width: 768px) {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.2rem;
+  }
 `;
 
 export const DisplayName = styled.h3`
@@ -75,6 +122,11 @@ export const DisplayName = styled.h3`
   font-size: 1.1rem;
   font-weight: 500;
   color: var(--textSecondary);
+  
+  @media (max-width: 768px) {
+    font-size: 0.9rem;
+    margin: 0 0 0.25rem 0;
+  }
 `;
 
 export const JoinDate = styled.div`
@@ -84,19 +136,35 @@ export const JoinDate = styled.div`
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 1rem;
+  
+  @media (max-width: 768px) {
+    font-size: 0.75rem;
+    margin-bottom: 0.5rem;
+  }
 `;
 
 export const Bio = styled.p`
   font-size: 0.9rem;
   color: var(--textSecondary);
-  margin-bottom: 1rem;
+  width: 100%;
+  
+  @media (max-width: 768px) {
+    font-size: 0.85rem;
+    margin: 0.5rem 0;
+    order: 3;
+  }
 `;
 
 export const ButtonsRow = styled.div`
   display: flex;
   justify-content: center;
-  margin: 1rem 0;
   width: 100%;
+  
+  @media (max-width: 768px) {
+    justify-content: flex-start;
+    margin: 0.5rem 0;
+    order: 4;
+  }
 `;
 
 export const ButtonGroup = styled.div`
@@ -105,10 +173,13 @@ export const ButtonGroup = styled.div`
   gap: 0.75rem;
   justify-content: center;
   
-  @media (max-width: 480px) {
-    flex-direction: column;
+  @media (max-width: 768px) {
     width: 100%;
-    max-width: 200px;
+    justify-content: flex-start;
+  }
+  
+  @media (max-width: 480px) {
+    gap: 0.5rem;
   }
 `;
 
@@ -140,6 +211,16 @@ export const FollowButton = styled.button`
     background-color: var(--borderColor);
     cursor: not-allowed;
     transform: none;
+  }
+  
+  @media (max-width: 768px) {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
   }
 `;
 
@@ -173,6 +254,11 @@ export const SocialStats = styled.div`
   gap: 0.5rem;
   width: 100%;
   margin-top: 1rem;
+  
+  @media (max-width: 768px) {
+    order: 2;
+    margin-top: 0.5rem;
+  }
 `;
 
 export const StatItem = styled.div`
@@ -182,17 +268,32 @@ export const StatItem = styled.div`
   padding: 0.75rem;
   border-radius: 8px;
   background-color: var(--backgroundLight);
+  
+  @media (max-width: 768px) {
+    padding: 0.5rem;
+    flex-direction: row;
+    gap: 0.5rem;
+    background-color: transparent;
+  }
 `;
 
 export const StatValue = styled.div`
   font-size: 1.25rem;
   font-weight: 600;
   color: var(--textPrimary);
+  
+  @media (max-width: 768px) {
+    font-size: 1rem;
+  }
 `;
 
 export const StatLabel = styled.div`
   font-size: 0.8rem;
   color: var(--textSecondary);
+  
+  @media (max-width: 768px) {
+    font-size: 0.75rem;
+  }
 `;
 
 export const TabsContainer = styled.div`
@@ -204,6 +305,11 @@ export const TabsContainer = styled.div`
   
   &::-webkit-scrollbar {
     display: none;
+  }
+  
+  @media (max-width: 768px) {
+    justify-content: space-around;
+    margin-bottom: 1rem;
   }
 `;
 
@@ -221,6 +327,13 @@ export const Tab = styled.button`
   
   &:hover {
     color: var(--primary);
+  }
+  
+  @media (max-width: 768px) {
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
+    flex: 1;
+    text-align: center;
   }
 `;
 
@@ -249,124 +362,131 @@ export const PlaylistsGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 1.5rem;
-  width: 100%;
-  padding: 1rem;
   
   @media (max-width: 768px) {
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 1rem;
+  }
+  
+  @media (max-width: 480px) {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.75rem;
   }
 `;
 
 export const PlaylistCard = styled.div`
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   background-color: var(--cardBackground);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
+  height: 100%;
   
   &:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(var(--primary-rgb), 0.15);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
     
     .cover-overlay {
       opacity: 1;
     }
   }
+  
+  @media (max-width: 768px) {
+    &:hover {
+      transform: translateY(-3px);
+    }
+  }
+  
+  @media (max-width: 480px) {
+    border-radius: 8px;
+  }
 `;
 
 export const PlaylistCover = styled.div`
   position: relative;
-  width: 100%;
-  aspect-ratio: 16/9;
+  padding-top: 100%;
   background-color: var(--backgroundLight);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  overflow: hidden;
 `;
 
 export const ImageGrid = styled.div`
-  display: grid;
-  grid-template-columns: ${props => 
-    props.$count === 1 ? '1fr' : 
-    props.$count === 2 ? '1fr 1fr' : 
-    props.$count === 3 ? '2fr 1fr' : 
-    '1fr 1fr'
-  };
-  grid-template-rows: ${props => 
-    props.$count === 1 ? '1fr' : 
-    props.$count === 2 ? '1fr' : 
-    props.$count === 3 ? '1fr 1fr' : 
-    '1fr 1fr'
-  };
-  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: ${props => props.$count >= 3 ? '1fr 1fr' : '1fr'};
+  grid-template-rows: ${props => props.$count >= 2 ? '1fr 1fr' : '1fr'};
   gap: 2px;
-  
-  ${props => props.$count === 3 && `
-    & > :first-child {
-      grid-row: span 2;
-    }
-  `}
 `;
 
 export const AnimeImage = styled.div`
   background-image: url(${props => props.$src});
   background-size: cover;
   background-position: center;
-  height: 100%;
   width: 100%;
+  height: 100%;
 `;
 
 export const DefaultCoverIcon = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--textSecondary);
   opacity: 0.5;
-  position: relative;
-  z-index: 1;
 `;
 
 export const ImageOverlay = styled.div`
   position: absolute;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.3) 40%, rgba(0, 0, 0, 0) 100%);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 1rem;
-  z-index: 10;
-  
-  &.cover-overlay {
-    opacity: 0;
-  }
-`;
-
-export const PlayButton = styled.button`
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--primary);
-  color: white;
-  border: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  
+  @media (max-width: 768px) {
+    display: none;
+  }
+`;
+
+export const PlayButton = styled.div`
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
-  width: 3rem;
-  height: 3rem;
-  cursor: pointer;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  background-color: var(--primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.2s ease;
   
   &:hover {
     transform: scale(1.1);
-    background: var(--primaryLight);
+    background-color: var(--primaryDark);
   }
 `;
 
 export const PlaylistCardContent = styled.div`
   padding: 1rem;
+  
+  @media (max-width: 768px) {
+    padding: 0.8rem;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 0.7rem;
+  }
 `;
 
 export const PlaylistName = styled.h3`
@@ -375,55 +495,110 @@ export const PlaylistName = styled.h3`
   margin: 0 0 0.5rem 0;
   color: var(--textPrimary);
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  height: 2.8rem;
+  
+  @media (max-width: 768px) {
+    font-size: 0.9rem;
+    margin-bottom: 0.4rem;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 0.85rem;
+    margin-bottom: 0.3rem;
+  }
 `;
 
 export const PlaylistMeta = styled.div`
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  font-size: 0.8rem;
-  color: var(--textSecondary);
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  
+  @media (max-width: 480px) {
+    gap: 0.5rem;
+  }
 `;
 
 export const MetaBadge = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--textSecondary);
   
-  svg {
-    width: 14px;
-    height: 14px;
+  @media (max-width: 480px) {
+    font-size: 0.75rem;
   }
 `;
 
 export const ActionButtons = styled.div`
-  display: flex;
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
+  display: flex;
   gap: 0.5rem;
-  z-index: 11;
+  z-index: 2;
 `;
 
 export const ActionButton = styled.button`
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: ${props => props.$liked ? 'var(--danger)' : 'rgba(0, 0, 0, 0.6)'};
+  color: ${props => props.$liked ? 'white' : 'var(--textSecondary)'};
+  border: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.5);
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 2rem;
-  height: 2rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(2px);
+  
+  &:hover {
+    background-color: ${props => props.$danger ? 'var(--danger)' : 'var(--primary)'};
+    color: white;
+    transform: scale(1.1);
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+`;
+
+export const Pagination = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 2rem;
+  
+  @media (max-width: 768px) {
+    margin-top: 1.5rem;
+    gap: 0.3rem;
+  }
+  
+  @media (max-width: 480px) {
+    margin-top: 1rem;
+    flex-wrap: wrap;
+  }
+`;
+
+export const PageButton = styled.button`
+  padding: 0.5rem 0.8rem;
+  background-color: ${props => props.active ? 'var(--primary)' : 'var(--backgroundLight)'};
+  color: ${props => props.active ? 'white' : 'var(--textPrimary)'};
+  border: 1px solid ${props => props.active ? 'var(--primary)' : 'var(--borderColor)'};
+  border-radius: 6px;
+  font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.2s ease;
   
-  &:hover {
-    background: ${props => props.$primary ? 'var(--primary)' : props.$danger ? 'var(--error)' : 'var(--secondary)'};
+  &:hover:not(:disabled) {
+    background-color: ${props => props.active ? 'var(--primaryDark)' : 'var(--backgroundLighter)'};
     transform: translateY(-2px);
   }
   
@@ -432,30 +607,14 @@ export const ActionButton = styled.button`
     cursor: not-allowed;
   }
   
-  svg {
-    ${props => props.$liked && `fill: var(--error);`}
+  @media (max-width: 768px) {
+    padding: 0.4rem 0.7rem;
+    font-size: 0.85rem;
   }
-`;
-
-export const Pagination = styled.div`
-  display: flex;
-  justify-content: center;
-  margin-top: 1.5rem;
-  gap: 0.5rem;
-`;
-
-export const PageButton = styled.button`
-  background-color: ${props => props.active ? 'var(--primary)' : 'var(--cardBackground)'};
-  color: ${props => props.active ? 'white' : 'var(--textSecondary)'};
-  border: 1px solid ${props => props.active ? 'var(--primary)' : 'var(--borderColor)'};
-  border-radius: 4px;
-  padding: 0.25rem 0.75rem;
-  font-size: 0.85rem;
-  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
-  opacity: ${props => props.disabled ? 0.5 : 1};
   
-  &:hover:not(:disabled) {
-    background-color: ${props => props.active ? 'var(--primaryDark)' : 'var(--backgroundLight)'};
+  @media (max-width: 480px) {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
   }
 `;
 

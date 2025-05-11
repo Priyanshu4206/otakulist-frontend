@@ -6,6 +6,9 @@ import ShareButton from '../common/ShareButton';
 import ThemeBadge from '../common/ThemeBadge';
 import {
   ProfileInfo as ProfileInfoContainer,
+  ProfileHeader,
+  ProfileAvatar,
+  ProfileMeta,
   Username,
   DisplayName,
   JoinDate,
@@ -33,19 +36,26 @@ const ProfileInfo = ({
   return (
     <Card>
       <ProfileInfoContainer>
-        <UserAvatar 
-          src={profileData.avatarUrl} 
-          alt={profileData.displayName || profileData.username}
-          size={120}
-        />
-        <Username>{profileData.username}</Username>
-        {profileData.displayName && (
-          <DisplayName>{profileData.displayName}</DisplayName>
-        )}
-        <JoinDate>
-          <Calendar size={14} />
-          Joined {formatJoinDate(profileData.createdAt)}
-        </JoinDate>
+        <ProfileHeader>
+          <ProfileAvatar>
+            <UserAvatar 
+              src={profileData.avatarUrl} 
+              alt={profileData.displayName || profileData.username}
+              size={120}
+            />
+          </ProfileAvatar>
+          
+          <ProfileMeta>
+            <Username>{profileData.username}</Username>
+            {profileData.displayName && (
+              <DisplayName>{profileData.displayName}</DisplayName>
+            )}
+            <JoinDate>
+              <Calendar size={14} />
+              Joined {formatJoinDate(profileData.createdAt)}
+            </JoinDate>
+          </ProfileMeta>
+        </ProfileHeader>
         
         {/* Display theme badge if a temporary theme is active */}
         {temporaryTheme?.isTemporaryThemeActive && (
@@ -54,6 +64,17 @@ const ProfileInfo = ({
             userName={temporaryTheme.userDisplayName || profileData.username}
           />
         )}
+        
+        <SocialStats>
+          <StatItem>
+            <StatValue>{profileData.stats?.followersCount ?? 0}</StatValue>
+            <StatLabel>Followers</StatLabel>
+          </StatItem>
+          <StatItem>
+            <StatValue>{profileData.stats?.followingCount ?? 0}</StatValue>
+            <StatLabel>Following</StatLabel>
+          </StatItem>
+        </SocialStats>
         
         {profileData.bio && (
           <Bio>{profileData.bio}</Bio>
@@ -92,17 +113,6 @@ const ProfileInfo = ({
             />
           </ButtonGroup>
         </ButtonsRow>
-        
-        <SocialStats>
-          <StatItem>
-            <StatValue>{profileData.stats?.followersCount ?? 0}</StatValue>
-            <StatLabel>Followers</StatLabel>
-          </StatItem>
-          <StatItem>
-            <StatValue>{profileData.stats?.followingCount ?? 0}</StatValue>
-            <StatLabel>Following</StatLabel>
-          </StatItem>
-        </SocialStats>
       </ProfileInfoContainer>
     </Card>
   );

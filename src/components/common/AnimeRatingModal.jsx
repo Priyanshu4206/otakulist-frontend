@@ -1,160 +1,266 @@
 import React, { useEffect, useState } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled from 'styled-components';
 import { Star, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import useToast from '../../hooks/useToast';
-import { animeRatingAPI } from '../../services/api';
-
-const fadeIn = keyframes`
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-`;
+import { animeAPI } from '../../services/api';
+import LoadingSpinner from './LoadingSpinner';
 
 const ModalOverlay = styled.div`
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.6);
-  z-index: 1000;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
   display: flex;
-  align-items: center;
   justify-content: center;
-  animation: ${fadeIn} 0.2s ease;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(3px);
 `;
 
-const ModalContent = styled.div`
-  background: var(--cardBackground);
-  border-radius: 14px;
-  padding: 2.5rem 2rem 2rem 2rem;
-  min-width: 340px;
-  max-width: 95vw;
-  box-shadow: 0 10px 32px rgba(0,0,0,0.25);
+const ModalContainer = styled.div`
+  background-color: var(--cardBackground);
+  border-radius: 12px;
+  width: 500px;
+  max-width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   position: relative;
-  animation: ${fadeIn} 0.3s cubic-bezier(.4,1.2,.6,1);
+  
+  @media (max-width: 768px) {
+    width: 450px;
+  }
+  
+  @media (max-width: 480px) {
+    width: 90%;
+    border-radius: 10px;
+  }
+`;
+
+const ModalHeader = styled.div`
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--borderColor);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  
+  @media (max-width: 768px) {
+    padding: 1.25rem;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 1rem;
+  }
 `;
 
 const ModalTitle = styled.h3`
+  margin: 0;
   font-size: 1.4rem;
-  font-weight: 700;
   color: var(--textPrimary);
-  margin-bottom: 1.5rem;
-  text-align: center;
+  
+  @media (max-width: 768px) {
+    font-size: 1.3rem;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 1.1rem;
+  }
 `;
 
 const CloseButton = styled.button`
-  position: absolute;
-  top: 1.2rem;
-  right: 1.2rem;
   background: none;
   border: none;
   color: var(--textSecondary);
-  font-size: 1.2rem;
   cursor: pointer;
-  z-index: 2;
-  &:hover { color: var(--danger); }
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--textPrimary);
+  }
 `;
 
-const StarsRow = styled.div`
+const ModalBody = styled.div`
+  padding: 1.5rem;
+  
+  @media (max-width: 768px) {
+    padding: 1.25rem;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 1rem;
+  }
+`;
+
+const AnimeTitle = styled.h4`
+  margin: 0 0 1.5rem 0;
+  font-size: 1.2rem;
+  color: var(--textPrimary);
+  text-align: center;
+  
+  @media (max-width: 768px) {
+    font-size: 1.1rem;
+    margin-bottom: 1.25rem;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+  }
+`;
+
+const RatingContainer = styled.div`
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  
+  @media (max-width: 480px) {
+    gap: 1rem;
+  }
+`;
+
+const StarContainer = styled.div`
+  display: flex;
   gap: 0.5rem;
-  margin-bottom: 1.2rem;
+  
+  @media (max-width: 480px) {
+    gap: 0.3rem;
+  }
 `;
 
 const StarButton = styled.button`
   background: none;
   border: none;
-  color: ${props => props.active ? 'var(--accent)' : 'var(--textSecondary)'};
-  font-size: 2.2rem;
   cursor: pointer;
-  transition: all 0.2s;
-  transform: ${props => props.active ? 'scale(1.15)' : 'scale(1)'};
-  &:hover { color: var(--accent); transform: scale(1.2); }
+  padding: 0.25rem;
+  transition: transform 0.2s ease;
+  
+  &:hover {
+    transform: scale(1.2);
+  }
+  
+  svg {
+    width: 32px;
+    height: 32px;
+    color: ${props => props.filled ? 'var(--warning)' : 'var(--textSecondary)'};
+    transition: color 0.2s ease;
+  }
+  
+  @media (max-width: 768px) {
+    svg {
+      width: 28px;
+      height: 28px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    padding: 0.15rem;
+    
+    svg {
+      width: 24px;
+      height: 24px;
+    }
+  }
 `;
 
 const RatingValue = styled.div`
-  text-align: center;
-  font-size: 1.1rem;
+  font-size: 2rem;
+  font-weight: 700;
   color: var(--textPrimary);
-  margin-bottom: 1.2rem;
+  
+  @media (max-width: 768px) {
+    font-size: 1.8rem;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 1.5rem;
+  }
 `;
 
-const CommentInput = styled.textarea`
-  width: 100%;
-  min-height: 60px;
-  max-height: 120px;
-  border-radius: 8px;
-  border: 1px solid var(--borderColor);
-  padding: 0.7rem 1rem;
-  font-size: 1rem;
-  color: var(--textPrimary);
-  background: var(--backgroundLight);
-  margin-bottom: 1.2rem;
-  resize: vertical;
-  transition: border 0.2s;
-  &:focus { border-color: var(--primary); outline: none; }
-`;
-
-const ModalActions = styled.div`
+const ButtonContainer = styled.div`
   display: flex;
   justify-content: center;
   gap: 1rem;
+  margin-top: 1.5rem;
+  
+  @media (max-width: 480px) {
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+  }
 `;
 
-const ModalButton = styled.button`
-  padding: 0.7rem 1.5rem;
+const Button = styled.button`
+  padding: 0.75rem 1.5rem;
   border-radius: 8px;
+  border: none;
   font-weight: 600;
   cursor: pointer;
-  font-size: 1rem;
-  transition: all 0.3s;
-  border: none;
-  &.submit {
-    background: var(--primary);
-    color: white;
-    &:hover { background: var(--primaryLight); }
-    &:disabled { opacity: 0.6; cursor: not-allowed; }
-  }
-  &.cancel {
-    background: transparent;
-    color: var(--textPrimary);
-    border: 1px solid var(--borderColor);
-    &:hover { background: rgba(var(--backgroundLight-rgb), 0.5); }
-  }
-`;
-
-const CharCount = styled.div`
-  text-align: right;
-  font-size: 0.85rem;
-  color: var(--textSecondary);
-  margin-bottom: 0.5rem;
-`;
-
-const LoadingSpinner = styled.div`
-  display: inline-block;
-  width: 24px;
-  height: 24px;
-  border: 3px solid rgba(var(--primary-rgb), 0.3);
-  border-radius: 50%;
-  border-top-color: var(--primary);
-  animation: spin 1s ease-in-out infinite;
-  margin: 0 auto;
+  transition: all 0.2s ease;
   
-  @keyframes spin {
-    to { transform: rotate(360deg); }
+  @media (max-width: 768px) {
+    padding: 0.7rem 1.3rem;
+    font-size: 0.95rem;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 0.6rem 1.1rem;
+    font-size: 0.9rem;
+    border-radius: 6px;
   }
 `;
 
-const LoadingContainer = styled.div`
-  text-align: center;
-  padding: 2rem 0;
+const CancelButton = styled(Button)`
+  background-color: var(--backgroundLight);
   color: var(--textSecondary);
+  
+  &:hover {
+    background-color: var(--backgroundDark);
+  }
+`;
+
+const SubmitButton = styled(Button)`
+  background-color: var(--primary);
+  color: white;
+  
+  &:hover {
+    background-color: var(--primaryDark);
+  }
+  
+  &:disabled {
+    background-color: var(--disabledBackground);
+    color: var(--disabledText);
+    cursor: not-allowed;
+  }
+`;
+
+const RemoveButton = styled(Button)`
+  background-color: var(--error);
+  color: white;
+  
+  &:hover {
+    background-color: var(--errorDark);
+  }
 `;
 
 const ErrorMessage = styled.div`
-  color: var(--danger);
-  margin-bottom: 1rem;
+  color: var(--error);
+  margin-top: 1rem;
   text-align: center;
   font-size: 0.9rem;
+  
+  @media (max-width: 480px) {
+    font-size: 0.8rem;
+    margin-top: 0.75rem;
+  }
 `;
 
 export default function AnimeRatingModal({
@@ -162,174 +268,132 @@ export default function AnimeRatingModal({
   onClose,
   animeId,
   animeTitle,
+  userRating,
   onSuccess,
 }) {
-  const { showToast } = useToast();
-  const [score, setScore] = useState(0);
+  const [rating, setRating] = useState(0);
+  const [hoveredRating, setHoveredRating] = useState(0);
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
-  const [fetching, setFetching] = useState(false);
-  const [error, setError] = useState(null);
-
-  // Fetch user's previous rating on open
+  const [error, setError] = useState('');
+  console.log(animeId);  
   useEffect(() => {
-    if (show && animeId) {
-      setFetching(true);
-      setError(null);
-      
-      animeRatingAPI.getUserRatingForAnime(animeId)
-        .then(res => {
-          if (res && res.success && res.data) {
-            setScore(res.data.score || 0);
-            setComment(res.data.comment || '');
-          } else {
-            // Reset if no rating found
-            setScore(0);
-            setComment('');
-          }
-        })
-        .catch(() => {
-          // Reset on error
-          setScore(0);
-          setComment('');
-        })
-        .finally(() => setFetching(false));
-    } else if (!show) {
-      // Reset when modal closes
-      setScore(0);
-      setComment('');
-      setError(null);
+    if (show) {
+      if (userRating) {
+        setRating(userRating.score || 0);
+        setComment(userRating.comment || '');
+      } else {
+        setRating(0);
+        setComment('');
+      }
     }
-  }, [show, animeId]);
-
+  }, [show, userRating]);
+  
   const handleSubmit = async () => {
-    if (!score || score < 1 || score > 10) {
-      setError('Please select a score between 1 and 10.');
-      return;
-    }
-    
-    if (comment.length > 500) {
-      setError('Comment must be 500 characters or less.');
-      return;
-    }
-    
-    setLoading(true);
-    setError(null);
-    
     try {
-      const res = await animeRatingAPI.rateAnime(animeId, score, comment);
-      
-      if (res && res.success) {
-        showToast({ type: 'success', message: 'Your rating has been saved!' });
+      setLoading(true);
+      setError('');
+      const response = await animeAPI.rateAnime(animeId, rating, comment);
+      if (response && response.success) {
+        onSuccess && onSuccess();
         onClose();
-        if (onSuccess) onSuccess(res.data);
       } else {
-        throw new Error(res?.error?.message || 'Failed to save rating');
+        setError(response?.message || 'Failed to submit rating');
       }
     } catch (err) {
-      setError(err.message || 'Failed to save rating');
-      showToast({ type: 'error', message: err.message || 'Failed to save rating' });
+      console.error('Error submitting rating:', err);
+      setError('An error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
   };
-
-  const handleDeleteRating = async () => {
-    if (!animeId) return;
-    
-    setLoading(true);
-    setError(null);
-    
+  
+  const handleRemoveRating = async () => {
     try {
-      const res = await animeRatingAPI.deleteRating(animeId);
-      
-      if (res && res.success) {
-        showToast({ type: 'success', message: 'Your rating has been removed!' });
+      setLoading(true);
+      setError('');
+      const response = await animeAPI.deleteRating(animeId);
+      if (response && response.success) {
+        onSuccess && onSuccess();
         onClose();
-        if (onSuccess) onSuccess(null);
       } else {
-        throw new Error(res?.error?.message || 'Failed to remove rating');
+        setError(response?.message || 'Failed to remove rating');
       }
     } catch (err) {
-      setError(err.message || 'Failed to remove rating');
-      showToast({ type: 'error', message: err.message || 'Failed to remove rating' });
+      console.error('Error removing rating:', err);
+      setError('An error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
   };
-
-  // If not shown, don't render
+  
   if (!show) return null;
-
-  // Use createPortal to render the modal at the root level of the DOM
+  
   return createPortal(
     <ModalOverlay onClick={onClose}>
-      <ModalContent onClick={(e) => e.stopPropagation()}>
-        <CloseButton onClick={onClose}><X size={22} /></CloseButton>
-        <ModalTitle>Rate {animeTitle}</ModalTitle>
-        
-        {fetching ? (
-          <LoadingContainer>
-            <LoadingSpinner />
-            <div style={{ marginTop: '1rem' }}>Loading your rating...</div>
-          </LoadingContainer>
-        ) : (
-          <>
-            <StarsRow>
-              {[1,2,3,4,5,6,7,8,9,10].map(n => (
-                <StarButton
-                  key={n}
-                  active={n <= score}
-                  onClick={() => setScore(n)}
-                  aria-label={`Rate ${n}`}
-                >
-                  <Star />
-                </StarButton>
-              ))}
-            </StarsRow>
-            
-            <RatingValue>
-              {score > 0 ? `Your rating: ${score}/10` : 'Select a rating'}
-            </RatingValue>
-            
-            <CharCount>{comment.length}/500</CharCount>
-            <CommentInput
-              maxLength={500}
-              placeholder="Add a comment (optional)"
-              value={comment}
-              onChange={e => setComment(e.target.value)}
-            />
-            
-            {error && <ErrorMessage>{error}</ErrorMessage>}
-            
-            <ModalActions>
-              {score > 0 && (
-                <ModalButton 
-                  className="cancel" 
-                  onClick={handleDeleteRating} 
-                  disabled={loading || !animeId}
-                >
-                  Remove Rating
-                </ModalButton>
-              )}
-              <ModalButton 
-                className="cancel" 
-                onClick={onClose} 
-                disabled={loading}
-              >
-                Cancel
-              </ModalButton>
-              <ModalButton 
-                className="submit" 
-                onClick={handleSubmit} 
-                disabled={loading || !score}
-              >
-                {loading ? 'Saving...' : 'Submit Rating'}
-              </ModalButton>
-            </ModalActions>
-          </>
-        )}
-      </ModalContent>
+      <ModalContainer onClick={e => e.stopPropagation()}>
+        <ModalHeader>
+          <ModalTitle>Rate Anime</ModalTitle>
+          <CloseButton onClick={onClose}>
+            <X size={24} />
+          </CloseButton>
+        </ModalHeader>
+        <ModalBody>
+          <AnimeTitle>{animeTitle}</AnimeTitle>
+          
+          {loading ? (
+            <LoadingSpinner centered size="medium" />
+          ) : (
+            <RatingContainer>
+              <StarContainer>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(value => (
+                  <StarButton
+                    key={value}
+                    filled={value <= (hoveredRating || rating)}
+                    onClick={() => setRating(value)}
+                    onMouseEnter={() => setHoveredRating(value)}
+                    onMouseLeave={() => setHoveredRating(0)}
+                  >
+                    <Star />
+                  </StarButton>
+                ))}
+              </StarContainer>
+              
+              <RatingValue>{rating || hoveredRating || 0} / 10</RatingValue>
+              
+              <textarea
+                value={comment}
+                onChange={e => setComment(e.target.value)}
+                placeholder="Add a comment (optional)"
+                maxLength={500}
+                style={{
+                  width: '100%',
+                  minHeight: 60,
+                  marginTop: 12,
+                  borderRadius: 6,
+                  border: '1px solid var(--borderColor)',
+                  padding: 8,
+                  fontSize: 15,
+                  color: 'var(--textPrimary)',
+                  background: 'var(--inputBackground)'
+                }}
+              />
+              
+              <ButtonContainer>
+                <CancelButton onClick={onClose}>Cancel</CancelButton>
+                {userRating && (
+                  <RemoveButton onClick={handleRemoveRating}>Remove</RemoveButton>
+                )}
+                <SubmitButton onClick={handleSubmit} disabled={rating === 0}>
+                  {userRating ? 'Update' : 'Submit'}
+                </SubmitButton>
+              </ButtonContainer>
+              
+              {error && <ErrorMessage>{error}</ErrorMessage>}
+            </RatingContainer>
+          )}
+        </ModalBody>
+      </ModalContainer>
     </ModalOverlay>,
     document.body
   );

@@ -40,7 +40,11 @@ const PageContainer = styled.div`
   animation: ${fadeIn} 0.6s ease-out;
   
   @media (max-width: 768px) {
-    padding: 1.5rem;
+    padding: 1rem;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 0.75rem;
   }
 `;
 
@@ -52,18 +56,42 @@ const AnimePageGrid = styled.div`
   @media (min-width: 992px) {
     grid-template-columns: 300px 1fr;
   }
+  
+  @media (max-width: 768px) {
+    gap: 1.5rem;
+  }
+  
+  @media (max-width: 480px) {
+    gap: 1rem;
+  }
 `;
 
 const LeftSidebar = styled.aside`
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  
+  @media (max-width: 768px) {
+    gap: 1.5rem;
+  }
+  
+  @media (max-width: 480px) {
+    gap: 1rem;
+  }
 `;
 
 const MainContent = styled.main`
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  
+  @media (max-width: 768px) {
+    gap: 1.5rem;
+  }
+  
+  @media (max-width: 480px) {
+    gap: 1rem;
+  }
 `;
 
 // Poster and sidebar components
@@ -237,7 +265,16 @@ const ContentSection = styled.section`
   overflow: hidden;
   padding: 1.5rem;
   box-shadow: ${props => props.shadow ? '0 5px 15px rgba(0, 0, 0, 0.1)' : 'none'};
-  grid-column: 1 / 3;
+  grid-column: 1 / -1;
+  
+  @media (max-width: 768px) {
+    padding: 1.25rem;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 0;
+    border-radius: 12px;
+  }
 `;
 
 const SectionHeading = styled.h2`
@@ -269,10 +306,70 @@ const SectionHeading = styled.h2`
 const Synopsis = styled.div`
   color: var(--textPrimary);
   line-height: 1.8;
+  position: relative;
   
   p {
     margin-bottom: 1.2rem;
     font-size: 1.05rem;
+  }
+  
+  @media (max-width: 768px) {
+    max-height: ${props => props.expanded ? 'none' : '6rem'};
+    overflow: ${props => props.expanded ? 'visible' : 'hidden'};
+    
+    &::after {
+      content: '';
+      display: ${props => props.expanded ? 'none' : 'block'};
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 2.5rem;
+      background: linear-gradient(to bottom, rgba(var(--cardBackground-rgb), 0), rgba(var(--cardBackground-rgb), 1));
+      pointer-events: none;
+    }
+    
+    p {
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    max-height: ${props => props.expanded ? 'none' : '5rem'};
+    
+    p {
+      font-size: 0.9rem;
+      line-height: 1.5;
+      margin-bottom: 1rem;
+    }
+  }
+`;
+
+const ViewMoreButton = styled.button`
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-weight: 600;
+  padding: 0.5rem 0;
+  cursor: pointer;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  
+  &:hover {
+    text-decoration: underline;
+  }
+  
+  @media (max-width: 768px) {
+    font-size: 0.85rem;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 0.8rem;
+    padding: 0.4rem 0;
   }
 `;
 
@@ -376,6 +473,15 @@ const ExternalLinksGrid = styled.div`
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 1rem;
   margin-top: 1rem;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+  
+  @media (max-width: 480px) {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 0.75rem;
+  }
 `;
 
 const ExternalLinkButton = styled.a`
@@ -421,6 +527,13 @@ const GenreBadge = styled.span`
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
     transform: translateY(-2px);
   }
+  
+  @media (max-width: 480px) {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.6rem;
+    margin-right: 0.4rem;
+    margin-bottom: 0.4rem;
+  }
 `;
 
 const GenresContainer = styled.div`
@@ -451,6 +564,7 @@ export {
   ContentSection,
   SectionHeading,
   Synopsis,
+  ViewMoreButton,
   VideoContainer,
   GradientBackground,
   ErrorMessage,

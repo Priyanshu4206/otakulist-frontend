@@ -18,9 +18,9 @@ import GlobalStyles from './styles/GlobalStyles.js';
 import { resetAuthFailedState } from './services/api.js';
 import { useEffect, useState } from 'react';
 import { DEFAULT_TIMEZONE } from './utils/simpleTimezoneUtils.js';
-import InitialLoadingScreen from './components/common/InitialLoadingScreen.jsx';
 import useAuth from './hooks/useAuth.js';
 import ScrollToTop from './components/common/ScrollToTop.jsx';
+import GameScreenLoader from './components/settings/GameScreenLoader.jsx';
 
 const AppWrapper = styled.div`
   display: flex;
@@ -153,7 +153,8 @@ function AuthContent() {
   
   // Show loading screen until initial auth check is complete
   if (!initialAuthCheckComplete) {
-    return <InitialLoadingScreen />;
+    console.log('[AUTH DEBUG] Initial auth check not complete');
+    return <GameScreenLoader text="Loading Otakulist..." />;
   }
   
   return (

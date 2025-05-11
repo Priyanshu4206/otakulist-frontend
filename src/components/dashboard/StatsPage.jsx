@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { TrendingUp, Trophy, Users, Award, Check, Calendar, Film, Heart, List, Clock } from 'lucide-react';
-import Card from '../common/Card';
-import UserAvatar from '../common/UserAvatar';
+import { TrendingUp, Trophy, Users, Award, Check, Film, Heart, List, Clock } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
-import { watchlistAPI } from '../../services/api';
+import { userAPI } from '../../services/api';
 import AchievementsList from '../common/AchievementsList';
 import { Link } from 'react-router-dom';
 import useToast from '../../hooks/useToast';
+import useApiCache from '../../hooks/useApiCache';
 
 const StatsGrid = styled.div`
   display: grid;
@@ -245,33 +244,51 @@ const TopAchievements = styled.div`
   margin-bottom: 2rem;
 `;
 
-const StatsSection = () => {
+const ALL_ACHIEVEMENTS_CACHE_KEY = 'all_achievements_v2';
+const ALL_ACHIEVEMENTS_TTL = 1000 * 60 * 60 * 24 * 30; // 30 days
+
+const StatsPage = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
-  
+  const [userAchievements, setUserAchievements] = useState([]);
+  const [allAchievements, setAllAchievements] = useState([]);
+  const [error, setError] = useState('');
+
+  // Use useApiCache for allAchievements
+  const {
+    fetchWithCache: fetchAllAchievementsWithCache,
+  } = useApiCache('localStorage', ALL_ACHIEVEMENTS_TTL);
+
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchAchievements = async () => {
+      setLoading(true);
+      setError('');
       if (!user) {
         setLoading(false);
         return;
       }
-      
       try {
-        // No need to fetch watchlist stats separately, they're included in user data
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching stats data:', error);
-        showToast({
-          type: 'error',
-          message: 'Error loading dashboard statistics'
-        });
+        // 1. Fetch user achievements (always fresh)
+        const userAchRes = await userAPI.getUserAchievements(user._id);
+        console.log('[STATS DEBUG] User achievements:', userAchRes?.data);
+        setUserAchievements(userAchRes?.data || []);
+
+        // 2. Fetch all achievements (cache for 30 days)
+        const allAch = await fetchAllAchievementsWithCache(
+          ALL_ACHIEVEMENTS_CACHE_KEY,
+          () => userAPI.getAllAchievements()
+        );
+        setAllAchievements(allAch || []);
+      } catch (err) {
+        setError('Failed to load achievements.');
+        showToast({ type: 'error', message: 'Error loading achievements' });
+      } finally {
         setLoading(false);
       }
     };
-    
-    fetchData();
-  }, [user, showToast]);
+    fetchAchievements();
+  }, [user, showToast, fetchAllAchievementsWithCache]);
   
   if (loading) {
     return <LoadingText>Loading stats...</LoadingText>;
@@ -346,7 +363,7 @@ const StatsSection = () => {
         )}
       </TopAchievements>
       
-      {user.achievements && <AchievementsList userData={user} showProgress={true} showCategory={true} />}
+      <AchievementsList allAchievements={allAchievements} userAchievements={userAchievements} showProgress={true} showCategory={true} />
       
       <SectionDivider />
       
@@ -398,4 +415,4 @@ const StatsSection = () => {
   );
 };
 
-export default StatsSection; 
+export default StatsPage; 

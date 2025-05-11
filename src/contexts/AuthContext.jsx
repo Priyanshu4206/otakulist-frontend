@@ -1,7 +1,7 @@
 import { createContext, useState, useEffect, useCallback, useRef } from 'react';
 import { authAPI, resetAuthFailedState } from '../services/api';
 import { saveUserTimezone } from '../utils/simpleTimezoneUtils';
-import { saveUserTheme } from '../components/dashboard/SettingsSection';
+import { saveUserTheme } from '../components/dashboard/SettingsPage';
 import { themes } from '../contexts/ThemeContext';
 import useToast from '../hooks/useToast';
 
@@ -48,8 +48,18 @@ const applyThemeDirectly = (themeName) => {
 // Debug flag - set to true to enable debug logging
 const DEBUG_AUTH = false;
 
+// Utility to flatten user object if wrapped in { user: { ... } }
+function flattenUserObject(obj) {
+  if (obj && typeof obj === 'object' && 'user' in obj && Object.keys(obj).length === 1) {
+    return obj.user;
+  }
+  return obj;
+}
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [stats, setStats] = useState(null);
+  const [notifications, setNotifications] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [initialAuthCheckComplete, setInitialAuthCheckComplete] = useState(false);
@@ -60,66 +70,50 @@ export const AuthProvider = ({ children }) => {
   // Function to sync user preferences (theme, etc.) after setting user data
   const syncUserPreferences = useCallback((userData) => {
     if (!userData) return;
-
-    // Sync theme preference if available
     if (userData.settings && userData.settings.interfaceTheme) {
       const newTheme = userData.settings.interfaceTheme;
       const currentTheme = getCurrentTheme();
-
-
-      // Save theme to localStorage
       saveUserTheme(newTheme);
-
-      // If the theme from the server is different from the current theme, apply it immediately
       if (newTheme !== currentTheme) {
         applyThemeDirectly(newTheme);
       }
     }
-
-    // Sync timezone preference if available
     if (userData.settings && userData.settings.timezone) {
       saveUserTimezone(userData.settings.timezone);
     }
   }, []);
 
   // Function to fetch the current user from the API
-  // preserveUIState = true will avoid triggering UI-changing state updates
   const fetchCurrentUser = useCallback(async (force = false, preserveUIState = false) => {
-    // Check if token exists
     const token = localStorage.getItem('auth_token');
     if (!token && !force) {
       if (DEBUG_AUTH) console.log('[AUTH DEBUG] No token found, skipping fetch');
       setLoading(false);
       setUser(null);
+      setStats(null);
+      setNotifications(null);
       setInitialAuthCheckComplete(true);
       return null;
     }
-
-    // Prevent concurrent calls
     if (fetchInProgress.current || authFailCount.current >= 3) {
       if (DEBUG_AUTH) console.log('[AUTH DEBUG] Fetch already in progress or too many failures, skipping');
       return null;
     }
-
     try {
       if (DEBUG_AUTH) console.log('[AUTH DEBUG] Starting fetch of current user');
       fetchInProgress.current = true;
-
-      // Only set loading if we're not preserving UI state
       if (!preserveUIState) {
         setLoading(true);
       }
-
       setError(null);
-
       const response = await authAPI.getCurrentUser();
-
       if (response && response.success && response.data) {
         if (DEBUG_AUTH) console.log('[AUTH DEBUG] Fetch successful');
 
-        // Only update user object if we're not in UI preserving mode or if important data changed
         if (!preserveUIState) {
-          setUser(response.data);
+          setUser(response.data.user || null);
+          setStats(response.data.stats || null);
+          setNotifications(response.data.notifications || null);
         } else {
           // When preserving UI state, we still need to update user data, but we do it
           // carefully to avoid UI resets
@@ -127,48 +121,54 @@ export const AuthProvider = ({ children }) => {
             // Merge the new data with the existing user object, preserving UI state
             return {
               ...prevUser,
-              // Update settings and other non-UI-affecting properties
-              settings: response.data.settings || prevUser.settings,
-              // Always ensure we update playlists to keep them current
-              playlists: response.data.playlists || prevUser.playlists
+              ...response.data.user
+            };
+          });
+          setStats(prevStats => {
+            return {
+              ...prevStats,
+              ...response.data.stats
+            };
+          });
+          setNotifications(prevNotifications => {
+            return {
+              ...prevNotifications,
+              ...response.data.notifications
             };
           });
         }
 
-        // Sync user preferences - this won't change UI state
-        syncUserPreferences(response.data);
-
-        // Reset fail count on success
+        syncUserPreferences(response.data.user);
         authFailCount.current = 0;
-
-        // Return the user data for promise chaining
-        return response.data;
+        return {
+          user: response.data.user || null,
+          stats: response.data.stats || null,
+          notifications: response.data.notifications || null
+        };
       } else {
         if (DEBUG_AUTH) console.log('[AUTH DEBUG] Fetch failed, no data or success flag');
         if (!preserveUIState) {
           setUser(null);
+          setStats(null);
+          setNotifications(null);
         }
-        // Increment fail count
         authFailCount.current++;
-
         return null;
       }
     } catch (err) {
-      // Special handling for throttled requests - don't count as failure
       if (err?.throttled) {
         if (DEBUG_AUTH) console.log('[AUTH DEBUG] Auth request was throttled to prevent API spam');
         return null;
       }
-
       console.error('[AUTH DEBUG] Error fetching current user:', err);
       if (!preserveUIState) {
         setUser(null);
+        setStats(null);
+        setNotifications(null);
       }
       setError(err.message || 'Failed to authenticate');
-      // Increment fail count on error
       authFailCount.current++;
-
-      throw err; // Propagate error for promise chaining
+      throw err;
     } finally {
       if (!preserveUIState) {
         setLoading(false);
@@ -188,112 +188,72 @@ export const AuthProvider = ({ children }) => {
       fetchInProgress.current = false;
     };
   }, [fetchCurrentUser]);
-
-  // Handle logout
   const logout = async () => {
     try {
       setLoading(true);
-
-      // Important: Clear user state before API call to prevent UI flicker
       setUser(null);
-
-      // Reset counts and flags
+      setStats(null);
+      setNotifications(null);
       authFailCount.current = 0;
       resetAuthFailedState();
-
-      // Call API to logout server-side
       await authAPI.logout();
-
-      // Show success toast
-      showToast({
-        type: 'success',
-        message: 'Successfully logged out'
-      });
-
-      // Redirect to login page after logout
+      showToast({ type: 'success', message: 'Successfully logged out' });
       window.location.href = '/login';
     } catch (err) {
       console.error('[AUTH DEBUG] Error during logout:', err);
-
-      // Still clear user on frontend even if API call fails
       setUser(null);
-
-      // Clear auth data even if API call fails
+      setStats(null);
+      setNotifications(null);
       localStorage.removeItem('auth_token');
       localStorage.removeItem('auth_from_callback');
       localStorage.removeItem('auth_checked');
       localStorage.removeItem('has_valid_token');
       sessionStorage.removeItem('auth_callback_processed');
       sessionStorage.setItem('from_logout', 'true');
-
-      // Show error toast
-      showToast({
-        type: 'error',
-        message: 'Error during logout, but session cleared'
-      });
-
-      // Force redirect to login page even if logout fails
+      showToast({ type: 'error', message: 'Error during logout, but session cleared' });
       window.location.href = '/login';
     } finally {
       setLoading(false);
     }
   };
 
-  // Manual refresh function that forces a new fetch and returns a promise
-  // preserveUIState = true will avoid triggering UI-changing state updates 
-  const refreshUser = useCallback((preserveUIState = false) => {    // Reset the fail count to force a new fetch
+  const refreshUser = useCallback((preserveUIState = false) => {
     authFailCount.current = 0;
-    // Return the promise from fetchCurrentUser for proper async handling
     return fetchCurrentUser(true, preserveUIState);
   }, [fetchCurrentUser]);
 
-  // Function to handle login success from token in URL hash
   const handleLoginSuccess = (userData, token) => {
     if (userData) {
-      setUser(userData);
-      // Sync user preferences from login data
-      syncUserPreferences(userData);
+      setUser(userData.user || null);
+      setStats(userData.stats || null);
+      setNotifications(userData.notifications || null);
+      syncUserPreferences(userData.user);
     }
-
-    // Store token
     if (token) {
       localStorage.setItem('auth_token', token);
     }
-
     authFailCount.current = 0;
     resetAuthFailedState();
-
-    // Check if we're coming from auth callback
     const fromCallback = localStorage.getItem('auth_from_callback') === 'true';
-
     if (fromCallback) {
-      // Clear the flag
       localStorage.removeItem('auth_from_callback');
-
-      // Set initialAuthCheckComplete to true
       setInitialAuthCheckComplete(true);
     } else {
-      // Not from auth callback - refresh user data as usual
       setTimeout(() => fetchCurrentUser(true), 100);
     }
   };
 
-  // Function to initiate Google OAuth login
   const loginWithGoogle = () => {
-    // Reset fail count
     authFailCount.current = 0;
-    // Reset auth failed state
     resetAuthFailedState();
-    // Clear any existing token to prevent confusion
     localStorage.removeItem('auth_token');
-
-    // Use the authAPI method for Google login
     authAPI.loginWithGoogle();
   };
 
-  // Create value object with all context data and functions
   const value = {
     user,
+    stats,
+    notifications,
     loading,
     error,
     isAuthenticated: !!user,
@@ -304,12 +264,9 @@ export const AuthProvider = ({ children }) => {
     refreshUser,
     fetchCurrentUser,
     refreshUserData: async () => {
-      // This function is used to refresh user data after operations like
-      // creating a playlist or updating user settings
-      // We use preserveUIState=true to avoid UI flickers
       try {
-        const userData = await fetchCurrentUser(true, false);
-        return userData;
+        const data = await fetchCurrentUser(true, false);
+        return data;
       } catch (error) {
         console.error('Error refreshing user data:', error);
         return null;

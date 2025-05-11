@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { Trophy, Award, Star, TrendingUp, Users, BookOpen, Heart, Filter } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
+import * as LucideIcons from 'lucide-react';
 
 // Styled components for achievements
 const Container = styled.div`
@@ -22,6 +23,11 @@ const CategoryTitle = styled.h4`
   gap: 0.75rem;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid var(--borderColor);
+  
+  @media (max-width: 768px) {
+    font-size: 1rem;
+    gap: 0.5rem;
+  }
 `;
 
 const CategoryProgress = styled.div`
@@ -38,6 +44,15 @@ const AchievementsGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1rem;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  }
+  
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
 `;
 
 const AchievementCard = styled.div`
@@ -68,6 +83,15 @@ const AchievementCard = styled.div`
     box-shadow: ${props => props.unlocked ? '0 6px 16px rgba(var(--primary-rgb), 0.15)' : '0 2px 8px rgba(0, 0, 0, 0.05)'};
     opacity: 1;
   }
+  
+  @media (max-width: 768px) {
+    padding: 1rem;
+    gap: 0.75rem;
+    
+    &:hover {
+      transform: ${props => props.unlocked ? 'translateY(-2px)' : 'none'};
+    }
+  }
 `;
 
 const AchievementIcon = styled.div`
@@ -86,6 +110,15 @@ const AchievementIcon = styled.div`
   ${AchievementCard}:hover & {
     transform: ${props => props.unlocked ? 'scale(1.1)' : 'scale(1.05)'};
   }
+  
+  @media (max-width: 768px) {
+    width: 40px;
+    height: 40px;
+    
+    ${AchievementCard}:hover & {
+      transform: ${props => props.unlocked ? 'scale(1.05)' : 'none'};
+    }
+  }
 `;
 
 const AchievementInfo = styled.div`
@@ -97,12 +130,22 @@ const AchievementTitle = styled.h4`
   font-weight: 600;
   margin: 0 0 0.35rem 0;
   color: ${props => props.unlocked ? 'var(--primary)' : 'var(--textPrimary)'};
+  
+  @media (max-width: 768px) {
+    font-size: 0.95rem;
+    margin: 0 0 0.25rem 0;
+  }
 `;
 
 const AchievementDescription = styled.p`
   font-size: 0.85rem;
   color: var(--textSecondary);
   margin: 0 0 0.75rem 0;
+  
+  @media (max-width: 768px) {
+    font-size: 0.8rem;
+    margin: 0 0 0.5rem 0;
+  }
 `;
 
 const ProgressBar = styled.div`
@@ -198,168 +241,148 @@ const achievementIcons = {
  * AchievementsList Component - Updated for new schema
  * 
  * @param {Object} props - Component props
- * @param {Object} props.userData - User data containing achievements
  * @param {boolean} props.showProgress - Whether to show progress bars
  * @param {boolean} props.showCategory - Whether to show category headers
- * @param {string} props.categoryFilter - Only show achievements from this category
  * @param {boolean} props.isPublicProfile - Whether this is being shown on a public profile
  */
 const AchievementsList = ({
-  userData = null,
+  allAchievements = [],
+  userAchievements = [],
   showProgress = true,
   showCategory = true,
-  categoryFilter = null,
   isPublicProfile = false,
 }) => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const { user } = useAuth();
-  
-  // Format date to a readable string
-  const formatUnlockDate = (dateString) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
-    });
+  // Helper to render Lucide icon by name
+  const renderLucideIcon = (iconName) => {
+    if (!iconName) return <Award size={22} />;
+    const IconComponent = LucideIcons[iconName.charAt(0).toUpperCase() + iconName.slice(1)];
+    return IconComponent ? <IconComponent size={22} /> : <Award size={22} />;
   };
-  
-  // Render a single achievement card
-  const renderAchievementCard = (achievement) => {
-    const {
-      title,
-      description,
-      unlocked,
-      unlockedAt,
-      progress,
-      icon
-    } = achievement;
-    
-    // Skip achievements with 0 progress on public profile
-    if (isPublicProfile && !unlocked && (!progress || progress.percentage === 0)) {
-      return null;
-    }
-    
-    // Determine if we should show progress
-    const shouldShowProgress = showProgress && progress && progress.target > 0;
-    const percentage = progress?.percentage || 0;
-    
-    // Get appropriate icon, fallback to default if none found
-    const achievementIcon = achievementIcons[title] || achievementIcons['default'];
-    
-    return (
-      <AchievementCard key={title} unlocked={unlocked}>
-        <AchievementIcon unlocked={unlocked}>
-          {achievementIcon}
-        </AchievementIcon>
-        <AchievementInfo>
-          <AchievementTitle unlocked={unlocked}>
-            {title}
-          </AchievementTitle>
-          <AchievementDescription>
-            {description}
-          </AchievementDescription>
-          
-          {shouldShowProgress && (
-            <>
-              <ProgressBar unlocked={unlocked}>
-                <ProgressFill 
-                  percentage={percentage} 
-                  unlocked={unlocked}
-                />
-              </ProgressBar>
-              <ProgressText unlocked={unlocked}>
-                {progress.current} / {progress.target}
-                {percentage > 0 && ` (${percentage}%)`}
-              </ProgressText>
-            </>
-          )}
-          
-          {unlocked && unlockedAt && (
-            <UnlockDate>
-              Unlocked: {formatUnlockDate(unlockedAt)}
-            </UnlockDate>
-          )}
-        </AchievementInfo>
-      </AchievementCard>
-    );
-  };
-  
-  // Check if we have user data
-  if (!userData?.achievements) {
-    return (
-      <Container>
-        <ErrorText>No achievement data available.</ErrorText>
-      </Container>
-    );
-  }
-  
-  // Get achievements categories from user data
-  const achievementCategories = userData.achievements.categories || [];
-  
-  // Filter categories if a categoryFilter is provided
-  const filteredCategories = categoryFilter
-    ? achievementCategories.filter(category => category.id === categoryFilter)
-    : achievementCategories;
 
-  // For public profiles, filter categories that have at least one achievement with progress
-  const displayCategories = isPublicProfile
-    ? filteredCategories.map(category => {
-        // Filter achievements that have progress or are unlocked
-        const achievementsWithProgress = category.achievements.filter(a => 
-          a.unlocked || (a.progress && a.progress.percentage > 0)
-        );
-        
-        // Return category with filtered achievements
-        return {
-          ...category,
-          achievements: achievementsWithProgress,
-          hasProgress: achievementsWithProgress.length > 0
-        };
-      }).filter(category => category.hasProgress)
-    : filteredCategories;
-  
-  if (loading) {
-    return <LoadingText>Loading achievements...</LoadingText>;
-  }
-  
-  if (error) {
-    return <ErrorText>{error}</ErrorText>;
-  }
-  
-  // If no categories to display on public profile
-  if (isPublicProfile && displayCategories.length === 0) {
+  if (isPublicProfile) {
+    // Only show userAchievements, grouped by achievementId.category
+    const grouped = userAchievements.reduce((acc, uach) => {
+      const ach = typeof uach.achievementId === 'object' ? uach.achievementId : {};
+      const category = ach.category || 'other';
+      if (!acc[category]) acc[category] = [];
+      acc[category].push({
+        ...ach,
+        ...uach,
+        progress: uach.progress || { current: 0, target: ach.criteria?.target || 1, percentage: 0 },
+        unlocked: !!uach.unlockedAt,
+        unlockedAt: uach.unlockedAt || null,
+        iconUrl: ach.iconUrl,
+      });
+      return acc;
+    }, {});
+    if (userAchievements.length === 0) {
+      return (
+        <Container>
+          <NoAchievementsText>No achievements to display.</NoAchievementsText>
+        </Container>
+      );
+    }
     return (
       <Container>
-        <NoAchievementsText>No achievements to display.</NoAchievementsText>
+        {Object.keys(grouped).map(category => (
+          <CategoryContainer key={category}>
+            {showCategory && (
+              <CategoryTitle>
+                {category.charAt(0).toUpperCase() + category.slice(1)}
+                <CategoryProgress>
+                  {grouped[category].filter(a => a.unlocked).length} / {grouped[category].length}
+                </CategoryProgress>
+              </CategoryTitle>
+            )}
+            <AchievementsGrid>
+              {grouped[category].map(achievement => (
+                <AchievementCard key={achievement._id} unlocked={achievement.unlocked}>
+                  <AchievementIcon unlocked={achievement.unlocked}>{renderLucideIcon(achievement.iconUrl)}</AchievementIcon>
+                  <AchievementInfo>
+                    <AchievementTitle unlocked={achievement.unlocked}>{achievement.title}</AchievementTitle>
+                    <AchievementDescription>{achievement.description}</AchievementDescription>
+                    {showProgress && achievement.progress && achievement.progress.target > 1 && (
+                      <>
+                        <ProgressBar unlocked={achievement.unlocked}>
+                          <ProgressFill percentage={achievement.progress.percentage || 0} unlocked={achievement.unlocked} />
+                        </ProgressBar>
+                        <ProgressText unlocked={achievement.unlocked}>
+                          {achievement.progress.current} / {achievement.progress.target}
+                          {achievement.progress.percentage > 0 && ` (${achievement.progress.percentage}%)`}
+                        </ProgressText>
+                      </>
+                    )}
+                    {achievement.unlocked && achievement.unlockedAt && (
+                      <UnlockDate>Unlocked: {new Date(achievement.unlockedAt).toLocaleDateString()}</UnlockDate>
+                    )}
+                  </AchievementInfo>
+                </AchievementCard>
+              ))}
+            </AchievementsGrid>
+          </CategoryContainer>
+        ))}
       </Container>
     );
   }
-  
+
+  // Default: merged allAchievements/userAchievements
+  const userAchMap = userAchievements.reduce((acc, uach) => {
+    const id = typeof uach.achievementId === 'object' ? uach.achievementId._id : uach.achievementId;
+    acc[id] = uach;
+    return acc;
+  }, {});
+  const mergedAchievements = allAchievements.map(ach => {
+    const userAch = userAchMap[ach._id];
+    return {
+      ...ach,
+      progress: userAch?.progress || { current: 0, target: ach.criteria?.target || 1, percentage: 0 },
+      unlocked: !!userAch?.unlockedAt,
+      unlockedAt: userAch?.unlockedAt || null,
+      bestReached: userAch?.bestReached || 0,
+      iconUrl: ach.iconUrl,
+    };
+  });
+  const grouped = mergedAchievements.reduce((acc, ach) => {
+    if (!acc[ach.category]) acc[ach.category] = [];
+    acc[ach.category].push(ach);
+    return acc;
+  }, {});
   return (
     <Container>
-      {displayCategories.map(category => (
-        <CategoryContainer key={category.id}>
+      {Object.keys(grouped).map(category => (
+        <CategoryContainer key={category}>
           {showCategory && (
             <CategoryTitle>
-              {/* Choose icon based on category id */}
-              {category.id === 'anime' && <Trophy size={20} />}
-              {category.id === 'social' && <Users size={20} />}
-              {category.id === 'collection' && <BookOpen size={20} />}
-              {category.id === 'genre' && <Filter size={20} />}
-              {category.id === 'special' && <Star size={20} />}
-              
-              {category.name}
+              {category.charAt(0).toUpperCase() + category.slice(1)}
               <CategoryProgress>
-                {category.unlockedCount} / {category.totalCount}
+                {grouped[category].filter(a => a.unlocked).length} / {grouped[category].length}
               </CategoryProgress>
             </CategoryTitle>
           )}
-          
           <AchievementsGrid>
-            {category.achievements.map(achievement => renderAchievementCard(achievement))}
+            {grouped[category].map(achievement => (
+              <AchievementCard key={achievement._id} unlocked={achievement.unlocked}>
+                <AchievementIcon unlocked={achievement.unlocked}>{renderLucideIcon(achievement.iconUrl)}</AchievementIcon>
+                <AchievementInfo>
+                  <AchievementTitle unlocked={achievement.unlocked}>{achievement.title}</AchievementTitle>
+                  <AchievementDescription>{achievement.description}</AchievementDescription>
+                  {showProgress && achievement.progress && achievement.progress.target > 1 && (
+                    <>
+                      <ProgressBar unlocked={achievement.unlocked}>
+                        <ProgressFill percentage={achievement.progress.percentage || 0} unlocked={achievement.unlocked} />
+                      </ProgressBar>
+                      <ProgressText unlocked={achievement.unlocked}>
+                        {achievement.progress.current} / {achievement.progress.target}
+                        {achievement.progress.percentage > 0 && ` (${achievement.progress.percentage}%)`}
+                      </ProgressText>
+                    </>
+                  )}
+                  {achievement.unlocked && achievement.unlockedAt && (
+                    <UnlockDate>Unlocked: {new Date(achievement.unlockedAt).toLocaleDateString()}</UnlockDate>
+                  )}
+                </AchievementInfo>
+              </AchievementCard>
+            ))}
           </AchievementsGrid>
         </CategoryContainer>
       ))}

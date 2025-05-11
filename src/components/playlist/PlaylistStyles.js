@@ -5,17 +5,14 @@ export const PageContainer = styled.div`
   max-width: 1600px;
   margin: 0 auto;
   min-height: 100vh;  
-  
-  @media (max-width: 768px) {
-    padding: 1rem;
-  }
 `;
 
 export const ContentWrapper = styled.div`
   padding: 0 2rem;
+  padding-left: 0;
   
   @media (max-width: 768px) {
-    padding: 0 1rem;
+    padding: 0;
   }
 `;
 

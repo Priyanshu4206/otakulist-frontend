@@ -676,6 +676,14 @@ export const animeAPI = {
   getAnimeReviews: (id, page = 1) =>
     api.get(`/anime/${id}/reviews`, { params: { page } }),
   getRandomAnime: () => api.get("/anime/random"),
+
+  // Anime Ratings
+  getAnimeRatings: (id, page = 1, limit = 20) =>
+    api.get(`/anime/${id}/ratings`, { params: { page, limit } }),
+  rateAnime: (animeId, score, comment = "") =>
+    api.post(`/anime/${animeId}/rate`, { score, comment }),
+  deleteRating: (animeId) =>
+    api.delete(`/anime/${animeId}/rate`),
 };
 
 // Character APIs
@@ -771,7 +779,7 @@ export const animeRatingAPI = {
    */
   deleteRating: async (animeId) => {
     try {
-      const response = await api.delete(`/ratings/${animeId}`);
+      const response = await api.delete(`/anime/${animeId}`);
       
       return {
         success: true,
@@ -787,91 +795,6 @@ export const animeRatingAPI = {
       };
     }
   },
-
-  /**
-   * Get all ratings by the current user
-   * @param {number} page - Page number for pagination
-   * @param {number} limit - Number of items per page
-   * @returns {Promise} - Standardized response with pagination
-   */
-  getUserRatings: async (page = 1, limit = 20) => {
-    try {
-      const response = await api.get(`/ratings/me?page=${page}&limit=${limit}`);
-      
-      return {
-        success: true,
-        data: response.data,
-        pagination: response.pagination
-      };
-    } catch (error) {
-      handleError(error);
-      return {
-        success: false,
-        error: {
-          message: error.response?.data?.error?.message || "Failed to fetch user ratings"
-        }
-      };
-    }
-  },
-
-  /**
-   * Get ratings for a specific anime
-   * @param {string} animeId - The ID of the anime
-   * @param {number} page - Page number for pagination
-   * @param {number} limit - Number of items per page
-   * @returns {Promise} - Standardized response with pagination
-   */
-  getAnimeRatings: async (animeId, page = 1, limit = 20) => {
-    try {
-      const response = await api.get(`/ratings/anime/${animeId}?page=${page}&limit=${limit}`);
-      
-      return {
-        success: true,
-        data: response.data,
-        pagination: response.pagination
-      };
-    } catch (error) {
-      handleError(error);
-      return {
-        success: false,
-        error: {
-          message: error.response?.data?.error?.message || "Failed to fetch anime ratings"
-        }
-      };
-    }
-  },
-
-  /**
-   * Get user's rating for a specific anime
-   * @param {string} animeId - The ID of the anime
-   * @returns {Promise} - Standardized response
-   */
-  getUserRatingForAnime: async (animeId) => {
-    try {
-      const response = await api.get(`/ratings/me/${animeId}`);
-      
-      return {
-        success: true,
-        data: response.data
-      };
-    } catch (error) {
-      // If 404, it means no rating exists, which is not an error
-      if (error.response?.status === 404) {
-        return {
-          success: true,
-          data: null
-        };
-      }
-      
-      handleError(error);
-      return {
-        success: false,
-        error: {
-          message: error.response?.data?.error?.message || "Failed to fetch user rating"
-        }
-      };
-    }
-  }
 };
 
 export default api;

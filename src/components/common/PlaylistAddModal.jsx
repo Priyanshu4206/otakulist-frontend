@@ -324,29 +324,37 @@ const PlaylistAddModal = ({
   });
 
   // Get anime details based on the source (anime page vs schedule page)
-  const animeId = isScheduleAnime ? anime.malId : anime.malId || anime.mal_id || anime.id || anime._id;
-
-  // This effect runs whenever the show prop or user data changes
+  const animeId = isScheduleAnime ? anime?.malId : anime?.malId || anime?.mal_id || anime?.id || anime?._id;
+  
+  // This effect runs whenever the show prop changes
   useEffect(() => {
     if (show) {
       // Reset all states when modal opens
       setSelectedPlaylistId(null);
       setShowNewPlaylistForm(false);
-      setLoading(false);
+      setLoading(true); // Set loading while fetching playlists
       setNewPlaylistData({
         name: '',
         description: '',
         isPublic: true
       });
-      
-      // Always ensure we're using the latest playlists from user data
-      if (user?.playlists) {
-        setPlaylists(user.playlists);
-      } else {
-        setPlaylists([]);
-      }
+
+      // Fetch playlists from API instead of user object
+      (async () => {
+        const response = await playlistAPI.getMyPlaylists(1, 100); // Fetch up to 100 playlists
+        if (response.success) {
+          setPlaylists(response.data || []);
+        } else {
+          setPlaylists([]);
+          showToast({
+            type: 'error',
+            message: response.error?.message || 'Failed to fetch playlists'
+          });
+        }
+        setLoading(false);
+      })();
     }
-  }, [show, user]);
+  }, [show, showToast]);
 
   const handleSelectPlaylist = (id) => {
     setSelectedPlaylistId(id);
@@ -515,7 +523,7 @@ const PlaylistAddModal = ({
 
   // Format playlists for CustomSelect component
   const playlistOptions = playlists.map(playlist => ({
-    value: playlist.id,
+    value: playlist._id,
     label: playlist.name
   }));
 

@@ -13,6 +13,10 @@ const CardContainer = styled.div`
       box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
     }
   `}
+
+  @media (max-width: 768px) {
+    padding: 0;
+  }
 `;
 
 const CardHeader = styled.div`

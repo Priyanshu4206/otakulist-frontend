@@ -1,14 +1,14 @@
 import { useState, useEffect, useContext } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { Clock, Search, X } from 'lucide-react';
+import { Clock} from 'lucide-react';
 import useSimpleTimezones from '../../hooks/simpleTimezones';
 import { getTimezoneValue, getIANATimezone } from '../../utils/simpleTimezoneUtils';
 import { AuthContext } from '../../contexts/AuthContext';
 import CustomSelect from '../common/CustomSelect';
 
 const Container = styled.div`
-  margin-bottom: 2rem;
+  margin: 2rem 0;
 `;
 
 const Header = styled.div`

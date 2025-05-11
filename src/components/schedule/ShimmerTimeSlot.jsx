@@ -82,9 +82,34 @@ const ShimmerGenres = styled.div`
 `;
 
 const ShimmerGenre = styled.div`
-  height: 1.5rem;
-  width: 70px;
+  height: 1.2rem;
+  width: 60px;
   border-radius: 20px;
+  background: linear-gradient(90deg, var(--backgroundLight) 25%, var(--backgroundDark) 50%, var(--backgroundLight) 75%);
+  background-size: 200% 100%;
+  animation: ${shimmer} 1.5s infinite;
+`;
+
+const ShimmerMetaRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.3rem;
+`;
+
+const ShimmerMeta = styled.div`
+  height: 1rem;
+  width: 50px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--backgroundLight) 25%, var(--backgroundDark) 50%, var(--backgroundLight) 75%);
+  background-size: 200% 100%;
+  animation: ${shimmer} 1.5s infinite;
+`;
+
+const ShimmerScore = styled.div`
+  height: 1.2rem;
+  width: 40px;
+  border-radius: 8px;
   background: linear-gradient(90deg, var(--backgroundLight) 25%, var(--backgroundDark) 50%, var(--backgroundLight) 75%);
   background-size: 200% 100%;
   animation: ${shimmer} 1.5s infinite;
@@ -115,6 +140,11 @@ const ShimmerTimeSlot = ({ cardsCount = 2 }) => {
                 <ShimmerGenre />
                 <ShimmerGenre />
               </ShimmerGenres>
+              <ShimmerMetaRow>
+                <ShimmerMeta />
+                <ShimmerScore />
+                <ShimmerMeta />
+              </ShimmerMetaRow>
               <ShimmerStatus />
             </ShimmerInfo>
           </ShimmerCard>

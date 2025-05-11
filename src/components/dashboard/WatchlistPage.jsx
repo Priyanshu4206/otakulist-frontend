@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { ArrowUp, ArrowDown, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { X } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
 import { watchlistAPI } from '../../services/api';
-import LoadingSpinner from '../common/LoadingSpinner';
 import { useNavigate } from 'react-router-dom';
 import WatchlistFilter from './WatchlistFilter';
 import WatchlistTabs, { STATUSES } from './WatchlistTabs';
@@ -12,10 +11,10 @@ import WatchlistAnimeItem from './WatchlistAnimeItem';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 import EmptyWatchlist from './EmptyWatchlist';
 import useToast from '../../hooks/useToast';
+import GameScreenLoader from '../settings/GameScreenLoader';
 
 // Styled components
 const WatchlistContainer = styled.div`
-  padding: 1.5rem;
   max-width: 1600px;
   margin: 0 auto;
   position: relative; /* Create a stacking context */
@@ -52,13 +51,6 @@ const AnimeList = styled.div`
   transform-style: preserve-3d; /* Ensure dropdowns can display properly */
 `;
 
-const LoadingContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 3rem;
-`;
-
 const ErrorMessage = styled.div`
   color: var(--danger);
   text-align: center;
@@ -72,7 +64,7 @@ const ErrorMessage = styled.div`
   gap: 0.75rem;
 `;
 
-const WatchlistSection = () => {
+const WatchlistPage = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
 
@@ -402,9 +394,7 @@ const WatchlistSection = () => {
 
       <AnimatePresence mode="wait">
         {loading ? (
-          <LoadingContainer key="loading">
-            <LoadingSpinner size={40} />
-          </LoadingContainer>
+          <GameScreenLoader text="" />
         ) : filteredAnimeList.length === 0 ? (
           <EmptyWatchlist
             key="empty"
@@ -437,4 +427,4 @@ const WatchlistSection = () => {
   );
 };
 
-export default WatchlistSection; 
+export default WatchlistPage; 

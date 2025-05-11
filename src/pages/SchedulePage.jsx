@@ -26,12 +26,24 @@ const PageContainer = styled(motion.div)`
   @media (max-width: 768px) {
     padding: 1rem;
   }
+  
+  @media (max-width: 480px) {
+    padding: 0.75rem;
+  }
 `;
 
 const ScheduleContent = styled(motion.div)`
   margin-top: 2rem;
   position: relative;
   z-index: 1;
+  
+  @media (max-width: 768px) {
+    margin-top: 1.5rem;
+  }
+  
+  @media (max-width: 480px) {
+    margin-top: 1rem;
+  }
 `;
 
 const LoadMore = styled(motion.button)`
@@ -59,6 +71,17 @@ const LoadMore = styled(motion.button)`
     transform: none;
     box-shadow: none;
   }
+  
+  @media (max-width: 768px) {
+    padding: 0.8rem 1.8rem;
+    margin: 2.5rem auto;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 0.7rem 1.5rem;
+    font-size: 0.9rem;
+    margin: 2rem auto;
+  }
 `;
 
 const EmptyState = styled(motion.div)`
@@ -83,6 +106,33 @@ const EmptyState = styled(motion.div)`
     margin: 0 auto;
     line-height: 1.6;
   }
+  
+  @media (max-width: 768px) {
+    padding: 3rem 1.5rem;
+    
+    h3 {
+      font-size: 1.3rem;
+    }
+    
+    p {
+      font-size: 0.9rem;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    padding: 2rem 1rem;
+    margin: 1.5rem 0;
+    
+    h3 {
+      font-size: 1.2rem;
+      margin-bottom: 0.75rem;
+    }
+    
+    p {
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+  }
 `;
 
 const FilterContainer = styled(motion.div)`
@@ -94,6 +144,17 @@ const FilterContainer = styled(motion.div)`
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
   position: relative;
   z-index: 10; /* Higher z-index to ensure filter works properly */
+  
+  @media (max-width: 768px) {
+    padding: 1.25rem;
+    margin: 1.25rem 0;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 1rem;
+    margin: 1rem 0;
+    border-radius: 10px;
+  }
 `;
 
 // Animation variants
@@ -150,6 +211,7 @@ const SchedulePage = () => {
   const [originalData, setOriginalData] = useState([]);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [showShimmer, setShowShimmer] = useState(false);
   
   // UseApiCache hook for caching API calls
   const { 
@@ -327,32 +389,32 @@ const SchedulePage = () => {
       // First check if we have this data in cache
       const cachedData = getFromCache(requestCacheKey);
       if (cachedData && Array.isArray(cachedData) && cachedData.length > 0) {        
-        // Process cached data
-        if (reset) {
-          setOriginalData(cachedData);
-          setAnimeList(cachedData);
-          setFilteredAnimeList(cachedData);
-        } else {
-          setOriginalData(prev => [...prev, ...cachedData]);
-          setAnimeList(prev => [...prev, ...cachedData]);
-          setFilteredAnimeList(prev => [...prev, ...cachedData]);
-        }
-        
-        // Update pagination
-        setHasMore(cachedData.length >= 50); // If we got a full page, assume there's more
-        
-        if (!reset) {
-          setPage(prev => prev + 1);
-        } else {
-          // If resetting, set to page 2 for next load more
-          setPage(2);
-        }
-        
+        // Show shimmer for at least 500ms before displaying cached data
+        setShowShimmer(true);
+        setTimeout(() => {
+          if (reset) {
+            setOriginalData(cachedData);
+            setAnimeList(cachedData);
+            setFilteredAnimeList(cachedData);
+          } else {
+            setOriginalData(prev => [...prev, ...cachedData]);
+            setAnimeList(prev => [...prev, ...cachedData]);
+            setFilteredAnimeList(prev => [...prev, ...cachedData]);
+          }
+          setHasMore(cachedData.length >= 50);
+          if (!reset) {
+            setPage(prev => prev + 1);
+          } else {
+            setPage(2);
+          }
+          setShowShimmer(false);
+        }, 500);
         return;
       }
       
       // Set loading state
       setIsLoading(true);
+      setShowShimmer(true);
       
       // Build API params with user's timezone
       const params = {
@@ -417,10 +479,12 @@ const SchedulePage = () => {
       
       // Reset loading state
       setIsLoading(false);
+      setTimeout(() => setShowShimmer(false), 500);
     } catch (err) {
       console.error('Error fetching schedule:', err);
       setHasMore(false);
       setIsLoading(false);
+      setShowShimmer(false);
     }
   }, [activeDay, fetchWithCache, getFromCache, page, userTimezone, userTimezoneCode]);
   
@@ -487,7 +551,7 @@ const SchedulePage = () => {
     >
       {[1, 2, 3].map(i => (
         <motion.div key={`shimmer-${i}`} variants={itemVariants}>
-          <ShimmerTimeSlot />
+          <ShimmerTimeSlot cardsCount={2} />
         </motion.div>
       ))}
     </motion.div>
@@ -543,9 +607,9 @@ const SchedulePage = () => {
         </FilterContainer>
         
         <ScheduleContent>
-          {isLoading && Object.keys(groupedByTime).length === 0 ? (
+          {(showShimmer || (isLoading && Object.keys(groupedByTime).length === 0)) ? (
             renderLoading()
-          ) : filteredAnimeList.length === 0 ? (
+          ) : (!showShimmer && !isLoading && filteredAnimeList.length === 0) ? (
             renderEmptyState()
           ) : (
             Object.entries(groupedByTime).map(([time, animeGroup]) => {
@@ -570,7 +634,7 @@ const SchedulePage = () => {
             })
           )}
           
-          {!isLoading && hasMore && filteredAnimeList.length > 0 && (
+          {!showShimmer && !isLoading && hasMore && filteredAnimeList.length > 0 && (
             <LoadMore
               onClick={handleLoadMore}
               whileHover={{ scale: 1.03 }}

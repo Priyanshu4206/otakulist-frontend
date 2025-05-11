@@ -23,6 +23,16 @@ const TabsContainer = styled.div`
   
   @media (max-width: 768px) {
     gap: 0.25rem;
+    padding: 0.4rem;
+  }
+  
+  @media (max-width: 480px) {
+    gap: 0.15rem;
+    padding: 0.3rem;
+    margin-bottom: 1rem;
+    overflow-x: scroll;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch; /* For smoother scrolling on iOS */
   }
 `;
 
@@ -62,6 +72,13 @@ const Tab = styled(motion.button)`
     padding: 0.6rem 0.8rem;
     font-size: 0.9rem;
   }
+  
+  @media (max-width: 480px) {
+    padding: 0.5rem 0.6rem;
+    font-size: 0.8rem;
+    min-width: 60px;
+    flex-shrink: 0;
+  }
 `;
 
 const ActiveTabIndicator = styled(motion.div)`
@@ -76,6 +93,10 @@ const ActiveTabIndicator = styled(motion.div)`
 
 const DayName = styled.span`
   font-weight: 700;
+  
+  @media (max-width: 480px) {
+    font-size: 0.8rem;
+  }
 `;
 
 const DateNumber = styled.span`
@@ -84,6 +105,10 @@ const DateNumber = styled.span`
   
   @media (max-width: 768px) {
     font-size: 1.1rem;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 1rem;
   }
 `;
 
@@ -119,6 +144,12 @@ const TodayLabel = styled(motion.div)`
     transform: translateX(-50%);
     border: 4px solid transparent;
     border-top-color: var(--primary);
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 0.6rem;
+    padding: 0.1rem 0.4rem;
+    top: -12px;
   }
 `;
 

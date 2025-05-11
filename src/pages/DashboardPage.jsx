@@ -5,15 +5,14 @@ import { motion } from 'framer-motion';
 import { User, Settings, Trophy, List, BookOpen, Activity } from 'lucide-react';
 import Layout from '../components/layout/Layout.jsx';
 import useAuth from '../hooks/useAuth.js';
-import LoadingSpinner from '../components/common/LoadingSpinner.jsx';
 
 // Import dashboard pages
-import ProfileSection from '../components/dashboard/ProfileSection.jsx';
-import SettingsSection from '../components/dashboard/SettingsSection.jsx';
-import StatsSection from '../components/dashboard/StatsSection.jsx';
-import WatchlistSection from '../components/dashboard/WatchlistSection.jsx';
-import PlaylistsSection from '../components/dashboard/PlaylistsSection.jsx';
-import ActivitySection from '../components/dashboard/ActivitySection.jsx';
+import ProfilePage from '../components/dashboard/ProfilePage.jsx';
+import SettingsPage from '../components/dashboard/SettingsPage.jsx';
+import StatsPage from '../components/dashboard/StatsPage.jsx';
+import WatchlistPage from '../components/dashboard/WatchlistPage.jsx';
+import PlaylistsPage from '../components/dashboard/PlaylistsPage.jsx';
+import ActivityPage from '../components/dashboard/ActivityPage.jsx';
 
 const PageContainer = styled.div`
   max-width: 1600px;
@@ -23,6 +22,14 @@ const PageContainer = styled.div`
   position: relative;
   overflow: visible !important;
   z-index: 1;
+  
+  @media (max-width: 768px) {
+    margin-top: 60px;
+  }
+  
+  @media (max-width: 480px) {
+    margin-top: 50px;
+  }
 `;
 
 const ScrollArea = styled.div`
@@ -36,6 +43,10 @@ const ScrollArea = styled.div`
   @media (max-width: 768px) {
     padding: 0 1rem 1.5rem;
   }
+  
+  @media (max-width: 480px) {
+    padding: 0;
+  }
 `;
 
 const NavWrapper = styled(motion.div)`
@@ -45,10 +56,16 @@ const NavWrapper = styled(motion.div)`
   z-index: 100;
   width: 100%;
   margin-left: var(--sidebar-collapsed-width);
-  transition: padding 0.3s ease;
+  transition: padding 0.3s ease, margin-left 0.3s ease;
   background: rgba(var(--background-rgb), 0.75);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(var(--borderColor-rgb), 0.1);
+  
+  @media (max-width: 768px) {
+    margin-left: 0;
+    width: 100%;
+    top: var(--header-height);
+  }
 `;
 
 const DashboardTabs = styled(motion.div)`
@@ -60,6 +77,8 @@ const DashboardTabs = styled(motion.div)`
   background: var(--cardBackground);
   padding: 9px 2rem;
   transition: all 0.3s ease;
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  scroll-behavior: smooth;
   
   &::-webkit-scrollbar {
     display: none;
@@ -67,6 +86,13 @@ const DashboardTabs = styled(motion.div)`
   
   @media (max-width: 768px) {
     padding: ${props => props.expanded ? '0.5rem 1rem' : '0.5rem'};
+    gap: 0.5rem;
+    justify-content: flex-start;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 0.35rem 0.5rem;
+    gap: 0.25rem;
   }
 `;
 
@@ -87,6 +113,7 @@ const Tab = styled(Link)`
   position: relative;
   overflow: hidden;
   text-decoration: none;
+  flex-shrink: 0;
   
   &::after {
     content: '';
@@ -117,8 +144,22 @@ const Tab = styled(Link)`
   }
   
   @media (max-width: 768px) {
-    padding: 1rem 1.25rem;
-    font-size: 0.95rem;
+    padding: 0.85rem 1rem;
+    font-size: 0.9rem;
+    gap: 0.5rem;
+    border-radius: 8px;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 0.75rem 0.85rem;
+    font-size: 0.85rem;
+    gap: 0.35rem;
+  }
+`;
+
+const TabLabel = styled.span`
+  @media (max-width: 480px) {
+    display: ${props => props.$active ? 'inline' : 'none'};
   }
 `;
 
@@ -141,6 +182,12 @@ const TabContent = styled(motion.div)`
   
   @media (max-width: 768px) {
     padding: 1.5rem;
+    border-radius: 16px;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 1rem;
+    border-radius: 12px;
   }
 `;
 
@@ -185,206 +232,152 @@ const DashboardNavigation = () => {
   
   const [scrolled, setScrolled] = useState(false);
   
+  const tabsRef = useRef(null);
+  
+  // Scroll active tab into view
   useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 100) {
-        setScrolled(true);
-      } else {
-        setScrolled(false);
+    if (tabsRef.current) {
+      const activeTab = tabsRef.current.querySelector('[data-active="true"]');
+      if (activeTab) {
+        // Calculate scroll position to center the active tab
+        const tabsRect = tabsRef.current.getBoundingClientRect();
+        const activeTabRect = activeTab.getBoundingClientRect();
+        const scrollLeft = activeTabRect.left - tabsRect.left - (tabsRect.width / 2) + (activeTabRect.width / 2);
+        
+        tabsRef.current.scrollTo({
+          left: Math.max(0, scrollLeft),
+          behavior: 'smooth'
+        });
       }
-    };
-    
+    }
+  }, [currentPath]);
+  
+  const handleScroll = () => {
+    if (window.scrollY > 10) {
+      setScrolled(true);
+    } else {
+      setScrolled(false);
+    }
+  };
+  
+  useEffect(() => {
     window.addEventListener('scroll', handleScroll);
-    
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
   
   return (
-    <NavWrapper>
-      <DashboardTabs expanded={scrolled}>
+    <NavWrapper
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      style={{
+        boxShadow: scrolled ? '0 4px 20px rgba(0, 0, 0, 0.1)' : 'none',
+      }}
+    >
+      <DashboardTabs ref={tabsRef}>
         <Tab 
           to="/dashboard" 
-          $active={isActive('/dashboard')}
+          $active={currentPath === '/dashboard'} 
+          data-active={currentPath === '/dashboard'}
         >
           <User size={20} />
-          Profile
+          <TabLabel $active={currentPath === '/dashboard'}>Profile</TabLabel>
         </Tab>
         
         <Tab 
           to="/dashboard/stats" 
-          $active={isActive('/dashboard/stats')}
+          $active={isActive('/dashboard/stats')} 
+          data-active={isActive('/dashboard/stats')}
         >
           <Trophy size={20} />
-          Stats & Achievements
-        </Tab>
-        
-        <Tab 
-          to="/dashboard/activity" 
-          $active={isActive('/dashboard/activity')}
-        >
-          <Activity size={20} />
-          Activity
+          <TabLabel $active={isActive('/dashboard/stats')}>Stats</TabLabel>
         </Tab>
         
         <Tab 
           to="/dashboard/watchlist" 
-          $active={isActive('/dashboard/watchlist')}
+          $active={isActive('/dashboard/watchlist')} 
+          data-active={isActive('/dashboard/watchlist')}
         >
           <List size={20} />
-          Watchlist
+          <TabLabel $active={isActive('/dashboard/watchlist')}>Watchlist</TabLabel>
         </Tab>
         
         <Tab 
           to="/dashboard/playlists" 
-          $active={isActive('/dashboard/playlists')}
+          $active={isActive('/dashboard/playlists')} 
+          data-active={isActive('/dashboard/playlists')}
         >
           <BookOpen size={20} />
-          Playlists
+          <TabLabel $active={isActive('/dashboard/playlists')}>Playlists</TabLabel>
+        </Tab>
+        
+        <Tab 
+          to="/dashboard/activity" 
+          $active={isActive('/dashboard/activity')} 
+          data-active={isActive('/dashboard/activity')}
+        >
+          <Activity size={20} />
+          <TabLabel $active={isActive('/dashboard/activity')}>Activity</TabLabel>
         </Tab>
         
         <Tab 
           to="/dashboard/settings" 
-          $active={isActive('/dashboard/settings')}
+          $active={isActive('/dashboard/settings')} 
+          data-active={isActive('/dashboard/settings')}
         >
           <Settings size={20} />
-          Settings
+          <TabLabel $active={isActive('/dashboard/settings')}>Settings</TabLabel>
         </Tab>
       </DashboardTabs>
     </NavWrapper>
   );
 };
 
-// Main dashboard layout component
 const DashboardLayout = ({ children }) => {
   return (
-    <Layout>
-      <PageContainer>
-        <ScrollArea>
-          <DashboardNavigation />
-          
-          <TabContent
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            variants={contentVariants}
-          >
-            {children}
-          </TabContent>
-        </ScrollArea>
-      </PageContainer>
-    </Layout>
+    <PageContainer>
+      <DashboardNavigation />
+      <ScrollArea>
+        <TabContent
+          variants={contentVariants}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
+        >
+          {children}
+        </TabContent>
+      </ScrollArea>
+    </PageContainer>
   );
 };
 
-// Main Dashboard component with nested routing
 const DashboardPage = () => {
-  const { loading, initialAuthCheckComplete, refreshUser, isAuthenticated } = useAuth();
-  const [userRefreshed, setUserRefreshed] = useState(false);
-  const refreshAttemptTimestamp = useRef(0);
-  const MIN_REFRESH_INTERVAL = 5000; // 5 seconds between refresh attempts
+  const { isAuthenticated, isLoading } = useAuth();
   
-  // Refresh user data only once when dashboard loads
-  useEffect(() => {
-    const now = Date.now();
-    const timeSinceLastRefresh = now - refreshAttemptTimestamp.current;
-    if (!userRefreshed && 
-        initialAuthCheckComplete && 
-        !loading && 
-        timeSinceLastRefresh > MIN_REFRESH_INTERVAL) {
-      
-      refreshAttemptTimestamp.current = now;
-      
-      refreshUser()
-        .then(() => {
-          setUserRefreshed(true);
-        })
-        .catch((err) => {
-          if (err?.throttled) {
-            // Handle throttled requests
-          } else {
-            // Handle errors
-          }
-          setUserRefreshed(true);
-        });
-    }
-  }, [refreshUser, initialAuthCheckComplete, loading, userRefreshed]);
-  
-  if (loading || !initialAuthCheckComplete) {
+  if (isLoading) {
     return (
       <Layout>
-        <PageContainer>
-          <LoadingContainer>
-            <LoadingSpinner size={48} />
-            <p style={{ marginTop: '1.5rem', color: 'var(--textSecondary)', fontSize: '1.1rem' }}>Loading your profile...</p>
-          </LoadingContainer>
-        </PageContainer>
+        <LoadingContainer>
+          <div>Loading...</div>
+        </LoadingContainer>
       </Layout>
     );
   }
   
-  // Add an additional check to ensure authenticated before rendering routes
   if (!isAuthenticated) {
-    return (
-      <Layout>
-        <PageContainer>
-          <LoadingContainer>
-            <div style={{ textAlign: 'center' }}>
-              <p style={{ color: 'var(--textSecondary)', fontSize: '1.1rem', marginBottom: '1rem' }}>
-                You need to be logged in to access the dashboard.
-              </p>
-              <Link to="/login" style={{ 
-                padding: '0.75rem 1.5rem',
-                background: 'var(--primary)',
-                color: 'white',
-                borderRadius: '8px',
-                textDecoration: 'none',
-                display: 'inline-block'
-              }}>
-                Go to Login
-              </Link>
-            </div>
-          </LoadingContainer>
-        </PageContainer>
-      </Layout>
-    );
+    return <Navigate to="/login" replace />;
   }
   
   return (
-    <Routes>
-      <Route path="/" element={
-        <DashboardLayout>
-          <ProfileSection />
-        </DashboardLayout>
-      } />
-      <Route path="/stats" element={
-        <DashboardLayout>
-          <StatsSection />
-        </DashboardLayout>
-      } />
-      <Route path="/activity" element={
-        <DashboardLayout>
-          <ActivitySection />
-        </DashboardLayout>
-      } />
-      <Route path="/watchlist" element={
-        <DashboardLayout>
-          <WatchlistSection />
-        </DashboardLayout>
-      } />
-      <Route path="/playlists" element={
-        <DashboardLayout>
-          <PlaylistsSection />
-        </DashboardLayout>
-      } />
-      <Route path="/settings" element={
-        <DashboardLayout>
-          <SettingsSection />
-        </DashboardLayout>
-      } />
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
-    </Routes>
+    <Layout fullWidth>
+      <Routes>
+        <Route path="/" element={<DashboardLayout><ProfilePage /></DashboardLayout>} />
+        <Route path="/stats" element={<DashboardLayout><StatsPage /></DashboardLayout>} />
+        <Route path="/watchlist/*" element={<DashboardLayout><WatchlistPage /></DashboardLayout>} />
+        <Route path="/playlists/*" element={<DashboardLayout><PlaylistsPage /></DashboardLayout>} />
+        <Route path="/activity" element={<DashboardLayout><ActivityPage /></DashboardLayout>} />
+        <Route path="/settings" element={<DashboardLayout><SettingsPage /></DashboardLayout>} />
+      </Routes>
+    </Layout>
   );
 };
 

@@ -7,6 +7,11 @@ const TimeSlotContainer = styled.div`
   display: flex;
   margin-bottom: 3rem;
   position: relative;
+  
+  @media (max-width: 480px) {
+    margin-bottom: 2rem;
+    flex-direction: column;
+  }
 `;
 
 const TimeLabel = styled.div`
@@ -19,6 +24,16 @@ const TimeLabel = styled.div`
   
   @media (max-width: 768px) {
     width: 80px;
+  }
+  
+  @media (max-width: 480px) {
+    width: 100%;
+    position: static;
+    margin-bottom: 1rem;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 1rem;
   }
 `;
 
@@ -40,6 +55,13 @@ const TimeCircle = styled.div`
     height: 60px;
     font-size: 1.2rem;
   }
+  
+  @media (max-width: 480px) {
+    width: 50px;
+    height: 50px;
+    font-size: 1rem;
+    min-width: 50px;
+  }
 `;
 
 const TimeMeta = styled.div`
@@ -49,6 +71,11 @@ const TimeMeta = styled.div`
   margin-top: 0.5rem;
   font-size: 0.8rem;
   color: var(--textSecondary);
+  
+  @media (max-width: 480px) {
+    align-items: flex-start;
+    margin-top: 0;
+  }
 `;
 
 const TimeZoneInfo = styled.div`
@@ -61,6 +88,10 @@ const TimeZoneInfo = styled.div`
   display: flex;
   align-items: center;
   gap: 0.25rem;
+  
+  @media (max-width: 480px) {
+    margin-top: 0;
+  }
 `;
 
 const OriginalTime = styled.div`
@@ -76,8 +107,9 @@ const AnimeCardsContainer = styled.div`
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 1.2rem;
   
-  @media (max-width: 768px) {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+    gap: 0.8rem;
   }
 `;
 
@@ -85,9 +117,7 @@ const AnimatedTimeSlot = ({ time, animeList, formatTimeDisplay }) => {
   // Check if there's timezone conversion
   const hasTimezoneDifference = animeList[0]?.broadcast?.originalTime && 
                                animeList[0]?.broadcast?.time !== animeList[0]?.broadcast?.originalTime;
-  
-  const { isAuthenticated } = useAuth();
-  
+    
   // Extract the timezone code from formatted display
   const formatted = formatTimeDisplay(time);
   const timezoneCode = formatted.includes('(') ? 

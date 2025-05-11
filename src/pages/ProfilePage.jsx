@@ -6,25 +6,62 @@ import AchievementsList from '../components/common/AchievementsList';
 import { userAPI, playlistAPI } from '../services/api';
 import useAuth from '../hooks/useAuth';
 import useToast from '../hooks/useToast';
-import copyToClipboard from '../utils/copyToClipboard';
+import useApiCache from '../hooks/useApiCache';
 
 // Import modular components
-import ProfileInfo from '../components/profile/ProfileInfo';
+import ProfileHeader from '../components/profile/ProfileHeader';
 import ProfileTabs, { TABS } from '../components/profile/ProfileTabs';
 import PlaylistsSection from '../components/profile/PlaylistsSection';
 
 // Import styles
 import {
   PageContainer,
-  PageHeader,
-  PageTitle,
-  PageSubtitle,
-  ProfileContainer,
-  ProfileSidebar,
-  ProfileContent,
-  LoadingState,
   ErrorState
 } from '../components/profile/ProfileStyles';
+import GameScreenLoader from '../components/settings/GameScreenLoader';
+import styled from 'styled-components';
+import { Lock, UserX, Award } from 'lucide-react';
+
+
+const CenteredContentContainer = styled.div`
+  max-width: 1000px;
+  margin: 0 auto;
+  width: 100%;
+`;
+
+const CenteredContent = ({ children }) => (
+  <CenteredContentContainer>{children}</CenteredContentContainer>
+);
+
+const ALL_ACHIEVEMENTS_CACHE_KEY = 'all_achievements_v2';
+const ALL_ACHIEVEMENTS_TTL = 1000 * 60 * 60 * 24 * 30; // 30 days
+
+const IllustrationContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem 2rem 1rem;
+  text-align: center;
+  color: var(--textSecondary);
+`;
+
+const AnimatedIcon = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  svg {
+    width: 72px;
+    height: 72px;
+    color: var(--primary);
+    animation: bounce 1.6s infinite cubic-bezier(.68,-0.55,.27,1.55);
+  }
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+  }
+`;
 
 const ProfilePage = () => {
   const { username } = useParams();
@@ -56,6 +93,15 @@ const ProfilePage = () => {
   const [playlistLikes, setPlaylistLikes] = useState({});
   const [processingLike, setProcessingLike] = useState({});
   
+  // Use useApiCache for allAchievements
+  const { fetchWithCache: fetchAllAchievementsWithCache } = useApiCache('localStorage', ALL_ACHIEVEMENTS_TTL);
+
+  // Fetch achievements when Achievements tab is active
+  const [userAchievements, setUserAchievements] = useState([]);
+  const [allAchievements, setAllAchievements] = useState([]);
+  const [achievementsLoading, setAchievementsLoading] = useState(false);
+  const [achievementsError, setAchievementsError] = useState(null);
+  
   // Fetch profile data
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -71,7 +117,10 @@ const ProfilePage = () => {
           } else {
             setIsOwner(false);
           }
-          // TODO: Optionally, fetch follow status if needed (not in new API response)
+          // Check if user is following this profile
+          if (user && profileResponse.data.isFollowing !== undefined) {
+            setIsFollowing(profileResponse.data.isFollowing);
+          }
         } else {
           throw new Error(profileResponse?.error || 'Failed to load profile');
         }
@@ -131,6 +180,31 @@ const ProfilePage = () => {
       fetchPlaylists();
     }
   }, [username, activeTab, playlistsPage]);
+  
+  // Fetch achievements when Achievements tab is active
+  useEffect(() => {
+    const fetchAchievements = async () => {
+      if (!profileData || activeTab !== TABS.ACHIEVEMENTS) return;
+      setAchievementsLoading(true);
+      setAchievementsError(null);
+      try {
+        // 1. Fetch user achievements (public profile)
+        const userAchRes = await userAPI.getUserAchievements(profileData._id);
+        setUserAchievements(userAchRes?.data || []);
+        // 2. Fetch all achievements (cache for 30 days)
+        const allAch = await fetchAllAchievementsWithCache(
+          ALL_ACHIEVEMENTS_CACHE_KEY,
+          () => userAPI.getAllAchievements()
+        );
+        setAllAchievements(allAch || []);
+      } catch (err) {
+        setAchievementsError('Failed to load achievements.');
+      } finally {
+        setAchievementsLoading(false);
+      }
+    };
+    fetchAchievements();
+  }, [profileData, activeTab, fetchAllAchievementsWithCache]);
   
   // Handle follow/unfollow
   const handleFollowToggle = async () => {
@@ -295,16 +369,6 @@ const ProfilePage = () => {
     }
   };
   
-  if (loading) {
-    return (
-      <Layout>
-        <PageContainer>
-          <LoadingState>Loading profile...</LoadingState>
-        </PageContainer>
-      </Layout>
-    );
-  }
-  
   if (error) {
     return (
       <Layout>
@@ -315,74 +379,120 @@ const ProfilePage = () => {
     );
   }
   
+  // Profile privacy logic
+  const profileVisibility = profileData?.settings?.privacy?.profileVisibility;
+  const isProfilePrivate = profileVisibility === 'private';
+  const isFollowersOnly = profileVisibility === 'followers';
+  const isViewerFollower = profileData?.isFollower; // backend should provide this
+
+  if (!loading && profileData && !isOwner) {
+    if (isProfilePrivate) {
+      return (
+        <Layout>
+          <PageContainer>
+            <IllustrationContainer>
+              <AnimatedIcon>
+                <Lock />
+              </AnimatedIcon>
+              <h2 style={{ color: 'var(--textPrimary)', marginBottom: '0.5rem' }}>This Account is Private</h2>
+              <p style={{ maxWidth: 400, margin: '0 auto', color: 'var(--textSecondary)' }}>
+                The user has set their profile to private. You do not have permission to view this profile.
+              </p>
+            </IllustrationContainer>
+          </PageContainer>
+        </Layout>
+      );
+    }
+    if (isFollowersOnly && !isViewerFollower) {
+      return (
+        <Layout>
+          <PageContainer>
+            <IllustrationContainer>
+              <AnimatedIcon>
+                <UserX />
+              </AnimatedIcon>
+              <h2 style={{ color: 'var(--textPrimary)', marginBottom: '0.5rem' }}>Followers Only</h2>
+              <p style={{ maxWidth: 400, margin: '0 auto', color: 'var(--textSecondary)' }}>
+                This account is only visible to followers. Follow this user to request access to their profile.
+              </p>
+            </IllustrationContainer>
+          </PageContainer>
+        </Layout>
+      );
+    }
+  }
+
   return (
     <Layout>
       <PageContainer>
+        {loading && <GameScreenLoader text="Loading profile..." />}
         {profileData && (
-          <>
-            <PageHeader>
-              <PageTitle>{profileData.displayName || profileData.username}'s Profile</PageTitle>
-              <PageSubtitle>User profile and statistics</PageSubtitle>
-            </PageHeader>
-            
-            <ProfileContainer>
-              <ProfileSidebar>
-                <ProfileInfo 
-                  profileData={profileData}
+          <CenteredContent>
+            <ProfileHeader
+              profileData={profileData}
+              user={user}
+              isOwner={isOwner}
+              isFollowing={isFollowing}
+              followLoading={followLoading}
+              handleFollowToggle={handleFollowToggle}
+              hideFollowers={!profileData.settings?.privacy?.showFollowers}
+              hideFollowing={!profileData.settings?.privacy?.showFollowing}
+              hideAchievements={!profileData.settings?.privacy?.showAchievements}
+            />
+            <Card>
+              <ProfileTabs 
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+              />
+              {activeTab === TABS.ACHIEVEMENTS && (
+                <div>
+                  {profileData.settings?.privacy?.showAchievements !== false ? (
+                    achievementsLoading ? (
+                      <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--textSecondary)' }}>Loading achievements...</div>
+                    ) : achievementsError ? (
+                      <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--danger)' }}>{achievementsError}</div>
+                    ) : (
+                      <AchievementsList
+                        allAchievements={allAchievements}
+                        userAchievements={userAchievements}
+                        showProgress={true}
+                        showCategory={true}
+                        isPublicProfile={true}
+                      />
+                    )
+                  ) : (
+                    <IllustrationContainer>
+                      <AnimatedIcon>
+                        <Award />
+                      </AnimatedIcon>
+                      <h2 style={{ color: 'var(--textPrimary)', marginBottom: '0.5rem' }}>Achievements Are Private</h2>
+                      <p style={{ maxWidth: 400, margin: '0 auto', color: 'var(--textSecondary)' }}>
+                        This user has chosen to keep their achievements private.
+                      </p>
+                    </IllustrationContainer>
+                  )}
+                </div>
+              )}
+              {activeTab === TABS.PLAYLISTS && (
+                <PlaylistsSection
+                  playlists={playlists}
+                  playlistsLoading={playlistsLoading}
+                  playlistsError={playlistsError}
+                  playlistLikes={playlistLikes}
+                  processingLike={processingLike}
                   user={user}
                   isOwner={isOwner}
-                  isFollowing={isFollowing}
-                  followLoading={followLoading}
-                  handleFollowToggle={handleFollowToggle}
+                  username={username}
+                  profileData={profileData}
+                  playlistsPage={playlistsPage}
+                  playlistsPagination={playlistsPagination}
+                  setPlaylistsPage={setPlaylistsPage}
+                  handleLikePlaylist={handleLikePlaylist}
+                  getPageNumbers={getPageNumbers}
                 />
-              </ProfileSidebar>
-              
-              <ProfileContent>
-                <Card>
-                  <ProfileTabs 
-                    activeTab={activeTab}
-                    setActiveTab={setActiveTab}
-                  />
-                  
-                  {activeTab === TABS.ACHIEVEMENTS && (
-                    <div>
-                      {profileData.settings?.privacy?.showAchievements !== false ? (
-                        <AchievementsList 
-                          userData={profileData} 
-                          showProgress={true} 
-                          showCategory={true} 
-                          isPublicProfile={true} 
-                        />
-                      ) : (
-                        <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--textSecondary)' }}>
-                          This user has chosen to keep their achievements private.
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  
-                  {activeTab === TABS.PLAYLISTS && (
-                    <PlaylistsSection
-                      playlists={playlists}
-                      playlistsLoading={playlistsLoading}
-                      playlistsError={playlistsError}
-                      playlistLikes={playlistLikes}
-                      processingLike={processingLike}
-                      user={user}
-                      isOwner={isOwner}
-                      username={username}
-                      profileData={profileData}
-                      playlistsPage={playlistsPage}
-                      playlistsPagination={playlistsPagination}
-                      setPlaylistsPage={setPlaylistsPage}
-                      handleLikePlaylist={handleLikePlaylist}
-                      getPageNumbers={getPageNumbers}
-                    />
-                  )}
-                </Card>
-              </ProfileContent>
-            </ProfileContainer>
-          </>
+              )}
+            </Card>
+          </CenteredContent>
         )}
       </PageContainer>
     </Layout>

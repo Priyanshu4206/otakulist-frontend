@@ -24,12 +24,25 @@ const Card = styled.div`
   &:hover {
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
   }
+  
+  @media (max-width: 480px) {
+    flex-direction: row;
+    height: auto;
+    border-radius: 8px;
+  }
 `;
 
 const ImageContainer = styled.div`
   position: relative;
   padding-top: 130%;
   overflow: hidden;
+  
+  @media (max-width: 480px) {
+    max-width: 120px;
+    min-width: 80px;
+    height: 100%;
+    padding-top: 0;
+  }
 `;
 
 const Image = styled.img`
@@ -44,6 +57,10 @@ const Image = styled.img`
   ${Card}:hover & {
     transform: scale(1.05);
   }
+  
+  @media (max-width: 480px) {
+    position: static;
+  }
 `;
 
 const CardContent = styled.div`
@@ -51,6 +68,10 @@ const CardContent = styled.div`
   display: flex;
   flex-direction: column;
   flex-grow: 1;
+  
+  @media (max-width: 480px) {
+    padding: 0.6rem;
+  }
 `;
 
 const Title = styled.h3`
@@ -65,6 +86,14 @@ const Title = styled.h3`
   overflow: hidden;
   text-overflow: ellipsis;
   max-height: 2.6rem;
+  
+  @media (max-width: 480px) {
+    font-size: 0.8rem;
+    margin-bottom: 0.4rem;
+    line-height: 1.2;
+    max-height: 2.4rem;
+    -webkit-line-clamp: 1;
+  }
 `;
 
 const InfoItem = styled.div`
@@ -81,6 +110,17 @@ const InfoItem = styled.div`
     margin-right: 0.3rem;
     color: var(--secondary);
   }
+  
+  @media (max-width: 480px) {
+    font-size: 0.65rem;
+    margin-bottom: 0.25rem;
+    
+    svg {
+      width: 11px;
+      height: 11px;
+      margin-right: 0.25rem;
+    }
+  }
 `;
 
 const MetaRow = styled.div`
@@ -92,12 +132,10 @@ const MetaRow = styled.div`
   margin-bottom: 0.3rem;
   gap: 0.4rem;
   
-  svg {
-    flex-shrink: 0;
-    width: 12px;
-    height: 12px;
-    margin-right: 0.2rem;
-    color: var(--secondary);
+  @media (max-width: 480px) {
+    font-size: 0.65rem;
+    gap: 0.3rem;
+    margin-bottom: 0.25rem;
   }
 `;
 
@@ -107,6 +145,11 @@ const GenreList = styled.div`
   gap: 0.3rem;
   margin-top: auto;
   padding-top: 0.4rem;
+  
+  @media (max-width: 480px) {
+    gap: 0.25rem;
+    padding-top: 0.3rem;
+  }
 `;
 
 const GenreBadge = styled.span`
@@ -115,6 +158,11 @@ const GenreBadge = styled.span`
   background: rgba(var(--primaryLight-rgb), 0.1);
   color: var(--primary);
   border-radius: 30px;
+  
+  @media (max-width: 480px) {
+    font-size: 0.6rem;
+    padding: 0.1rem 0.35rem;
+  }
 `;
 
 const WatchlistButton = styled.button`
@@ -144,6 +192,10 @@ const WatchlistButton = styled.button`
     width: 14px;
     height: 14px;
   }
+  
+  @media (max-width: 480px) {
+    display: none;
+  }
 `;
 
 const PlaylistButton = styled(WatchlistButton)`
@@ -155,12 +207,51 @@ const PlaylistButton = styled(WatchlistButton)`
   }
 `;
 
+const MobileButton = styled.button`
+  display: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--cardBackground);
+  border: none;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: white;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: var(--primary);
+    transform: scale(1.1);
+  }
+  
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+  
+  @media (max-width: 480px) {
+    display: flex;
+  }
+`;
+
+const MobilePlaylistButton = styled(MobileButton)`
+  &:hover {
+    background: var(--secondary);
+  }
+`;
+
 const StyledLink = styled(Link)`
   text-decoration: none;
   color: inherit;
   display: flex;
   flex-direction: column;
   height: 100%;
+  
+  @media (max-width: 480px) {
+    flex-direction: row;
+    width: 100%;
+  }
 `;
 
 const StatusBadge = styled.div`
@@ -186,6 +277,11 @@ const StatusBadge = styled.div`
         return 'var(--textSecondary)';
     }
   }};
+  
+  @media (max-width: 480px) {
+    font-size: 0.65rem;
+    padding: 0.2rem 0.4rem;
+  }
 `;
 
 const StatusRow = styled.div`
@@ -195,6 +291,11 @@ const StatusRow = styled.div`
   flex-wrap: wrap;
   gap: 0.4rem;
   justify-content: space-between;
+  
+  @media (max-width: 480px) {
+    margin-bottom: 0.3rem;
+    gap: 0.3rem;
+  }
 `;
 
 const RatingInfo = styled.div`
@@ -202,6 +303,10 @@ const RatingInfo = styled.div`
   align-items: center;
   font-size: 0.7rem;
   color: var(--textSecondary);
+  
+  @media (max-width: 480px) {
+    font-size: 0.65rem;
+  }
 `;
 
 const ScoreInfo = styled.div`
@@ -213,6 +318,24 @@ const ScoreInfo = styled.div`
   svg {
     color: var(--warning);
     margin-right: 0.25rem;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 0.65rem;
+    
+    svg {
+      margin-right: 0.2rem;
+    }
+  }
+`;
+
+const MobileButtonsContainer = styled.div`
+  display: none;
+  
+  @media (max-width: 480px) {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
   }
 `;
 
@@ -372,19 +495,19 @@ const ScheduleAnimeCard = ({ anime }) => {
           </StatusRow>
           
           {anime.duration && (
-            <InfoItem>
+              <InfoItem>
               <Clock size={14} />
               {anime.duration}
               {getBroadcastInfo() && ` | ${getBroadcastInfo()}`}
-            </InfoItem>
-          )}
-          
+              </InfoItem>
+            )}
+            
           {getStudio() && (
-            <InfoItem>
+              <InfoItem>
               <Tv size={14} />
               Studio: {getStudio()}
-            </InfoItem>
-          )}
+              </InfoItem>
+            )}
           
           <MetaRow>
             {anime.rank && (
@@ -407,6 +530,31 @@ const ScheduleAnimeCard = ({ anime }) => {
               </GenreBadge>
             ))}
           </GenreList>
+          
+          {isAuthenticated && (
+            <MobileButtonsContainer>
+              <MobileButton 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleWatchlistClick(e);
+                }}
+                disabled={loading}
+              >
+                <Bookmark />
+              </MobileButton>
+              
+              <MobilePlaylistButton
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setPlaylistModalOpen(true);
+                }}
+              >
+                <BookOpen />
+              </MobilePlaylistButton>
+            </MobileButtonsContainer>
+          )}
         </CardContent>
       </StyledLink>
       

@@ -5,7 +5,7 @@ import Card from '../common/Card';
 import PlaylistAnimeCard from './PlaylistAnimeCard';
 
 const ContentCard = styled(Card)`
-  margin-bottom: 0;
+  margin: 0rem 1rem 0;
 `;
 
 const AnimeGrid = styled.div`
@@ -13,7 +13,7 @@ const AnimeGrid = styled.div`
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 1.5rem;
   padding: 2rem;
-  
+    
   @media (max-width: 768px) {
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 1rem;
