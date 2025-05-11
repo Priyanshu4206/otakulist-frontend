@@ -238,9 +238,11 @@ const achievementIcons = {
 };
 
 /**
- * AchievementsList Component - Updated for new schema
+ * AchievementsList Component - Fixed for consistent behavior
  * 
  * @param {Object} props - Component props
+ * @param {Array} props.allAchievements - List of all possible achievements
+ * @param {Array} props.userAchievements - List of user's achievements
  * @param {boolean} props.showProgress - Whether to show progress bars
  * @param {boolean} props.showCategory - Whether to show category headers
  * @param {boolean} props.isPublicProfile - Whether this is being shown on a public profile
@@ -259,22 +261,46 @@ const AchievementsList = ({
     return IconComponent ? <IconComponent size={22} /> : <Award size={22} />;
   };
 
+  // Log incoming data for debugging
+  console.log('Rendering AchievementsList with:', {
+    allAchievementsCount: allAchievements.length,
+    userAchievementsCount: userAchievements.length,
+    isPublicProfile
+  });
+
   if (isPublicProfile) {
-    // Only show userAchievements, grouped by achievementId.category
+    // Enhanced grouping logic for public profile view
     const grouped = userAchievements.reduce((acc, uach) => {
-      const ach = typeof uach.achievementId === 'object' ? uach.achievementId : {};
-      const category = ach.category || 'other';
+      // Safely extract achievement data
+      let achievement;
+
+      if (typeof uach.achievementId === 'object' && uach.achievementId !== null) {
+        achievement = uach.achievementId;
+      } else {
+        // If it's not an object, we can't display it properly
+        console.warn('Skipping achievement with non-object achievementId:', uach);
+        return acc;
+      }
+
+      const category = achievement.category || 'other';
+
       if (!acc[category]) acc[category] = [];
+
       acc[category].push({
-        ...ach,
-        ...uach,
-        progress: uach.progress || { current: 0, target: ach.criteria?.target || 1, percentage: 0 },
+        ...achievement,
+        progress: uach.progress || {
+          current: 0,
+          target: achievement.criteria?.target || 1,
+          percentage: 0
+        },
         unlocked: !!uach.unlockedAt,
         unlockedAt: uach.unlockedAt || null,
-        iconUrl: ach.iconUrl,
+        iconUrl: achievement.iconUrl,
       });
+
       return acc;
     }, {});
+
     if (userAchievements.length === 0) {
       return (
         <Container>
@@ -282,6 +308,7 @@ const AchievementsList = ({
         </Container>
       );
     }
+
     return (
       <Container>
         {Object.keys(grouped).map(category => (
@@ -325,28 +352,87 @@ const AchievementsList = ({
     );
   }
 
-  // Default: merged allAchievements/userAchievements
-  const userAchMap = userAchievements.reduce((acc, uach) => {
-    const id = typeof uach.achievementId === 'object' ? uach.achievementId._id : uach.achievementId;
-    acc[id] = uach;
-    return acc;
-  }, {});
+  // Default view: Improved merging of allAchievements with userAchievements
+  const createUserAchievementMap = (userAchievements) => {
+    return userAchievements.reduce((acc, userAch) => {
+      // Handle cases where achievementId could be an object or string
+      let achievementId;
+
+      if (typeof userAch.achievementId === 'object' && userAch.achievementId !== null) {
+        // Handle populated reference
+        achievementId = userAch.achievementId._id;
+      } else if (typeof userAch.achievementId === 'string') {
+        // Handle string ID
+        achievementId = userAch.achievementId;
+      } else {
+        console.warn('Unknown achievementId format:', userAch);
+        return acc;
+      }
+
+      if (!achievementId) {
+        console.warn('Could not extract achievementId from:', userAch);
+        return acc;
+      }
+
+      // Store the full user achievement object
+      acc[achievementId.toString()] = userAch;
+      return acc;
+    }, {});
+  };
+
+  // Create robust user achievement map
+  const userAchMap = createUserAchievementMap(userAchievements);
+
+  // Log for debugging
+  console.log(`User achievements map has ${Object.keys(userAchMap).length} entries`);
+
+  // Merge with more explicit checking
   const mergedAchievements = allAchievements.map(ach => {
-    const userAch = userAchMap[ach._id];
+    const achievementId = ach._id.toString();
+    const userAch = userAchMap[achievementId];
+
+    // Set defaults with explicit checking
+    let progress = {
+      current: 0,
+      target: ach.criteria?.target || 1,
+      percentage: 0
+    };
+
+    let unlocked = false;
+    let unlockedAt = null;
+    let bestReached = 0;
+
+    // If user has this achievement, use their data
+    if (userAch) {
+      if (userAch.progress) {
+        progress = userAch.progress;
+      }
+
+      unlocked = !!userAch.unlockedAt;
+      unlockedAt = userAch.unlockedAt;
+      bestReached = userAch.bestReached || 0;
+    }
+
+    // Return merged achievement with all necessary properties
     return {
       ...ach,
-      progress: userAch?.progress || { current: 0, target: ach.criteria?.target || 1, percentage: 0 },
-      unlocked: !!userAch?.unlockedAt,
-      unlockedAt: userAch?.unlockedAt || null,
-      bestReached: userAch?.bestReached || 0,
+      progress,
+      unlocked,
+      unlockedAt,
+      bestReached,
       iconUrl: ach.iconUrl,
     };
   });
+
+  // Group by category
   const grouped = mergedAchievements.reduce((acc, ach) => {
-    if (!acc[ach.category]) acc[ach.category] = [];
-    acc[ach.category].push(ach);
+    const category = ach.category || 'other';
+    if (!acc[category]) acc[category] = [];
+    acc[category].push(ach);
     return acc;
   }, {});
+
+  // Return the categorized view
   return (
     <Container>
       {Object.keys(grouped).map(category => (
@@ -390,4 +476,4 @@ const AchievementsList = ({
   );
 };
 
-export default AchievementsList; 
+export default AchievementsList;

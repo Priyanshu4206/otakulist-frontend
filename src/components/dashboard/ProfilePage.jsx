@@ -338,9 +338,6 @@ const EditProfileCard = styled(Card)`
 
 const ProfilePage = () => {
   const { user } = useAuth();
-  // DEBUG: Log user object to diagnose structure issues
-  console.debug('Dashboard ProfilePage user:', user);
-
   // Support both user and user.user (from /auth/me)
   const userData = user || {};
 
@@ -435,10 +432,10 @@ const ProfilePage = () => {
             View Public Profile
           </ViewProfileButton>
         </ProfileSummary>
-        
+
         {/* Edit Profile Card */}
-        <EditProfileCard 
-          title="Edit Profile" 
+        <EditProfileCard
+          title="Edit Profile"
           icon={<User size={18} />}
         >
           <form onSubmit={handleSubmit}>
