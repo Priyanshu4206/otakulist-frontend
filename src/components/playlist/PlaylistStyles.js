@@ -4,7 +4,7 @@ import styled from 'styled-components';
 export const PageContainer = styled.div`
   max-width: 1600px;
   margin: 0 auto;
-  min-height: 100vh;  
+  min-height: 100dvh;  
 `;
 
 export const ContentWrapper = styled.div`
@@ -20,7 +20,7 @@ export const PlaylistGrid = styled.div`
   display: grid;
   grid-template-columns: 320px 1fr;
   gap: 2rem;
-  min-height: 100vh;
+  min-height: 100dvh;
   
   @media (max-width: 1024px) {
     grid-template-columns: 1fr;

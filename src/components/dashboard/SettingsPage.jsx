@@ -504,7 +504,6 @@ const SettingsPage = () => {
 
   return (
     <SettingsContainer>
-    {console.log(settings)}
       <SettingsHeader>
         <h2>Account Settings</h2>
         <p>Manage your account preferences, appearance, and privacy settings.</p>

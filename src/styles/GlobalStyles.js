@@ -75,7 +75,7 @@ const GlobalStyles = createGlobalStyle`
   /* Layout */
   .app-container {
     display: flex;
-    min-height: 100vh;
+    min-height: 100dvh;
   }
 
   .main-content {
@@ -135,7 +135,7 @@ const GlobalStyles = createGlobalStyle`
   
   /* Root element background color */
   #root {
-    min-height: 100vh;
+    min-height: 100dvh;
     transition: background-color var(--theme-transition);
     overflow: visible !important;
     position: relative;

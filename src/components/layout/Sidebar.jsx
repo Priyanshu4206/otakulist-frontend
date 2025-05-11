@@ -9,7 +9,13 @@ const SidebarContainer = styled.div`
   position: fixed;
   left: 0;
   top: 0;
-  height: 100vh;
+  height: 100dvh;
+
+  @supports not (height: 100dvh) {
+    height: 100vh;
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+  }
+
   background-color: var(--cardBackground);
   border-right: 1px solid var(--borderColor);
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -315,7 +321,7 @@ const SidebarOverlay = styled.div`
   top: 0;
   left: 0;
   width: 100vw;
-  height: 100vh;
+  height: 100dvh;
   background: rgba(0,0,0,0.4);
   z-index: 1040;
   backdrop-filter: blur(2px);

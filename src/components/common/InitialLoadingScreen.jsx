@@ -7,7 +7,7 @@ const LoadingContainer = styled.div`
   justify-content: center;
   align-items: center;
   width: 100%;
-  height: 100vh;
+  height: 100dvh;
   background-color: rgba(var(--background-rgb), 0.7); /* Semi-transparent background */
   backdrop-filter: blur(5px); /* Blur effect */
   position: fixed;

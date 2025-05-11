@@ -12,7 +12,7 @@ const LoadingContainer = styled.div`
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
+  min-height: 100dvh;
   background-color: var(--background);
   padding: 2rem;
   text-align: center;

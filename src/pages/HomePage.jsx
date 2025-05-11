@@ -10,7 +10,7 @@ import SimplifiedFeatureSection from '../components/home/SimplifiedFeatureSectio
 const HomePageContainer = styled.div`
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: 100dvh;
   position: relative;
   width: 100%;
   background: transparent !important; /* Force transparency */
@@ -19,7 +19,7 @@ const HomePageContainer = styled.div`
 // Wrapper to prevent background color inheritance from global styles
 const HomePageWrapper = styled.div`
   background: transparent !important; /* Force transparency */
-  min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
 `;
 

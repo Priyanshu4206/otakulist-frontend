@@ -35,7 +35,7 @@ const PageContainer = styled.div`
 const ScrollArea = styled.div`
   padding: 0 2rem 2.5rem;
   position: relative;
-  min-height: 100vh;
+  min-height: 100dvh;
   background-color: var(--background);
   overflow: visible !important;
   z-index: 1;

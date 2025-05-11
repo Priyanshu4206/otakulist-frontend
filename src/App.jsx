@@ -25,7 +25,7 @@ import GameScreenLoader from './components/settings/GameScreenLoader.jsx';
 const AppWrapper = styled.div`
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
   position: relative;
   overflow-x: hidden;
@@ -153,7 +153,6 @@ function AuthContent() {
   
   // Show loading screen until initial auth check is complete
   if (!initialAuthCheckComplete) {
-    console.log('[AUTH DEBUG] Initial auth check not complete');
     return <GameScreenLoader text="Loading Otakulist..." />;
   }
   

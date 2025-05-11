@@ -276,7 +276,6 @@ export default function AnimeRatingModal({
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  console.log(animeId);  
   useEffect(() => {
     if (show) {
       if (userRating) {

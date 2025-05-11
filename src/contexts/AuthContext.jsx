@@ -87,7 +87,6 @@ export const AuthProvider = ({ children }) => {
   const fetchCurrentUser = useCallback(async (force = false, preserveUIState = false) => {
     const token = localStorage.getItem('auth_token');
     if (!token && !force) {
-      if (DEBUG_AUTH) console.log('[AUTH DEBUG] No token found, skipping fetch');
       setLoading(false);
       setUser(null);
       setStats(null);
@@ -96,11 +95,9 @@ export const AuthProvider = ({ children }) => {
       return null;
     }
     if (fetchInProgress.current || authFailCount.current >= 3) {
-      if (DEBUG_AUTH) console.log('[AUTH DEBUG] Fetch already in progress or too many failures, skipping');
       return null;
     }
     try {
-      if (DEBUG_AUTH) console.log('[AUTH DEBUG] Starting fetch of current user');
       fetchInProgress.current = true;
       if (!preserveUIState) {
         setLoading(true);
@@ -108,7 +105,6 @@ export const AuthProvider = ({ children }) => {
       setError(null);
       const response = await authAPI.getCurrentUser();
       if (response && response.success && response.data) {
-        if (DEBUG_AUTH) console.log('[AUTH DEBUG] Fetch successful');
 
         if (!preserveUIState) {
           setUser(response.data.user || null);
@@ -146,7 +142,6 @@ export const AuthProvider = ({ children }) => {
           notifications: response.data.notifications || null
         };
       } else {
-        if (DEBUG_AUTH) console.log('[AUTH DEBUG] Fetch failed, no data or success flag');
         if (!preserveUIState) {
           setUser(null);
           setStats(null);
@@ -157,7 +152,6 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (err) {
       if (err?.throttled) {
-        if (DEBUG_AUTH) console.log('[AUTH DEBUG] Auth request was throttled to prevent API spam');
         return null;
       }
       console.error('[AUTH DEBUG] Error fetching current user:', err);
@@ -175,7 +169,6 @@ export const AuthProvider = ({ children }) => {
       }
       fetchInProgress.current = false;
       setInitialAuthCheckComplete(true);
-      if (DEBUG_AUTH) console.log('[AUTH DEBUG] Fetch completed');
     }
   }, [syncUserPreferences]);
 

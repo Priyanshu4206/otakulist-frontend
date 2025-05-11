@@ -28,7 +28,7 @@ const layoutCSSVars = `
 
 const AppContainer = styled.div`
   display: flex;
-  min-height: 100vh;
+  min-height: 100dvh;
   background: ${props => props.transparent ? 'transparent' : 'var(--background)'};
   position: relative;
 `;
@@ -37,7 +37,7 @@ const Main = styled.main`
   flex: 1;
   margin-left: var(--sidebar-collapsed-width);
   transition: margin-left 0.3s ease, padding-top 0.3s ease;
-  min-height: 100vh;
+  min-height: 100dvh;
   background: ${props => props.transparent ? 'transparent' : 'var(--background)'};
   overflow-x: hidden;
   overflow-y: auto;

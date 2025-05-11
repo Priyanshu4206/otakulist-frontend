@@ -20,7 +20,6 @@ const TopRow = styled.div`
   margin-bottom: 1rem;
   
   @media (max-width: 768px) {
-    flex-direction: column;
     align-items: stretch;
   }
 `;
@@ -32,8 +31,8 @@ const SearchContainer = styled.div`
 
 const SearchInput = styled.input`
   width: 100%;
-  padding: 0.85rem 3.5rem 0.85rem 3rem;
-  border: 1px solid rgba(var(--borderColor-rgb), 0.2);
+  padding: 1.15rem 3.5rem;
+  border: 1px solid rgba(var(--borderColor-rg1b), 0.2);
   border-radius: 8px;
   font-size: 1rem;
   background-color: rgba(var(--cardBackground-rgb), 0.8);
@@ -111,6 +110,15 @@ const FilterButton = styled.button`
   
   &:active {
     transform: translateY(0);
+  }
+
+  @media (max-width: 768px) {
+    width: fit-content;
+    padding: 0.75rem;
+
+    span {
+      display: none;
+    }
   }
 `;
 
@@ -337,7 +345,7 @@ const ScheduleFilter = ({ filters, onChange, availableGenres = [] }) => {
           aria-controls="expanded-filters"
         >
           <SlidersHorizontal size={20} />
-          Filters
+          <span>Filters</span>
           <ButtonIcon isRotated={showFilters}>
             <ChevronIcon isRotated={showFilters} size={16} />
           </ButtonIcon>

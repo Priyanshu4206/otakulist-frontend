@@ -29,6 +29,7 @@ const PageContainer = styled(motion.div)`
   
   @media (max-width: 480px) {
     padding: 0.75rem;
+    margin-top: 5rem;
   }
 `;
 
@@ -137,22 +138,28 @@ const EmptyState = styled(motion.div)`
 
 const FilterContainer = styled(motion.div)`
   margin: 1.5rem 0;
-  background: rgba(var(--cardBackground-rgb), 0.7);
   border-radius: 12px;
-  padding: 1.5rem;
+  padding: 1.5rem 0;
   backdrop-filter: blur(10px);
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
   position: relative;
   z-index: 10; /* Higher z-index to ensure filter works properly */
   
   @media (max-width: 768px) {
-    padding: 1.25rem;
+    padding: 1.25rem 0;
     margin: 1.25rem 0;
   }
   
   @media (max-width: 480px) {
+    position: fixed;
+    backdrop-filter: blur(0px);
+    background-color: rgba(var(--cardBackground-rgb), 1);
+    top: 2.5rem;
+    left: 0;
+    right: 0;
     padding: 1rem;
     margin: 1rem 0;
+    padding-bottom: 0;
     border-radius: 10px;
   }
 `;
