@@ -480,7 +480,7 @@ const UserListComponent = ({
 };
 
 const AvtivityPage = () => {
-  const { user,stats } = useAuth();
+  const { user,stats, refreshUser } = useAuth();
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState(TABS.ACTIVITY);
   const [searchQuery, setSearchQuery] = useState('');
@@ -513,6 +513,12 @@ const AvtivityPage = () => {
     }
     setPage(1);
   }, [activeTab]);
+
+  useEffect(() => {
+    if (typeof refreshUser === 'function') {
+      refreshUser(true);
+    }
+  }, [refreshUser]);
   
   // Fetch data on page change
   useEffect(() => {
@@ -622,9 +628,7 @@ const AvtivityPage = () => {
       if (isFollowing) {
         const response = await userAPI.unfollowUser(userId);
         if (response.success) {
-          // Remove from following
           setFollowing(prev => prev.filter(f => f.followeeId._id !== userId));
-          // Update followers: mark as not following
           setFollowers(prev => prev.map(f =>
             f.followerId._id === userId ? { ...f, isFollowing: false } : f
           ));
@@ -633,15 +637,17 @@ const AvtivityPage = () => {
             type: 'success',
             message: 'Unfollowed user successfully'
           });
+          // Refresh user details with UI preserved
+          if (typeof refreshUser === 'function') {
+            refreshUser(true);
+          }
         } else {
           throw new Error(response.message || 'Failed to unfollow user');
         }
       } else {
         const response = await userAPI.followUser(userId);
         if (response.success) {
-          // Optionally refetch following, or optimistically add
           fetchFollowing();
-          // Update followers: mark as following
           setFollowers(prev => prev.map(f =>
             f.followerId._id === userId ? { ...f, isFollowing: true } : f
           ));
@@ -650,6 +656,10 @@ const AvtivityPage = () => {
             type: 'success',
             message: 'Now following user'
           });
+          // Refresh user details with UI preserved
+          if (typeof refreshUser === 'function') {
+            refreshUser(true);
+          }
         } else {
           throw new Error(response.message || 'Failed to follow user');
         }

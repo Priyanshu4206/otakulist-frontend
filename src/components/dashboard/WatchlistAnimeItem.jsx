@@ -181,21 +181,17 @@ const WatchlistAnimeItem = ({ anime, onStatusChange, onDelete }) => {
   
   // Extract anime data for cleaner code
   const animeData = anime.anime || anime;
-  
   const getImageUrl = () => {
-    if (!animeData || !animeData.images) return null;
-    
-    if (animeData.images?.jpg?.largeImageUrl) return animeData.images.jpg.largeImageUrl;
-    if (animeData.images?.jpg?.imageUrl) return animeData.images.jpg.imageUrl;
-    if (animeData.images?.webp?.largeImageUrl) return animeData.images.webp.largeImageUrl;
-    if (animeData.images?.webp?.imageUrl) return animeData.images.webp.imageUrl;
-    
+    if (animeData?.imageUrl) return animeData.imageUrl;
+    if (animeData?.images?.jpg?.largeImageUrl) return animeData.images.jpg.largeImageUrl;
+    if (animeData?.images?.jpg?.imageUrl) return animeData.images.jpg.imageUrl;
+    if (animeData?.images?.webp?.largeImageUrl) return animeData.images.webp.largeImageUrl;
+    if (animeData?.images?.webp?.imageUrl) return animeData.images.webp.imageUrl;    
     return null;
   };
   
   const getTitle = () => {
     if (!animeData) return "Unknown Anime";
-    
     if (animeData.titles?.english) return animeData.titles.english;
     if (animeData.titles?.default) return animeData.titles.default;
     if (animeData.title) return animeData.title;

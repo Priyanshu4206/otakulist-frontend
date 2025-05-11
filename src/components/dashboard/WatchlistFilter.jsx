@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, X, SlidersHorizontal, Star, Calendar, Tag, Clock } from 'lucide-react';
+import { Search, X, SlidersHorizontal, Calendar, Tag, Clock } from 'lucide-react';
 import CustomSelect from '../common/CustomSelect';
 import MultiSelect from '../common/MultiSelect';
 import ChevronIcon from '../common/ChevronIcon';
@@ -278,9 +278,6 @@ const WatchlistFilter = ({ filters, onChange }) => {
         >
           <SlidersHorizontal size={20} />
           Filters
-          <ButtonIcon isRotated={showFilters}>
-            <ChevronIcon isRotated={showFilters} size={16} />
-          </ButtonIcon>
         </FilterButton>
       </TopRow>
       
