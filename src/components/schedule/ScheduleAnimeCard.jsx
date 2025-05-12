@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import styled from 'styled-components';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Star, Users, Clock, Tv, Bookmark, BookOpen } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
 import { watchlistAPI } from '../../services/api';
@@ -11,259 +11,161 @@ import useToast from '../../hooks/useToast';
 const Card = styled.div`
   position: relative;
   background-color: var(--cardBackground);
-  border-radius: 10px;
+  border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
+  box-shadow: 0 5px 18px rgba(0, 0, 0, 0.10);
   display: flex;
-  flex-direction: column;
-  height: 100%;
-  width: 100%;
-  margin: 0 auto;
-  
+  flex-direction: row;
+  align-items: stretch;
+  min-height: 275px;
+  width: 500px;
+  transition: box-shadow 0.3s, transform 0.2s;
   &:hover {
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 10px 32px rgba(0,0,0,0.13);
+    transform: translateY(-2px) scale(1.01);
   }
-  
-  @media (max-width: 480px) {
+  @media (max-width: 600px) {
+    min-height: 0;
+    width: 100%;
     flex-direction: row;
-    height: auto;
+    align-items: center;
+    margin-bottom: 0.7rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     border-radius: 8px;
   }
 `;
 
 const ImageContainer = styled.div`
-  position: relative;
-  padding-top: 130%;
+  flex: 0 0 160px;
+  height: 100%;
   overflow: hidden;
-  
-  @media (max-width: 480px) {
-    max-width: 120px;
-    min-width: 80px;
-    height: 100%;
-    padding-top: 0;
+  position: relative;
+  background: var(--backgroundLight);
+  @media (max-width: 600px) {
+    display: flex;
+    border-radius: 6px;
+    margin-left: 0.5rem;
+    margin-right: 0.7rem;
   }
 `;
 
 const Image = styled.img`
-  position: absolute;
-  top: 0;
-  left: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.5s ease;
-  
-  ${Card}:hover & {
-    transform: scale(1.05);
-  }
-  
-  @media (max-width: 480px) {
-    position: static;
-  }
+  display: block;
 `;
 
 const CardContent = styled.div`
-  padding: 0.7rem;
+  flex: 1;
   display: flex;
   flex-direction: column;
-  flex-grow: 1;
+  gap: 12px;
+  padding: 1.2rem 1.5rem 1.2rem 1.2rem;
+  position: relative;
+  min-width: 0;
+  height: 100%;
   
-  @media (max-width: 480px) {
-    padding: 0.6rem;
+  @media (max-width: 600px) {
+    padding: 0.5rem 0.5rem 0.5rem 0;
+    gap: 0.2rem;
+    justify-content: space-evenly;
+  }
+`;
+
+const TopRow = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  
+  @media (max-width: 600px) {
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.1rem;
   }
 `;
 
 const Title = styled.h3`
-  font-size: 0.85rem;
-  font-weight: 600;
-  margin: 0 0 0.5rem 0;
+  font-size: 1.15rem;
+  font-weight: 700;
   color: var(--textPrimary);
+  margin: 0 0 0.3rem 0;
   line-height: 1.3;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  flex: 1;
+  min-width: 0;
   text-overflow: ellipsis;
-  max-height: 2.6rem;
-  
-  @media (max-width: 480px) {
-    font-size: 0.8rem;
-    margin-bottom: 0.4rem;
-    line-height: 1.2;
-    max-height: 2.4rem;
-    -webkit-line-clamp: 1;
+  white-space: wrap;
+  overflow: hidden;
+  @media (max-width: 600px) {
+    font-size: 0.98rem;
+    margin: 0 0 0.1rem 0;
+    white-space: normal;
+    text-overflow: unset;
+    overflow: visible;
+    line-height: 1.15;
+    font-weight: 600;
   }
 `;
 
-const InfoItem = styled.div`
+const ActionButtons = styled.div`
   display: flex;
   align-items: center;
-  font-size: 0.7rem;
-  color: var(--textSecondary);
-  margin-bottom: 0.3rem;
-  
-  svg {
-    flex-shrink: 0;
-    width: 12px;
-    height: 12px;
-    margin-right: 0.3rem;
-    color: var(--secondary);
-  }
-  
-  @media (max-width: 480px) {
-    font-size: 0.65rem;
-    margin-bottom: 0.25rem;
-    
-    svg {
-      width: 11px;
-      height: 11px;
-      margin-right: 0.25rem;
-    }
-  }
-`;
-
-const MetaRow = styled.div`
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  font-size: 0.7rem;
-  color: var(--textSecondary);
-  margin-bottom: 0.3rem;
-  gap: 0.4rem;
-  
-  @media (max-width: 480px) {
-    font-size: 0.65rem;
+  gap: 0.5rem;
+  @media (max-width: 600px) {
     gap: 0.3rem;
-    margin-bottom: 0.25rem;
   }
 `;
 
-const GenreList = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-  margin-top: auto;
-  padding-top: 0.4rem;
-  
-  @media (max-width: 480px) {
-    gap: 0.25rem;
-    padding-top: 0.3rem;
-  }
-`;
-
-const GenreBadge = styled.span`
-  font-size: 0.65rem;
-  padding: 0.1rem 0.4rem;
-  background: rgba(var(--primaryLight-rgb), 0.1);
+const IconButton = styled.button`
+  background: var(--backgroundLight);
+  border: 1px solid var(--borderColor);
   color: var(--primary);
-  border-radius: 30px;
-  
-  @media (max-width: 480px) {
-    font-size: 0.6rem;
-    padding: 0.1rem 0.35rem;
-  }
-`;
-
-const WatchlistButton = styled.button`
-  position: absolute;
-  top: 0.5rem;
-  left: 0.5rem;
-  width: 28px;
-  height: 28px;
   border-radius: 50%;
-  background: var(--cardBackground);
-  border: none;
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 10;
-  color: white;
-  transition: all 0.2s ease;
-  backdrop-filter: blur(2px);
-  
+  transition: background 0.2s, color 0.2s, transform 0.2s;
   &:hover {
     background: var(--primary);
-    transform: scale(1.1);
+    color: #fff;
+    transform: translateY(-2px) scale(1.08);
   }
-  
-  svg {
-    width: 14px;
-    height: 14px;
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
-  
-  @media (max-width: 480px) {
-    display: none;
-  }
-`;
-
-const PlaylistButton = styled(WatchlistButton)`
-  left: auto;
-  right: 0.5rem;
-  
-  &:hover {
-    background: var(--secondary);
+  @media (max-width: 600px) {
+    width: 28px;
+    height: 28px;
+    svg { width: 16px; height: 16px; }
   }
 `;
 
-const MobileButton = styled.button`
-  display: none;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--cardBackground);
-  border: none;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: white;
-  transition: all 0.2s ease;
-  
-  &:hover {
-    background: var(--primary);
-    transform: scale(1.1);
-  }
-  
-  svg {
-    width: 14px;
-    height: 14px;
-  }
-  
-  @media (max-width: 480px) {
-    display: flex;
-  }
-`;
-
-const MobilePlaylistButton = styled(MobileButton)`
-  &:hover {
-    background: var(--secondary);
-  }
-`;
-
-const StyledLink = styled(Link)`
-  text-decoration: none;
-  color: inherit;
+const StatusRow = styled.div`
   display: flex;
-  flex-direction: column;
-  height: 100%;
-  
-  @media (max-width: 480px) {
-    flex-direction: row;
-    width: 100%;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.3rem;
+  @media (max-width: 600px) {
+    gap: 0.5rem;
+    margin-bottom: 0.1rem;
   }
 `;
 
 const StatusBadge = styled.div`
   display: inline-flex;
   align-items: center;
-  padding: 0.25rem 0.5rem;
+  padding: 0.25rem 0.7rem;
   border-radius: 30px;
-  font-size: 0.7rem;
+  font-size: 0.82rem;
   font-weight: 600;
   color: white;
   background: ${props => {
-    switch (props.status?.toLowerCase()) {
+    switch ((props.status || '').toLowerCase()) {
       case 'airing':
       case 'currently airing':
         return 'var(--success)';
@@ -277,65 +179,77 @@ const StatusBadge = styled.div`
         return 'var(--textSecondary)';
     }
   }};
-  
-  @media (max-width: 480px) {
-    font-size: 0.65rem;
-    padding: 0.2rem 0.4rem;
+  @media (max-width: 600px) {
+    font-size: 0.7rem;
+    padding: 0.13rem 0.5rem;
   }
 `;
 
-const StatusRow = styled.div`
+const InfoCol = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 0.93rem;
+  color: var(--textSecondary);
+  margin-bottom: 0.2rem;
+  @media (max-width: 600px) {
+    gap: 0.5rem;
+    font-size: 0.78rem;
+    margin-bottom: 0.1rem;
+  }
+`;
+
+const InfoItem = styled.div`
   display: flex;
   align-items: center;
-  margin-bottom: 0.4rem;
+  gap: 0.3rem;
+  @media (max-width: 600px) {
+    gap: 0.18rem;
+    font-size: 0.78rem;
+    svg { width: 14px; height: 14px; }
+  }
+`;
+
+const MetaRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  font-size: 0.93rem;
+  color: var(--textSecondary);
+  margin-bottom: 0.2rem;
+  @media (max-width: 600px) {
+    gap: 0.5rem;
+    font-size: 0.78rem;
+    margin-bottom: 0.1rem;
+  }
+`;
+
+const GenreList = styled.div`
+  display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
-  justify-content: space-between;
-  
-  @media (max-width: 480px) {
-    margin-bottom: 0.3rem;
-    gap: 0.3rem;
+
+  @media (max-width: 600px) {
+    gap: 0.2rem;
+    margin-top: 0.1rem;
   }
 `;
 
-const RatingInfo = styled.div`
-  display: flex;
-  align-items: center;
-  font-size: 0.7rem;
-  color: var(--textSecondary);
-  
-  @media (max-width: 480px) {
-    font-size: 0.65rem;
+const GenreBadge = styled.span`
+  font-size: 0.8rem;
+  padding: 0.13rem 0.7rem;
+  background: rgba(var(--primaryLight-rgb), 0.13);
+  color: var(--primary);
+  border-radius: 30px;
+  @media (max-width: 600px) {
+    font-size: 0.7rem;
+    padding: 0.08rem 0.4rem;
   }
 `;
 
-const ScoreInfo = styled.div`
-  display: flex;
-  align-items: center;
-  font-size: 0.7rem;
-  color: var(--textSecondary);
-  
-  svg {
-    color: var(--warning);
-    margin-right: 0.25rem;
-  }
-  
-  @media (max-width: 480px) {
-    font-size: 0.65rem;
-    
-    svg {
-      margin-right: 0.2rem;
-    }
-  }
-`;
-
-const MobileButtonsContainer = styled.div`
-  display: none;
-  
-  @media (max-width: 480px) {
-    display: flex;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
+const HideOnMobile = styled.div`
+  @media (max-width: 600px) {
+    display: none !important;
   }
 `;
 
@@ -346,10 +260,8 @@ const ScheduleAnimeCard = ({ anime }) => {
   const [animeStatus, setAnimeStatus] = useState(null);
   const [loading, setLoading] = useState(false);
   const { showToast } = useToast();
-  
-  // Get anime details
-  const animeId = anime.malId || anime._id;
-  
+  const navigate = useNavigate();
+
   // Get image
   const getImageUrl = () => {
     if (anime.images?.jpg?.largeImageUrl) {
@@ -442,122 +354,66 @@ const ScheduleAnimeCard = ({ anime }) => {
   };
   
   return (
-    <Card>
-      <StyledLink to={`/anime/${animeId}`}>
-        <ImageContainer>
-          <Image src={getImageUrl()} alt={getTitle()} loading="lazy" />
-          {isAuthenticated && (
-            <>
-              <WatchlistButton 
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleWatchlistClick(e);
-                }}
-                disabled={loading}
-              >
-                <Bookmark />
-              </WatchlistButton>
-              
-              <PlaylistButton
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setPlaylistModalOpen(true);
-                }}
-              >
-                <BookOpen />
-              </PlaylistButton>
-            </>
-          )}
-        </ImageContainer>
-        
-        <CardContent>
+    <Card onClick={() => {
+      navigate(`/anime/${anime.malId || anime._id}`);
+    }}>
+      <ImageContainer>
+        <Image src={getImageUrl()} alt={getTitle()} loading="lazy" />
+      </ImageContainer>
+      <CardContent>
+        <TopRow>
           <Title>{getTitle()}</Title>
-          
-          <StatusRow>
-            {getStatus() && (
-              <StatusBadge status={getStatus()}>
-                {getStatus()}
-              </StatusBadge>
-            )}
-            
-            {anime.rating && (
-              <RatingInfo>{anime.rating.split(' - ')[0]}</RatingInfo>
-            )}
-            
-            {anime.score && (
-              <ScoreInfo>
-                <Star size={12} />
-                {anime.score.toFixed(1)}
-              </ScoreInfo>
-            )}
-          </StatusRow>
-          
-          {anime.duration && (
-              <InfoItem>
-              <Clock size={14} />
-              {anime.duration}
-              {getBroadcastInfo() && ` | ${getBroadcastInfo()}`}
-              </InfoItem>
-            )}
-            
-          {getStudio() && (
-              <InfoItem>
-              <Tv size={14} />
-              Studio: {getStudio()}
-              </InfoItem>
-            )}
-          
-          <MetaRow>
-            {anime.rank && (
-              <span>
-                Rank #{anime.rank}
-              </span>
-            )}
-            {anime.members && (
-              <span>
-                <Users size={14} />
-                {(anime.members / 1000).toFixed(1)}k members
-              </span>
-            )}
-          </MetaRow>
-          
-          <GenreList>
-            {getGenres().slice(0, 2).map((genre, index) => (
-              <GenreBadge key={index}>
-                {genre}
-              </GenreBadge>
-            ))}
-          </GenreList>
-          
           {isAuthenticated && (
-            <MobileButtonsContainer>
-              <MobileButton 
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleWatchlistClick(e);
-                }}
+            <ActionButtons>
+              <IconButton 
+                onClick={handleWatchlistClick}
                 disabled={loading}
+                title="Add to Watchlist"
               >
-                <Bookmark />
-              </MobileButton>
-              
-              <MobilePlaylistButton
-                onClick={(e) => {
+                <Bookmark size={18} />
+              </IconButton>
+              <IconButton
+                onClick={e => {
                   e.preventDefault();
                   e.stopPropagation();
                   setPlaylistModalOpen(true);
                 }}
+                title="Add to Playlist"
               >
-                <BookOpen />
-              </MobilePlaylistButton>
-            </MobileButtonsContainer>
+                <BookOpen size={18} />
+              </IconButton>
+            </ActionButtons>
           )}
-        </CardContent>
-      </StyledLink>
-      
+        </TopRow>
+        <StatusRow>
+          {getStatus() && (
+            <StatusBadge status={getStatus()}>{getStatus()}</StatusBadge>
+          )}
+          {anime.score && (
+            <InfoItem><Star size={15} />{anime.score.toFixed(1)}</InfoItem>
+          )}
+          {anime.rating && (
+            <InfoItem className="hide-on-mobile">{anime.rating.split(' - ')[0]}</InfoItem>
+          )}
+        </StatusRow>
+        <InfoCol>
+          {getBroadcastInfo() && <InfoItem><Clock size={15} />{getBroadcastInfo()}</InfoItem>}
+          {getStudio() && (
+            <InfoItem className="hide-on-mobile"><Tv size={15} />Studio: {getStudio()}</InfoItem>
+          )}
+        </InfoCol>
+        <MetaRow className="hide-on-mobile">
+          {anime.rank && <InfoItem>Rank #{anime.rank}</InfoItem>}
+          {anime.members && (
+            <InfoItem><Users size={15} />{(anime.members / 1000).toFixed(1)}k members</InfoItem>
+          )}
+        </MetaRow>
+        <GenreList className="hide-on-mobile">
+          {getGenres().slice(0, 3).map((genre, index) => (
+            <GenreBadge key={index}>{genre}</GenreBadge>
+          ))}
+        </GenreList>
+      </CardContent>
       {watchlistModalOpen && (
         <WatchlistModal
           show={watchlistModalOpen}
@@ -568,7 +424,6 @@ const ScheduleAnimeCard = ({ anime }) => {
           isScheduleAnime={true}
         />
       )}
-      
       {playlistModalOpen && (
         <PlaylistAddModal
           show={playlistModalOpen}

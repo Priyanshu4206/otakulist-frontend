@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { Menu, User } from 'lucide-react';
+import { Menu, User, Bell } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import useUI from '../../hooks/useUI';
 import useAuth from '../../hooks/useAuth';
@@ -114,7 +114,7 @@ const UserIconLink = styled(Link)`
   }
 `;
 
-const Header = ({ transparent = false }) => {
+const Header = ({ transparent = false, unreadCount = 0, openNotificationPanel }) => {
   const { toggleSidebar } = useUI();
   const { isAuthenticated, user } = useAuth();
   return (
@@ -126,9 +126,32 @@ const Header = ({ transparent = false }) => {
       <NavActions>
         <ThemeSwitcher />
         {isAuthenticated && (
-          <UserIconLink to={`/user/${user?.username || ''}`} aria-label="Profile">
-            <User size={22} />
-          </UserIconLink>
+          <>
+            <IconButton onClick={openNotificationPanel} aria-label="Notifications" style={{ position: 'relative' }}>
+              <Bell size={22} />
+              {unreadCount > 0 && (
+                <div style={{
+                  position: 'absolute',
+                  top: 2,
+                  right: 2,
+                  background: 'rgba(var(--primary-rgb), 0.8)',
+                  color: 'var(--textPrimary)',
+                  borderRadius: '50%',
+                  minWidth: 16,
+                  height: 16,
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0 4px',
+                }}>{unreadCount}</div>
+              )}
+            </IconButton>
+            <UserIconLink to={`/user/${user?.username || ''}`} aria-label="Profile">
+              <User size={22} />
+            </UserIconLink>
+          </>
         )}
         <IconButton onClick={toggleSidebar} aria-label="Menu">
           <Menu size={22} />

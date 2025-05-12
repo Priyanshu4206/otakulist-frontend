@@ -1,8 +1,10 @@
 import styled from 'styled-components';
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import useUI from '../../hooks/useUI';
+import { useNotificationContext } from '../../contexts/NotificationContext';
+import NotificationSidePanel from '../common/NotificationSidePanel';
 
 // Define CSS variables for layout
 const layoutCSSVars = `
@@ -77,24 +79,29 @@ const ContentContainer = styled.div`
 
 const Layout = ({ children, transparentHeader = false, fullWidth = false }) => {
   const { isMobileView, isSidebarOpen } = useUI();
-  
-  // Prevent body scroll when mobile sidebar is open
+  const { unreadCount } = useNotificationContext();
+  const [isNotificationPanelOpen, setNotificationPanelOpen] = useState(false);
+
+  const openNotificationPanel = useCallback(() => setNotificationPanelOpen(true), []);
+  const closeNotificationPanel = useCallback(() => setNotificationPanelOpen(false), []);
+
+  // Prevent body scroll when mobile sidebar or notification panel is open
   useEffect(() => {
-    if (isMobileView && isSidebarOpen) {
+    if ((isMobileView && isSidebarOpen) || isNotificationPanelOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'auto';
     }
-    
     return () => {
       document.body.style.overflow = 'auto';
     };
-  }, [isMobileView, isSidebarOpen]);
+  }, [isMobileView, isSidebarOpen, isNotificationPanelOpen]);
   
   return (
     <AppContainer transparent={transparentHeader}>
-      <Sidebar />
-      <Header transparent={transparentHeader} />
+      <Sidebar unreadCount={unreadCount} openNotificationPanel={openNotificationPanel} />
+      <Header transparent={transparentHeader} unreadCount={unreadCount} openNotificationPanel={openNotificationPanel} />
+      <NotificationSidePanel open={isNotificationPanelOpen} onClose={closeNotificationPanel} />
       <Main transparent={transparentHeader}>
         {fullWidth ? children : <ContentContainer>{children}</ContentContainer>}
       </Main>

@@ -20,7 +20,7 @@ import {
 } from '../components/profile/ProfileStyles';
 import GameScreenLoader from '../components/settings/GameScreenLoader';
 import styled from 'styled-components';
-import { Lock, UserX, Award } from 'lucide-react';
+import { Lock, UserX, Award, ListFilter } from 'lucide-react';
 
 
 const CenteredContentContainer = styled.div`
@@ -438,6 +438,7 @@ const ProfilePage = () => {
               hideFollowers={!profileData.settings?.privacy?.showFollowers}
               hideFollowing={!profileData.settings?.privacy?.showFollowing}
               hideAchievements={!profileData.settings?.privacy?.showAchievements}
+              hidePlaylists={!profileData.settings?.privacy?.showPlaylists}
             />
             <Card>
               <ProfileTabs 
@@ -474,22 +475,34 @@ const ProfilePage = () => {
                 </div>
               )}
               {activeTab === TABS.PLAYLISTS && (
-                <PlaylistsSection
-                  playlists={playlists}
-                  playlistsLoading={playlistsLoading}
-                  playlistsError={playlistsError}
-                  playlistLikes={playlistLikes}
-                  processingLike={processingLike}
-                  user={user}
-                  isOwner={isOwner}
-                  username={username}
-                  profileData={profileData}
-                  playlistsPage={playlistsPage}
-                  playlistsPagination={playlistsPagination}
-                  setPlaylistsPage={setPlaylistsPage}
-                  handleLikePlaylist={handleLikePlaylist}
-                  getPageNumbers={getPageNumbers}
-                />
+                profileData.settings?.privacy?.showPlaylists !== false ? (
+                  <PlaylistsSection
+                    playlists={playlists}
+                    playlistsLoading={playlistsLoading}
+                    playlistsError={playlistsError}
+                    playlistLikes={playlistLikes}
+                    processingLike={processingLike}
+                    user={user}
+                    isOwner={isOwner}
+                    username={username}
+                    profileData={profileData}
+                    playlistsPage={playlistsPage}
+                    playlistsPagination={playlistsPagination}
+                    setPlaylistsPage={setPlaylistsPage}
+                    handleLikePlaylist={handleLikePlaylist}
+                    getPageNumbers={getPageNumbers}
+                  />
+                ) : (
+                  <IllustrationContainer>
+                    <AnimatedIcon>
+                      <ListFilter />
+                    </AnimatedIcon>
+                    <h2 style={{ color: 'var(--textPrimary)', marginBottom: '0.5rem' }}>Playlists Are Private</h2>
+                    <p style={{ maxWidth: 400, margin: '0 auto', color: 'var(--textSecondary)' }}>
+                      This user has chosen to keep their playlists private.
+                    </p>
+                  </IllustrationContainer>
+                )
               )}
             </Card>
           </CenteredContent>

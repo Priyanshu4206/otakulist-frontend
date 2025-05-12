@@ -44,16 +44,17 @@ const Title = styled.h3`
 
 const Grid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 1rem;
-  
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  justify-content: flex-start;
   @media (max-width: 480px) {
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
+    gap: 1rem;
   }
 `;
 
-const UnknownTimeSlot = ({ animeList, formatTimeDisplay }) => {
+const UnknownTimeSlot = ({ animeList }) => {
   return (
     <Container>
       <Header>

@@ -21,6 +21,7 @@ import { DEFAULT_TIMEZONE } from './utils/simpleTimezoneUtils.js';
 import useAuth from './hooks/useAuth.js';
 import ScrollToTop from './components/common/ScrollToTop.jsx';
 import GameScreenLoader from './components/settings/GameScreenLoader.jsx';
+import { NotificationProvider } from './contexts/NotificationContext.jsx';
 
 const AppWrapper = styled.div`
   display: flex;
@@ -181,11 +182,13 @@ function App() {
       <BrowserRouter>
         <ToastProvider>
           <AuthProvider>
-            <ThemeProvider>
-              <UIProvider>
-                <AppContent />
-              </UIProvider>
-            </ThemeProvider>
+            <NotificationProvider>
+              <ThemeProvider>
+                <UIProvider>
+                  <AppContent />
+                </UIProvider>
+              </ThemeProvider>
+            </NotificationProvider>
           </AuthProvider>
         </ToastProvider>
       </BrowserRouter>

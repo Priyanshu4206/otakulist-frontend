@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import styled from 'styled-components';
-import { NavLink, useLocation } from 'react-router-dom';
-import { Home, Calendar, Search, User, LogOut, Settings, Tv, LogIn } from 'lucide-react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Home, Calendar, Search, User, LogOut, Settings, Tv, LogIn, Bell } from 'lucide-react';
 import useUI from '../../hooks/useUI';
 import useAuth from '../../hooks/useAuth';
 
@@ -112,6 +112,24 @@ const NavItemContainer = styled.div`
   }
 `;
 
+const NotificationBadge = styled.div`
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background: rgba(var(--primary-rgb), 0.8);
+  color: var(--textPrimary);
+  border-radius: 50%;
+  min-width: 20px;
+  height: 20px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+`;
+
+
 const StyledNavLink = styled(NavLink)`
   display: flex;
   align-items: center;
@@ -180,6 +198,31 @@ const StyledNavLink = styled(NavLink)`
     opacity: ${props => (!props.isNavHovered && !props.isOpen) ? 0 : 1};
   }
 `;
+
+const StyledButton = styled(StyledNavLink)`
+  &.active {
+    color: var(--textPrimary);
+    background: none;
+    font-weight: 600;
+    box-shadow: none;
+    
+    &::before {
+      transform: translateX(0);
+    }
+    
+    svg {
+      color: var(--textPrimary);
+    }
+  }
+`;
+
+const IconWrapper = styled.div`
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+`;
+
 
 const LogoutLink = styled.a`
   display: flex;
@@ -333,7 +376,7 @@ const SidebarOverlay = styled.div`
   }
 `;
 
-const Sidebar = () => {
+const Sidebar = ({ unreadCount = 0,openNotificationPanel }) => {
   const { 
     isSidebarOpen, 
     isMobileView, 
@@ -381,6 +424,7 @@ const Sidebar = () => {
       closeSidebar();
     }
   };
+
   
   return (
     <>
@@ -435,7 +479,24 @@ const Sidebar = () => {
               <span>Search</span>
             </StyledNavLink>
           </NavItemContainer>
-          
+
+          {isAuthenticated && (
+            <NavItemContainer style={{ position: 'relative' }}>
+              <StyledButton
+                type="button"
+                onClick={openNotificationPanel}
+                isOpen={isSidebarOpen} 
+                isNavHovered={isNavHovered}
+              >
+                <IconWrapper>
+                  <Bell size={22} />
+                  {unreadCount > 0 && <NotificationBadge>{unreadCount}</NotificationBadge>}
+                </IconWrapper>
+                <span>Notifications</span>
+              </StyledButton>
+            </NavItemContainer>
+          )}
+
           {isAuthenticated && (
             <NavItemContainer>
               <StyledNavLink 

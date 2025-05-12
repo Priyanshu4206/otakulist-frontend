@@ -76,6 +76,7 @@ const CloseButton = styled.button`
 
 const ModalBody = styled.div`
   padding: 1.5rem;
+  background: linear-gradient(135deg, rgba(32, 34, 53, 0.9), rgba(25, 27, 43, 0.9));
 `;
 
 const FormGroup = styled.div`

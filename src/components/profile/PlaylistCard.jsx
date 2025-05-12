@@ -70,20 +70,32 @@ const PlaylistCard = ({
                 <Heart size={16} />
               </ActionButton>
             )}
-            
             <ShareButton
+              mode="native"
               url={shareUrl}
               title={playlist.name}
               text={playlist.description || `Check out this anime playlist: ${playlist.name}`}
-              iconOnly={true}
+              label="Share Playlist"
               size="small"
               variant="primary"
               style={{ 
                 padding: '0.5rem', 
-                borderRadius: '50%', 
-                minWidth: '32px',
+                borderRadius: '6px', 
+                minWidth: 'auto',
                 height: '32px'
               }}
+            />
+            <ShareButton
+              mode="copy"
+              url={shareUrl}
+              title={`Copy playlist link`}
+              text={`Copy playlist link`}
+              iconOnly={true}
+              size="small"
+              variant="default"
+              style={{ padding: '0.5rem', borderRadius: '50%', minWidth: '32px', height: '32px' }}
+              successMessage="Playlist link copied!"
+              errorMessage="Failed to copy playlist link."
             />
           </ActionButtons>
         </PlaylistCover>

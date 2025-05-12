@@ -47,6 +47,10 @@ export const themes = {
     gradientSecondary: 'linear-gradient(135deg, #1E88E5 0%, #64B5F6 100%)',
     gradientAccent: 'linear-gradient(135deg, #FF8C00 0%, #FFB733 100%)',
     gradientText: 'linear-gradient(135deg, #FFA500 0%, #FFB733 100%)',
+    modalBackground: '#23243a',
+    modalHeaderBackground: 'linear-gradient(90deg, #FFA500 0%, #FFB733 100%)',
+    modalBorderColor: '#FFB733',
+    modalOverlayColor: 'rgba(20, 20, 30, 0.85)',
   },
   dark: {
     name: 'Dark Mode',
@@ -79,6 +83,10 @@ export const themes = {
     gradientSecondary: 'linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%)',
     gradientAccent: 'linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%)',
     gradientText: 'linear-gradient(135deg, #6366F1 0%, #818CF8 100%)',
+    modalBackground: '#18181f',
+    modalHeaderBackground: 'linear-gradient(90deg, #6366F1 0%, #818CF8 100%)',
+    modalBorderColor: '#6366F1',
+    modalOverlayColor: 'rgba(10, 10, 20, 0.85)',
   },
   light: {
     name: 'Light Mode',
@@ -111,6 +119,10 @@ export const themes = {
     gradientSecondary: 'linear-gradient(135deg, #7C3AED 0%, #8B5CF6 100%)',
     gradientAccent: 'linear-gradient(135deg, #D97706 0%, #F59E0B 100%)',
     gradientText: 'linear-gradient(135deg, #4F46E5 0%, #6366F1 100%)',
+    modalBackground: '#fff',
+    modalHeaderBackground: 'linear-gradient(90deg, #4F46E5 0%, #6366F1 100%)',
+    modalBorderColor: '#6366F1',
+    modalOverlayColor: 'rgba(255,255,255,0.85)',
   },
   default: {
     name: 'Default Dark',
@@ -143,6 +155,10 @@ export const themes = {
     gradientSecondary: 'linear-gradient(135deg, #463671 0%, #5A4A8E 100%)',
     gradientAccent: 'linear-gradient(135deg, #E8C28D 0%, #F2D6B0 100%)',
     gradientText: 'linear-gradient(135deg, #FBEFFA 0%, #EBBAF2 100%)',
+    modalBackground: '#252429',
+    modalHeaderBackground: 'linear-gradient(90deg, #FBEFFA 0%, #EBBAF2 100%)',
+    modalBorderColor: '#EBBAF2',
+    modalOverlayColor: 'rgba(24, 23, 29, 0.85)',
   },
   'one-piece': {
     name: 'One Piece',
@@ -175,6 +191,10 @@ export const themes = {
     gradientSecondary: 'linear-gradient(135deg, #388E3C 0%, #66BB6A 100%)',
     gradientAccent: 'linear-gradient(135deg, #FFC107 0%, #FFD54F 100%)',
     gradientText: 'linear-gradient(135deg, #D32F2F 0%, #FFC107 100%)',
+    modalBackground: '#0B3B82',
+    modalHeaderBackground: 'linear-gradient(90deg, #D32F2F 0%, #FFC107 100%)',
+    modalBorderColor: '#FFC107',
+    modalOverlayColor: 'rgba(11, 59, 130, 0.85)',
   },
   'attack-on-titan': {
     name: 'Attack on Titan',
@@ -207,6 +227,10 @@ export const themes = {
     gradientSecondary: 'linear-gradient(135deg, #CFD8DC 0%, #ECEFF1 100%)',
     gradientAccent: 'linear-gradient(135deg, #C62828 0%, #E53935 100%)',
     gradientText: 'linear-gradient(135deg, #C62828 0%, #E53935 100%)',
+    modalBackground: '#1E1E1E',
+    modalHeaderBackground: 'linear-gradient(90deg, #8D6E63 0%, #CFD8DC 100%)',
+    modalBorderColor: '#8D6E63',
+    modalOverlayColor: 'rgba(18, 18, 18, 0.85)',
   },
   'demon-slayer': {
     name: 'Demon Slayer',
@@ -239,6 +263,10 @@ export const themes = {
     gradientSecondary: 'linear-gradient(135deg, #0C71C3 0%, #2388DB 100%)',
     gradientAccent: 'linear-gradient(135deg, #E61A50 0%, #FA3A69 100%)',
     gradientText: 'linear-gradient(135deg, #24AE60 0%, #FA3A69 100%)',
+    modalBackground: '#1C1E2E',
+    modalHeaderBackground: 'linear-gradient(90deg, #24AE60 0%, #E61A50 100%)',
+    modalBorderColor: '#E61A50',
+    modalOverlayColor: 'rgba(20, 21, 31, 0.85)',
   },
   'jujutsu-kaisen': {
     name: 'Jujutsu Kaisen',
@@ -271,6 +299,10 @@ export const themes = {
     gradientSecondary: 'linear-gradient(135deg, #334155 0%, #475569 100%)',
     gradientAccent: 'linear-gradient(135deg, #DC2626 0%, #EF4444 100%)',
     gradientText: 'linear-gradient(135deg, #4F46E5 0%, #DC2626 100%)',
+    modalBackground: '#1E293B',
+    modalHeaderBackground: 'linear-gradient(90deg, #4F46E5 0%, #DC2626 100%)',
+    modalBorderColor: '#DC2626',
+    modalOverlayColor: 'rgba(15, 23, 42, 0.85)',
   },
 };
 

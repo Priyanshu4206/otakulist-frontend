@@ -365,6 +365,14 @@ export const userAPI = {
    * @returns {Promise}
    */
   getTimezones: () => api.get("/users/timezones"),
+
+  /**
+   * Delete a notification by ID
+   * @param {string} notificationId
+   * @returns {Promise}
+   */
+  deleteNotification: (notificationId) =>
+    api.delete(`/users/notifications/${notificationId}`),
 };
 
 // Watchlist APIs

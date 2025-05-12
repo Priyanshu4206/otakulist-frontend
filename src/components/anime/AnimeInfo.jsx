@@ -22,27 +22,12 @@ const InfoContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1.2rem;
-  background-color: rgba(var(--cardBackground-rgb), 0.4);
-  padding: 1.5rem;
   border-radius: 12px;
   backdrop-filter: blur(10px);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   position: relative;
   overflow: hidden;
   animation: ${fadeIn} 0.5s ease-out;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 5px;
-    height: 100%;
-    background: var(--gradientPrimary);
-    transform: scaleY(1);
-    transform-origin: bottom;
-    transition: transform 0.4s ease;
-  }
 `;
 
 const ActionButton = styled.button`
@@ -76,9 +61,44 @@ const ActionButtonsRow = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
-  
-  @media (max-width: 768px) {
-    flex-direction: column;
+  @media (max-width: 600px) {
+    display: none;
+  }
+`;
+
+// Mobile action icons
+const MobileActionIcons = styled.div`
+  display: none;
+  @media (max-width: 600px) {
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+    gap: 0.7rem;
+    margin-top: 0.5rem;
+  }
+`;
+
+const MobileIconButton = styled.button`
+  border: none;
+  border-radius: 50%;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.1rem;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  transition: background 0.2s, transform 0.2s;
+  background: ${({ type }) =>
+    type === 'rate' ? 'var(--warning)' :
+    type === 'watchlist' ? 'var(--secondary)' :
+    type === 'playlist' ? 'var(--info)' :
+    'var(--primary)'};
+  &:hover {
+    filter: brightness(1.1);
+    transform: translateY(-2px) scale(1.08);
   }
 `;
 
@@ -182,6 +202,19 @@ const AnimeInfo = ({ anime, onOpenRatingModal }) => {
           </>
         )}
       </ActionButtonsRow>
+
+      {/* Mobile action icons */}
+      <MobileActionIcons>
+        <MobileIconButton type="rate" onClick={onOpenRatingModal} aria-label="Rate anime">
+          <Star size={18} />
+        </MobileIconButton>
+        <MobileIconButton type="watchlist" onClick={handleWatchlistClick} aria-label="Add to watchlist" disabled={loading}>
+          <Bookmark size={18} />
+        </MobileIconButton>
+        <MobileIconButton type="playlist" onClick={() => setPlaylistModalOpen(true)} aria-label="Add to playlist">
+          <BookOpen size={18} />
+        </MobileIconButton>
+      </MobileActionIcons>
 
       {/* Watchlist Modal */}
       <WatchlistModal

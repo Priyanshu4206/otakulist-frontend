@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import UserAvatar from '../common/UserAvatar';
 import { formatJoinDate } from './ProfileStyles';
 import styled from 'styled-components';
+import ShareButton from '../common/ShareButton';
 
 const ProfileHeaderContainer = styled.div`
   width: 100%;
@@ -113,6 +114,7 @@ const SettingsButton = styled(Link)`
 
 const ActionButtons = styled.div`
   display: flex;
+  align-items: center;
   gap: 0.7rem;
   margin-bottom: 0.2rem;
   @media (max-width: 768px) {
@@ -292,13 +294,27 @@ const ProfileHeader = ({
                 )}
               </>
             )}
-            <ActionButton onClick={() => {
-              const url = window.location.href;
-              navigator.clipboard.writeText(url);
-              // You might want to add toast notification here
-            }}>
-              <Share2 size={18} /> Share
-            </ActionButton>
+            {/* Share and Copy Link Buttons */}
+            <ShareButton
+              mode="native"
+              url={`${window.location.origin}/user/${profileData.username}`}
+              title={`Check out ${profileData.displayName || profileData.username}'s profile`}
+              text={`Check out this profile on OtakuList: ${profileData.displayName || profileData.username}`}
+              label="Share Profile"
+              size="small"
+              variant="primary"
+            />
+            <ShareButton
+              mode="copy"
+              url={`${window.location.origin}/user/${profileData.username}`}
+              title={`Copy profile link`}
+              text={`Copy profile link`}
+              iconOnly={true}
+              size="small"
+              variant="default"
+              successMessage="Profile link copied!"
+              errorMessage="Failed to copy profile link."
+            />
           </ActionButtons>
           {/* Display name and bio */}
           {profileData.displayName && <DisplayName>{profileData.displayName}</DisplayName>}

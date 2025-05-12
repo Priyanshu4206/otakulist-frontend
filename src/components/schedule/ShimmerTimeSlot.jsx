@@ -11,7 +11,8 @@ const shimmer = keyframes`
 
 const TimeSlotContainer = styled.div`
   display: flex;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
+  gap: 2rem;
 `;
 
 const TimeLabel = styled.div`
@@ -31,7 +32,7 @@ const AnimeCardsContainer = styled.div`
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 2rem;
 `;
 
 const ShimmerCard = styled.div`

@@ -42,10 +42,6 @@ const PageContainer = styled.div`
   @media (max-width: 768px) {
     padding: 1rem;
   }
-  
-  @media (max-width: 480px) {
-    padding: 0.75rem;
-  }
 `;
 
 const AnimePageGrid = styled.div`
@@ -307,37 +303,17 @@ const Synopsis = styled.div`
   color: var(--textPrimary);
   line-height: 1.8;
   position: relative;
-  
   p {
     margin-bottom: 1.2rem;
     font-size: 1.05rem;
   }
-  
   @media (max-width: 768px) {
-    max-height: ${props => props.expanded ? 'none' : '6rem'};
-    overflow: ${props => props.expanded ? 'visible' : 'hidden'};
-    
-    &::after {
-      content: '';
-      display: ${props => props.expanded ? 'none' : 'block'};
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      height: 2.5rem;
-      background: linear-gradient(to bottom, rgba(var(--cardBackground-rgb), 0), rgba(var(--cardBackground-rgb), 1));
-      pointer-events: none;
-    }
-    
     p {
       font-size: 0.95rem;
       line-height: 1.6;
     }
   }
-  
   @media (max-width: 480px) {
-    max-height: ${props => props.expanded ? 'none' : '5rem'};
-    
     p {
       font-size: 0.9rem;
       line-height: 1.5;

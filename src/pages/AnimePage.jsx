@@ -5,7 +5,7 @@ import AnimeInfo from '../components/anime/AnimeInfo';
 import CharactersList from '../components/anime/CharactersList';
 import RecommendationsList from '../components/anime/RecommendationsList';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import { animeAPI, userAPI } from '../services/api';
+import { animeAPI } from '../services/api';
 import useApiCache from '../hooks/useApiCache';
 import { Star, Calendar, Clock, Globe, Tv, Hash, Music, ExternalLink, BookOpen, Users, ChevronDown, ChevronUp } from 'lucide-react';
 import AnimeRatingModal from '../components/common/AnimeRatingModal';
@@ -13,6 +13,28 @@ import QuickActionButtons from '../components/anime/QuickActionButtons';
 // Styles
 import { PageContainer,  AnimePageGrid,  LeftSidebar, MainContent, PosterContainer, ShimmerOverlay, QuickInfoCard, QuickInfoTitle, QuickInfoGrid, InfoLabel, InfoValue, ScoreDisplay, ScoreValue, ScoreLabel, AnimeHeaderSection, AnimeTitle, AlternativeTitles, ContentSection, SectionHeading, Synopsis, ViewMoreButton, VideoContainer, GradientBackground, ErrorMessage, NoContentMessage, ThemeSongsSection, ThemeCategory, ThemeCategoryTitle, ThemeItem, ExternalLinksGrid, ExternalLinkButton, GenreBadge, GenresContainer } from '../components/anime/AnimePageStyles'; 
 import formatNumberShort from '../utils/formatShortNumber';
+import styled from 'styled-components';
+
+// Add background image styled component
+const AnimeBackground = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  background: ${({ image }) => image ? `url(${image}) center center / cover no-repeat` : 'none'};
+  filter: blur(18px) brightness(0.5) saturate(1.2);
+  pointer-events: none;
+  transition: background 0.4s;
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(20, 20, 30, 0.7);
+    z-index: 1;
+  }
+`;
 
 const AnimePage = () => {
   const { id } = useParams();
@@ -42,7 +64,6 @@ const AnimePage = () => {
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [showWatchlistModal, setShowWatchlistModal] = useState(false);
   const [showPlaylistModal, setShowPlaylistModal] = useState(false);
-  const [synopsisExpanded, setSynopsisExpanded] = useState(false);
   
   // Create cache keys
   const animeCacheKey = `anime_${id}`;
@@ -186,10 +207,16 @@ const AnimePage = () => {
     streaming = [],
     score,
     scoredBy,
+    images = {},
   } = anime;
   
+  // Get large image for background
+  const bgImage = images.jpg?.largeImageUrl || images.jpg?.imageUrl || images.webp?.largeImageUrl || images.webp?.imageUrl || '';
+  const Mdscreen = window.innerWidth < 992;
+
   return (
     <Layout>
+      {bgImage && <AnimeBackground image={bgImage} />}
       <GradientBackground />
       <PageContainer>
         <AnimeRatingModal
@@ -256,16 +283,14 @@ const AnimePage = () => {
                 />
                 <ShimmerOverlay />
               </PosterContainer>
-              
+            {/* Action buttons */}
+            <ContentSection>
+            {Mdscreen &&  <AnimeInfo anime={anime} onOpenRatingModal={() => setShowRatingModal(true)} />}
+            </ContentSection>
             {/* Quick info card */}
             <QuickInfoCard>
               <QuickInfoTitle>
                 Information
-                <QuickActionButtons 
-                  onOpenRatingModal={() => setShowRatingModal(true)}
-                  onOpenWatchlistModal={() => setShowWatchlistModal(true)}
-                  onOpenPlaylistModal={() => setShowPlaylistModal(true)}
-                />
               </QuickInfoTitle>
               
               {score && (
@@ -379,25 +404,16 @@ const AnimePage = () => {
           {/* Main content area */}
           <MainContent>
             {/* Action buttons */}
-            <ContentSection>
-              <AnimeInfo anime={anime} onOpenRatingModal={() => setShowRatingModal(true)} />
-            </ContentSection>
+             {!Mdscreen &&  <AnimeInfo anime={anime} onOpenRatingModal={() => setShowRatingModal(true)} />}
             
             {/* Synopsis section */}
             <ContentSection>
               <SectionHeading><BookOpen size={24} /> Synopsis</SectionHeading>
               {anime.synopsis ? (
                 <>
-                  <Synopsis expanded={synopsisExpanded}>
+                  <Synopsis>
                     <p>{anime.synopsis}</p>
                   </Synopsis>
-                  <ViewMoreButton onClick={() => setSynopsisExpanded(!synopsisExpanded)}>
-                    {synopsisExpanded ? (
-                      <>Show Less <ChevronUp size={16} /></>
-                    ) : (
-                      <>View More <ChevronDown size={16} /></>
-                    )}
-                  </ViewMoreButton>
                 </>
               ) : (
                 <NoContentMessage>No synopsis available for this anime.</NoContentMessage>

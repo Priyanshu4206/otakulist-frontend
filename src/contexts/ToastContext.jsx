@@ -2,7 +2,7 @@ import { createContext, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Check, AlertCircle, Info, AlertTriangle } from 'lucide-react';
+import { X, Check, AlertCircle, Info, AlertTriangle, Bell, Award, UserPlus, Heart, MessageCircle } from 'lucide-react';
 
 // Create context
 export const ToastContext = createContext();
@@ -37,10 +37,16 @@ const ToastItem = styled(motion.div)`
       case 'warning':
         return 'var(--warning)';
       case 'info':
+        return 'var(--info)';
+      case 'notification':
+        return 'var(--cardBackground, #23243a)';
       default:
         return 'var(--info)';
     }
   }};
+  border: ${({ type }) => type === 'notification' ? '2px solid var(--primary, #FFA500)' : 'none'};
+  min-width: 320px;
+  max-width: 90vw;
 `;
 
 const IconContainer = styled.div`
@@ -72,9 +78,24 @@ const CloseButton = styled.button`
   }
 `;
 
+const NotificationIcon = ({ notificationType }) => {
+  switch (notificationType) {
+    case 'achievement': return <Award size={22} />;
+    case 'follow': return <UserPlus size={22} />;
+    case 'playlist_like': return <Heart size={22} />;
+    case 'playlist_comment':
+    case 'comment_reply': return <MessageCircle size={22} />;
+    case 'system': return <Bell size={22} />;
+    default: return <Bell size={22} />;
+  }
+};
+
 // Toast component with different icons based on type
-const Toast = ({ id, type, message, onClose }) => {
+const Toast = ({ id, type, message, onClose, notificationType }) => {
   const getIcon = () => {
+    if (type === 'notification') {
+      return <NotificationIcon notificationType={notificationType} />;
+    }
     switch (type) {
       case 'success':
         return <Check size={18} />;
@@ -111,7 +132,7 @@ export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
   // Function to add a new toast
-  const showToast = useCallback(({ type = 'info', message, duration = 3000 }) => {
+  const showToast = useCallback(({ type = 'info', message, duration = 1000 }) => {
     const id = Date.now();
     
     setToasts(prevToasts => [...prevToasts, { id, type, message }]);

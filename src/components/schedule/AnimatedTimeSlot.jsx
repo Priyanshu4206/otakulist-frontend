@@ -1,7 +1,6 @@
 import styled from 'styled-components';
 import { Clock } from 'lucide-react';
 import ScheduleAnimeCard from './ScheduleAnimeCard';
-import useAuth from '../../hooks/useAuth';
 
 const TimeSlotContainer = styled.div`
   display: flex;
@@ -103,13 +102,13 @@ const OriginalTime = styled.div`
 
 const AnimeCardsContainer = styled.div`
   flex: 1;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 1.2rem;
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+  justify-content: flex-start;
   
   @media (max-width: 480px) {
-    grid-template-columns: 1fr;
-    gap: 0.8rem;
+    gap: 1rem;
   }
 `;
 
