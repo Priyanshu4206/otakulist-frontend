@@ -57,6 +57,26 @@ const useApiCache = (storageType = 'localStorage', expiryTime = null) => {
    */
   const saveToCache = useCallback((key, data) => {
     try {
+      // Don't cache empty arrays
+      if (Array.isArray(data) && data.length === 0) {
+        console.log('Not caching empty array data for key:', key);
+        return;
+      }
+      
+      // Don't cache null or undefined
+      if (data === null || data === undefined) {
+        console.log('Not caching null or undefined data for key:', key);
+        return;
+      }
+      
+      // For objects that may contain an empty data array
+      if (data && typeof data === 'object' && !Array.isArray(data)) {
+        if (data.data && Array.isArray(data.data) && data.data.length === 0) {
+          console.log('Not caching object with empty data array for key:', key);
+          return;
+        }
+      }
+      
       const cacheData = {
         data,
         timestamp: Date.now(),
@@ -99,13 +119,17 @@ const useApiCache = (storageType = 'localStorage', expiryTime = null) => {
       // Some endpoints return {success: true, data: [...]} while others return the data directly
       if (response && typeof response === 'object') {
         if (response.data) {
-          // If the response has a data property, cache it
-          saveToCache(key, response.data);
+          // Only cache if data is not an empty array
+          if (!Array.isArray(response.data) || response.data.length > 0) {
+            saveToCache(key, response.data);
+          }
           setLoading(false);
           return response.data;
         } else if (Array.isArray(response)) {
-          // If response is an array, it's likely the data directly
-          saveToCache(key, response);
+          // Only cache if the array is not empty
+          if (response.length > 0) {
+            saveToCache(key, response);
+          }
           setLoading(false);
           return response;
         } else if (!response.success && !response.data) {

@@ -57,6 +57,27 @@ const ViewMoreButton = styled(Link)`
   }
 `;
 
+const RefreshButton = styled.button`
+  font-size: 0.85rem;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  margin-right: 1rem;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  font-weight: 500;
+  
+  &:hover {
+    opacity: 0.8;
+  }
+  
+  svg {
+    margin-right: 5px;
+  }
+`;
+
 const List = styled.div`
   display: flex;
   flex-direction: column;
@@ -176,54 +197,118 @@ const LoadingSpinner = styled.div`
   }
 `;
 
+const EmptyStateContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  text-align: center;
+`;
+
+const EmptyStateImage = styled.div`
+  width: 120px;
+  height: 120px;
+  margin-bottom: 1rem;
+  font-size: 4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--textSecondary);
+`;
+
+const EmptyStateText = styled.p`
+  font-size: 0.95rem;
+  color: var(--textSecondary);
+  margin-bottom: 1rem;
+`;
+
+const EmptyStateButton = styled.button`
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  
+  &:hover {
+    background-color: var(--primaryDark);
+  }
+  
+  svg {
+    margin-right: 6px;
+  }
+`;
+
 // Category emojis for visual representation
 const categoryEmojis = {
-  'Anime': '📺',
+  'Anime': '🎭',
   'Manga': '📚',
+  'Industry': '🏢',
   'Games': '🎮',
-  'People': '👤',
   'Music': '🎵',
-  'Events': '🎫',
-  'Novels': '📖',
-  'Korean': '🇰🇷',
-  'Live-Action': '🎬'
+  'Events': '🎪',
+  'Netflix': '📺',
+  'Crunchyroll': '🧡',
+  'Funimation': '💜',
 };
 
-// Get a category emoji or default
+// Format the date/time for display
+const formatDateTime = (dateString) => {
+  if (!dateString) return 'Recently';
+  
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInHours = Math.floor((now - date) / (1000 * 60 * 60));
+  
+  if (diffInHours < 1) {
+    return 'Just now';
+  } else if (diffInHours < 24) {
+    return `${diffInHours}h ago`;
+  } else {
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+};
+
+// Get emoji for category display
 const getCategoryEmoji = (categories) => {
   if (!categories || categories.length === 0) return '📰';
   const category = categories[0];
   return categoryEmojis[category] || '📰';
 };
 
-// Format a date for display in 24hr format
-const formatDateTime = (dateString) => {
-  const date = new Date(dateString);
-  
-  // Format hours and minutes with leading zeros if needed
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  
-  return `${date.toLocaleDateString('en-US', { 
-    day: 'numeric',
-    month: 'short'
-  })} ${hours}:${minutes}`;
-};
+// RefreshIcon component
+const RefreshIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M22 2L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
 
 const WhatsPoppinSection = () => {
   const [news, setNews] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   
   // Use API cache with 3-hour expiry
-  const { fetchWithCache } = useApiCache('localStorage', 3 * 60 * 60 * 1000);
+  const { fetchWithCache, clearCacheItem } = useApiCache('localStorage', 3 * 60 * 60 * 1000);
   
   // Fetch news data
-  const fetchNews = useCallback(async () => {
+  const fetchNews = useCallback(async (forceRefresh = false) => {
     setIsLoading(true);
     
     try {
       // Create a cache key
       const cacheKey = 'home_latest_news';
+      
+      // If force refreshing, clear the cache item first
+      if (forceRefresh) {
+        clearCacheItem(cacheKey);
+      }
       
       // Use the fetchWithCache to get data
       const fetchData = async () => {
@@ -231,7 +316,7 @@ const WhatsPoppinSection = () => {
       };
       
       // Get response from cache or API
-      const response = await fetchWithCache(cacheKey, fetchData);
+      const response = await fetchWithCache(cacheKey, fetchData, forceRefresh);
       
       let newsData = [];
       if (response && response.data && Array.isArray(response.data)) {
@@ -240,15 +325,19 @@ const WhatsPoppinSection = () => {
         newsData = response;
       }
       
-      if (newsData.length > 0) {
-        setNews(newsData);
-      }
+      setNews(newsData);
     } catch (error) {
       console.error('Error fetching news:', error);
+      setNews([]);
     } finally {
       setIsLoading(false);
     }
-  }, [fetchWithCache]);
+  }, [fetchWithCache, clearCacheItem]);
+  
+  // Handle refresh button click
+  const handleRefresh = () => {
+    fetchNews(true);
+  };
   
   // Load news on component mount
   useEffect(() => {
@@ -263,7 +352,7 @@ const WhatsPoppinSection = () => {
   }, []);
   
   // Show loading state
-  if (isLoading && news.length === 0) {
+  if (isLoading) {
     return (
       <Section>
         <SectionHeader>
@@ -274,11 +363,34 @@ const WhatsPoppinSection = () => {
     );
   }
   
+  // Show empty state
+  if (!news || news.length === 0) {
+    return (
+      <Section>
+        <SectionHeader>
+          <Title>What's poppin'</Title>
+        </SectionHeader>
+        <EmptyStateContainer>
+          <EmptyStateImage>📰</EmptyStateImage>
+          <EmptyStateText>No news currently available</EmptyStateText>
+          <EmptyStateButton onClick={handleRefresh}>
+            <RefreshIcon /> Refresh Feed
+          </EmptyStateButton>
+        </EmptyStateContainer>
+      </Section>
+    );
+  }
+  
   return (
     <Section>
       <SectionHeader>
         <Title>What's poppin'</Title>
-        <ViewMoreButton to="/news">View more</ViewMoreButton>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <RefreshButton onClick={handleRefresh}>
+            <RefreshIcon /> Refresh
+          </RefreshButton>
+          <ViewMoreButton to="/news">View more</ViewMoreButton>
+        </div>
       </SectionHeader>
       <List>
         {news.map(item => (

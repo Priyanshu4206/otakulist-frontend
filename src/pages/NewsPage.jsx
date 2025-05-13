@@ -240,23 +240,95 @@ const Spinner = styled.div`
 `;
 
 const EmptyState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
   text-align: center;
-  padding: 4rem 2rem;
+  min-height: 300px;
+`;
+
+const EmptyStateImage = styled.div`
+  width: 150px;
+  height: 150px;
+  margin-bottom: 1.5rem;
+  font-size: 5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--textSecondary);
+`;
+
+const EmptyStateTitle = styled.h3`
+  font-size: 1.25rem;
+  color: var(--textPrimary);
+  margin-bottom: 0.8rem;
+`;
+
+const EmptyStateText = styled.p`
+  font-size: 1rem;
+  color: var(--textSecondary);
+  margin-bottom: 1.5rem;
+  max-width: 500px;
+`;
+
+const RefreshButton = styled.button`
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.7rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
   
-  h3 {
-    font-size: 1.5rem;
-    margin-bottom: 1rem;
-    color: var(--textPrimary);
+  &:hover {
+    background-color: var(--primaryDark);
   }
   
-  p {
-    font-size: 1rem;
-    max-width: 500px;
-    margin: 0 auto;
-    line-height: 1.6;
+  svg {
+    margin-right: 8px;
   }
 `;
+
+const RefreshBarContainer = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1rem;
+`;
+
+const SmallRefreshButton = styled.button`
+  background-color: rgba(var(--primary-rgb), 0.1);
+  color: var(--primary);
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s;
+  
+  &:hover {
+    background-color: rgba(var(--primary-rgb), 0.2);
+  }
+  
+  svg {
+    margin-right: 6px;
+  }
+`;
+
+// RefreshIcon component
+const RefreshIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M22 2L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
 
 // Animation variants
 const containerVariants = {
@@ -311,47 +383,47 @@ const NewsPage = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
   
   // Use API cache with 3-hour expiry
-  const { fetchWithCache } = useApiCache('localStorage', 3 * 60 * 60 * 1000);
+  const { fetchWithCache, clearCacheItem } = useApiCache('localStorage', 3 * 60 * 60 * 1000);
   
-  // Debounce search input
+  // Debounce search query to reduce API calls
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  
   useEffect(() => {
-    const timerId = setTimeout(() => {
+    const timer = setTimeout(() => {
       setDebouncedQuery(searchQuery);
     }, 500);
     
-    return () => clearTimeout(timerId);
+    return () => clearTimeout(timer);
   }, [searchQuery]);
   
   // Fetch news data
-  const fetchNews = useCallback(async () => {
+  const fetchNews = useCallback(async (forceRefresh = false) => {
     setIsLoading(true);
     
     try {
       // Create a cache key based on filters
-      const filters = [
-        `page=${currentPage}`,
-        selectedCategory && `category=${selectedCategory}`,
-        debouncedQuery && `search=${debouncedQuery}`
-      ].filter(Boolean).join('_');
+      const cacheKey = `news_${selectedCategory}_${currentPage}_${debouncedQuery}`;
       
-      const cacheKey = `news_${filters || 'all'}`;
+      // If force refreshing, clear the cache item first
+      if (forceRefresh) {
+        clearCacheItem(cacheKey);
+      }
       
       // Use the fetchWithCache to get data
       const fetchData = async () => {
-        if (selectedCategory) {
-          return await newsAPI.getNewsByCategory(selectedCategory, currentPage);
-        } else {
-          return await newsAPI.getNews(currentPage);
-        }
+        return await newsAPI.getNews({
+          page: currentPage,
+          category: selectedCategory,
+          search: debouncedQuery
+        });
       };
       
       // Get response from cache or API
-      const response = await fetchWithCache(cacheKey, fetchData);
+      const response = await fetchWithCache(cacheKey, fetchData, forceRefresh);
       
-      if (response && response.success && response.data) {
+      if (response && response.data) {
         setNews(response.data);
         
         // Set pagination data
@@ -360,13 +432,16 @@ const NewsPage = () => {
         }
       } else if (response && Array.isArray(response)) {
         setNews(response);
+      } else {
+        setNews([]);
       }
     } catch (error) {
       console.error('Error fetching news:', error);
+      setNews([]);
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, selectedCategory, debouncedQuery, fetchWithCache]);
+  }, [currentPage, selectedCategory, debouncedQuery, fetchWithCache, clearCacheItem]);
   
   // Load news when filters change
   useEffect(() => {
@@ -393,6 +468,11 @@ const NewsPage = () => {
     if (url) {
       window.open(url, '_blank', 'noopener,noreferrer');
     }
+  };
+  
+  // Handle refresh button click
+  const handleRefresh = () => {
+    fetchNews(true);
   };
   
   // Filter news by search query (client-side for better UX)
@@ -451,18 +531,29 @@ const NewsPage = () => {
   };
   
   // Show empty state when no results
-  const renderEmptyState = () => (
-    <EmptyState>
-      <h3>No news found</h3>
-      <p>
-        {selectedCategory 
-          ? `No news articles found in the "${selectedCategory}" category.` 
-          : debouncedQuery 
-          ? `No results matching "${debouncedQuery}".`
-          : "No news articles available at this time."}
-      </p>
-    </EmptyState>
-  );
+  const renderEmptyState = () => {
+    let message = "No news articles available at this time.";
+    let icon = "📰";
+    
+    if (selectedCategory) {
+      message = `No news articles found in the "${selectedCategory}" category.`;
+      icon = categoryEmojis[selectedCategory] || "📰";
+    } else if (debouncedQuery) {
+      message = `No results matching "${debouncedQuery}".`;
+      icon = "🔍";
+    }
+    
+    return (
+      <EmptyState>
+        <EmptyStateImage>{icon}</EmptyStateImage>
+        <EmptyStateTitle>No News Found</EmptyStateTitle>
+        <EmptyStateText>{message}</EmptyStateText>
+        <RefreshButton onClick={handleRefresh}>
+          <RefreshIcon /> Refresh Feed
+        </RefreshButton>
+      </EmptyState>
+    );
+  };
   
   return (
     <Layout>
@@ -500,6 +591,12 @@ const NewsPage = () => {
           </LoadingContainer>
         ) : filteredNews.length > 0 ? (
           <>
+            <RefreshBarContainer>
+              <SmallRefreshButton onClick={handleRefresh}>
+                <RefreshIcon /> Refresh News
+              </SmallRefreshButton>
+            </RefreshBarContainer>
+            
             <NewsGrid>
               {filteredNews.map(item => (
                 <NewsCard
