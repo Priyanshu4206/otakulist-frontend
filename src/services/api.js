@@ -805,4 +805,22 @@ export const animeRatingAPI = {
   },
 };
 
+// News APIs
+export const newsAPI = {
+  // Get news with pagination
+  getNews: (page = 1, limit = 20) => api.get('/news', { 
+    params: { page, limit } 
+  }),
+  
+  // Get latest news (useful for homepage)
+  getLatestNews: (limit = 10) => api.get('/news', { 
+    params: { page: 1, limit, sort: 'publishedAt' } 
+  }),
+  
+  // Get news by category
+  getNewsByCategory: (category, page = 1, limit = 20) => api.get('/news', { 
+    params: { page, limit, category } 
+  }),
+};
+
 export default api;

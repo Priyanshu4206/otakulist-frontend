@@ -4,6 +4,7 @@ import { saveUserTimezone } from '../utils/simpleTimezoneUtils';
 import { saveUserTheme } from '../components/dashboard/SettingsPage';
 import { themes } from '../contexts/ThemeContext';
 import useToast from '../hooks/useToast';
+import { disconnectSocket } from '../hooks/useNotifications';
 
 export const AuthContext = createContext();
 
@@ -189,6 +190,10 @@ export const AuthProvider = ({ children }) => {
       setNotifications(null);
       authFailCount.current = 0;
       resetAuthFailedState();
+      
+      // Disconnect WebSocket before logout
+      disconnectSocket();
+      
       await authAPI.logout();
       showToast({ type: 'success', message: 'Successfully logged out' });
       window.location.href = '/login';
@@ -197,6 +202,10 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setStats(null);
       setNotifications(null);
+      
+      // Disconnect WebSocket even on error
+      disconnectSocket();
+      
       localStorage.removeItem('auth_token');
       localStorage.removeItem('auth_from_callback');
       localStorage.removeItem('auth_checked');

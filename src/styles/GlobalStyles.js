@@ -165,7 +165,7 @@ const GlobalStyles = createGlobalStyle`
                 box-shadow var(--theme-transition) !important;
   }
 
-    /* Hide Scrollbars */
+  /* Hide Scrollbars */
   ::-webkit-scrollbar {
     display: none;
   }

@@ -13,6 +13,7 @@ import DashboardPage from './pages/DashboardPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
 import PlaylistDetailPage from './pages/PlaylistDetailPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
+import NewsPage from './pages/NewsPage.jsx';
 import AuthCallback from './components/auth/AuthCallback.jsx';
 import GlobalStyles from './styles/GlobalStyles.js';
 import { resetAuthFailedState } from './services/api.js';
@@ -20,6 +21,7 @@ import { useEffect, useState } from 'react';
 import { DEFAULT_TIMEZONE } from './utils/simpleTimezoneUtils.js';
 import useAuth from './hooks/useAuth.js';
 import ScrollToTop from './components/common/ScrollToTop.jsx';
+import SocketInitializer from './components/common/SocketInitializer.jsx';
 import GameScreenLoader from './components/settings/GameScreenLoader.jsx';
 import { NotificationProvider } from './contexts/NotificationContext.jsx';
 
@@ -120,6 +122,7 @@ function AppRoutes() {
     <>
       <RouteChangeHandler />
       <ScrollToTop />
+      <SocketInitializer />
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<HomePage />} />
@@ -127,6 +130,7 @@ function AppRoutes() {
         <Route path="/schedule" element={<SchedulePage />} />
         <Route path="/anime/:id" element={<AnimePage />} />
         <Route path="/user/:username" element={<ProfilePage />} />
+        <Route path="/news" element={<NewsPage />} />
         
         {/* Playlist routes - ID route must come before slug route for correct matching */}
         <Route path="/playlist/id/:id" element={<PlaylistDetailPage />} />

@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import useUI from '../../hooks/useUI';
 import useAuth from '../../hooks/useAuth';
 import ThemeSwitcher from './ThemeSwitcher';
+import { useEffect } from 'react';
 
 const HeaderContainer = styled.header`
   display: none;
@@ -117,6 +118,11 @@ const UserIconLink = styled(Link)`
 const Header = ({ transparent = false, unreadCount = 0, openNotificationPanel }) => {
   const { toggleSidebar } = useUI();
   const { isAuthenticated, user } = useAuth();
+
+  useEffect(() => {
+    console.log('[Header] Rendering with unreadCount:', unreadCount);
+  }, [unreadCount]);
+
   return (
     <HeaderContainer transparent={transparent}>
       <LogoContainer>

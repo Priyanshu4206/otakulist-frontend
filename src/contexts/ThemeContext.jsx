@@ -15,294 +15,223 @@ const hexToRgb = (hex) => {
 };
 
 // Define theme color palettes with improved contrast
+// Define theme color palettes with improved contrast for anime themes
 export const themes = {
   'naruto-dark': {
     name: 'Naruto Dark',
-    primary: '#FFA500', // Naruto Orange
-    secondary: '#1E88E5', // Sasuke Blue
-    tertiary: '#4CAF50', // Sakura Green
-    background: '#16161B', // Dark Background (darkened slightly for better contrast)
-    accent: '#FF8C00', // Darker Orange for better contrast
+    primary: '#FF7800', // Naruto Orange - slightly more vibrant
+    secondary: '#2B4C9B', // Sasuke Blue - deeper blue for better contrast
+    tertiary: '#7ED957', // Sakura Green - vibrant for chakra feeling
+    background: '#1A1A24', // Dark ninja night background
+    accent: '#E83C41', // Akatsuki cloud red
     textPrimary: '#FFFFFF', // Pure white for better readability
-    textSecondary: '#E0E0E0', // Lighter gray for better contrast with dark background
-    cardBackground: '#252530', // Slightly bluish dark for cards
-    borderColor: '#3A3A45', // Slightly lighter border for visibility
-    error: '#F44336', // Brighter red for better visibility
-    success: '#4CAF50', // Using tertiary as success
-    info: '#1E88E5', // Using secondary as info
-    warning: '#FFC107', // Brighter yellow for better visibility
+    textSecondary: '#E0E0E0', // Lighter gray for better contrast
+    cardBackground: '#272736', // Slightly bluish dark for cards
+    borderColor: '#3D3D52', // Subtle border for scrolls/UI elements
+    error: '#FF4D4D', // Bright red like Kurama chakra
+    success: '#7ED957', // Using tertiary as success
+    info: '#4D9DE0', // Rasengan blue
+    warning: '#FFD166', // Kyuubi chakra yellow
     // Additional shades
-    primaryLight: '#FFB733', // Lighter Orange
-    primaryDark: '#E67E00', // Darker Orange
-    secondaryLight: '#64B5F6', // Lighter Blue
-    secondaryDark: '#1565C0', // Darker Blue
-    tertiaryLight: '#81C784', // Lighter Green
-    tertiaryDark: '#388E3C', // Darker Green
-    accentLight: '#FFB733', // Lighter accent
-    accentDark: '#D67200', // Darker accent
-    backgroundLight: '#252530', // surface/lighter background
-    backgroundDark: '#0F0F12', // Darker background
+    primaryLight: '#FFA64D', // Lighter Orange
+    primaryDark: '#E56300', // Darker Orange
+    secondaryLight: '#5B79C7', // Sasuke lightning
+    secondaryDark: '#203872', // Darker Blue like Sasuke's clothing
+    tertiaryLight: '#A2EC85', // Lighter Green for healing jutsu
+    tertiaryDark: '#52AF2C', // Darker Green
+    accentLight: '#F76065', // Lighter Akatsuki red
+    accentDark: '#C32328', // Darker accent
+    backgroundLight: '#272736', // surface/lighter background
+    backgroundDark: '#12121B', // Darker background
     // Gradients
-    gradientPrimary: 'linear-gradient(135deg, #FFA500 0%, #FFB733 100%)',
-    gradientSecondary: 'linear-gradient(135deg, #1E88E5 0%, #64B5F6 100%)',
-    gradientAccent: 'linear-gradient(135deg, #FF8C00 0%, #FFB733 100%)',
-    gradientText: 'linear-gradient(135deg, #FFA500 0%, #FFB733 100%)',
-    modalBackground: '#23243a',
-    modalHeaderBackground: 'linear-gradient(90deg, #FFA500 0%, #FFB733 100%)',
-    modalBorderColor: '#FFB733',
-    modalOverlayColor: 'rgba(20, 20, 30, 0.85)',
-  },
-  dark: {
-    name: 'Dark Mode',
-    primary: '#6366F1',
-    secondary: '#8B5CF6',
-    tertiary: '#463671',
-    background: '#0E0E12', // Darkened for better contrast with text
-    accent: '#F59E0B',
-    textPrimary: '#FFFFFF', // Pure white for better readability
-    textSecondary: '#D1D5DB', // Lightened for better contrast
-    cardBackground: '#1F1F28', // Slightly bluish for better distinction
-    borderColor: '#383844', // Lightened for visibility
-    error: '#EF4444',
-    success: '#10B981',
-    info: '#3B82F6',
-    warning: '#F59E0B',
-    // Additional shades
-    primaryLight: '#818CF8',
-    primaryDark: '#4F46E5',
-    secondaryLight: '#A78BFA',
-    secondaryDark: '#7C3AED',
-    tertiaryLight: '#5A4A8E',
-    tertiaryDark: '#382D5A',
-    accentLight: '#FBBF24',
-    accentDark: '#D97706',
-    backgroundLight: '#1F1F28', // Slightly adjusted
-    backgroundDark: '#0A0A0F', // Darker background
-    // Gradients
-    gradientPrimary: 'linear-gradient(135deg, #6366F1 0%, #818CF8 100%)',
-    gradientSecondary: 'linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%)',
-    gradientAccent: 'linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%)',
-    gradientText: 'linear-gradient(135deg, #6366F1 0%, #818CF8 100%)',
-    modalBackground: '#18181f',
-    modalHeaderBackground: 'linear-gradient(90deg, #6366F1 0%, #818CF8 100%)',
-    modalBorderColor: '#6366F1',
-    modalOverlayColor: 'rgba(10, 10, 20, 0.85)',
-  },
-  light: {
-    name: 'Light Mode',
-    primary: '#4F46E5',
-    secondary: '#7C3AED',
-    tertiary: '#6D28D9',
-    background: '#F9FAFB',
-    accent: '#D97706',
-    textPrimary: '#111827', // Darkened for better contrast
-    textSecondary: '#4B5563', // Darkened for better contrast
-    cardBackground: '#FFFFFF',
-    borderColor: '#D1D5DB', // Darkened for better visibility
-    error: '#DC2626', // Darkened for better contrast
-    success: '#059669', // Darkened for better contrast
-    info: '#2563EB', // Darkened for better contrast
-    warning: '#D97706', // Darkened for better contrast
-    // Additional shades
-    primaryLight: '#6366F1',
-    primaryDark: '#4338CA',
-    secondaryLight: '#8B5CF6',
-    secondaryDark: '#6D28D9',
-    tertiaryLight: '#8B5CF6',
-    tertiaryDark: '#5B21B6',
-    accentLight: '#F59E0B',
-    accentDark: '#B45309',
-    backgroundLight: '#FFFFFF',
-    backgroundDark: '#F3F4F6',
-    // Gradients
-    gradientPrimary: 'linear-gradient(135deg, #4F46E5 0%, #6366F1 100%)',
-    gradientSecondary: 'linear-gradient(135deg, #7C3AED 0%, #8B5CF6 100%)',
-    gradientAccent: 'linear-gradient(135deg, #D97706 0%, #F59E0B 100%)',
-    gradientText: 'linear-gradient(135deg, #4F46E5 0%, #6366F1 100%)',
-    modalBackground: '#fff',
-    modalHeaderBackground: 'linear-gradient(90deg, #4F46E5 0%, #6366F1 100%)',
-    modalBorderColor: '#6366F1',
-    modalOverlayColor: 'rgba(255,255,255,0.85)',
-  },
-  default: {
-    name: 'Default Dark',
-    primary: '#FBEFFA',
-    secondary: '#EBBAF2',
-    tertiary: '#463671',
-    background: '#18171D',
-    accent: '#E8C28D',
-    textPrimary: '#FBEFFA',
-    textSecondary: '#B8B8B8',
-    cardBackground: '#252429',
-    borderColor: '#303035',
-    error: '#F87171',
-    success: '#10B981',
-    info: '#3B82F6',
-    warning: '#FBBF24',
-    // Additional shades
-    primaryLight: '#FCF7FC',
-    primaryDark: '#F0D9EF',
-    secondaryLight: '#F2D1F7',
-    secondaryDark: '#D992E0',
-    tertiaryLight: '#5A4A8E',
-    tertiaryDark: '#382D5A',
-    accentLight: '#F2D6B0',
-    accentDark: '#D1A96F',
-    backgroundLight: '#252429',
-    backgroundDark: '#121215',
-    // Gradients
-    gradientPrimary: 'linear-gradient(135deg, #FBEFFA 0%, #EBBAF2 100%)',
-    gradientSecondary: 'linear-gradient(135deg, #463671 0%, #5A4A8E 100%)',
-    gradientAccent: 'linear-gradient(135deg, #E8C28D 0%, #F2D6B0 100%)',
-    gradientText: 'linear-gradient(135deg, #FBEFFA 0%, #EBBAF2 100%)',
-    modalBackground: '#252429',
-    modalHeaderBackground: 'linear-gradient(90deg, #FBEFFA 0%, #EBBAF2 100%)',
-    modalBorderColor: '#EBBAF2',
-    modalOverlayColor: 'rgba(24, 23, 29, 0.85)',
-  },
-  'one-piece': {
-    name: 'One Piece',
-    primary: '#D32F2F', // Luffy Red
-    secondary: '#388E3C', // Zoro Green
-    tertiary: '#FFA000', // Going Merry/Sunny
-    background: '#0B3B82', // Deep Blue Sea (darkened)
-    accent: '#FFC107', // Gold/treasure
-    textPrimary: '#FFFFFF',
-    textSecondary: '#E3F2FD',
-    cardBackground: '#1055AF', // Lighter blue
-    borderColor: '#1976D2',
-    error: '#B71C1C',
-    success: '#2E7D32',
-    info: '#0288D1',
-    warning: '#FFA000',
-    // Additional shades
-    primaryLight: '#EF5350',
-    primaryDark: '#B71C1C',
-    secondaryLight: '#66BB6A',
-    secondaryDark: '#2E7D32',
-    tertiaryLight: '#FFCA28',
-    tertiaryDark: '#FF8F00',
-    accentLight: '#FFD54F',
-    accentDark: '#FFA000',
-    backgroundLight: '#1055AF',
-    backgroundDark: '#092E65',
-    // Gradients
-    gradientPrimary: 'linear-gradient(135deg, #D32F2F 0%, #EF5350 100%)',
-    gradientSecondary: 'linear-gradient(135deg, #388E3C 0%, #66BB6A 100%)',
-    gradientAccent: 'linear-gradient(135deg, #FFC107 0%, #FFD54F 100%)',
-    gradientText: 'linear-gradient(135deg, #D32F2F 0%, #FFC107 100%)',
-    modalBackground: '#0B3B82',
-    modalHeaderBackground: 'linear-gradient(90deg, #D32F2F 0%, #FFC107 100%)',
-    modalBorderColor: '#FFC107',
-    modalOverlayColor: 'rgba(11, 59, 130, 0.85)',
+    gradientPrimary: 'linear-gradient(135deg, #FF7800 0%, #FFA64D 100%)',
+    gradientSecondary: 'linear-gradient(135deg, #2B4C9B 0%, #5B79C7 100%)',
+    gradientAccent: 'linear-gradient(135deg, #E83C41 0%, #F76065 100%)',
+    gradientText: 'linear-gradient(135deg, #FF7800 0%, #FFA64D 100%)',
+    modalBackground: '#23243A',
+    modalHeaderBackground: 'linear-gradient(90deg, #FF7800 0%, #FFA64D 100%)',
+    modalBorderColor: '#FF7800',
+    modalOverlayColor: 'rgba(26, 26, 36, 0.85)',
   },
   'attack-on-titan': {
     name: 'Attack on Titan',
-    primary: '#8D6E63', // Wall color/Brown
-    secondary: '#CFD8DC', // ODM Gear/Silver
-    tertiary: '#43A047', // Scout Regiment Green
-    background: '#121212', // Dark like the show
-    accent: '#C62828', // Blood red
-    textPrimary: '#EEEEEE',
-    textSecondary: '#B0BEC5',
-    cardBackground: '#1E1E1E',
-    borderColor: '#424242',
-    error: '#C62828',
-    success: '#43A047',
-    info: '#546E7A',
-    warning: '#F57F17',
+    primary: '#A67951', // Wall/Titan skin color
+    secondary: '#536D81', // Scout Regiment uniform blue-gray
+    tertiary: '#4E7F3A', // Scout Regiment cape green
+    background: '#0F0F11', // Dark like the show's atmosphere
+    accent: '#B71C1C', // Blood red
+    textPrimary: '#F0F0F0', // Off-white for parchment feel
+    textSecondary: '#B0BEC5', // Grayish for worn look
+    cardBackground: '#1D1D20', // Stone-like texture dark
+    borderColor: '#3A3A40', // Walls
+    error: '#B71C1C', // Blood red
+    success: '#4E7F3A', // Scout green
+    info: '#536D81', // ODM gear blue-gray
+    warning: '#C99D66', // Wood/leather color
     // Additional shades
-    primaryLight: '#A1887F',
-    primaryDark: '#6D4C41',
-    secondaryLight: '#ECEFF1',
-    secondaryDark: '#B0BEC5',
-    tertiaryLight: '#66BB6A',
-    tertiaryDark: '#388E3C',
-    accentLight: '#E53935',
-    accentDark: '#B71C1C',
-    backgroundLight: '#2D2D2D',
-    backgroundDark: '#0A0A0A',
+    primaryLight: '#BF9777', // Lighter wall color
+    primaryDark: '#805C3D', // Darker wall
+    secondaryLight: '#7990A3', // Lighter ODM gear
+    secondaryDark: '#3A4C5A', // Darker uniform
+    tertiaryLight: '#6DA352', // Lighter cape
+    tertiaryDark: '#3A6029', // Darker cape green
+    accentLight: '#D32F2F', // Brighter blood red
+    accentDark: '#8B0000', // Darker blood
+    backgroundLight: '#1D1D20', // Slightly lighter dark
+    backgroundDark: '#080809', // Titan basement dark
     // Gradients
-    gradientPrimary: 'linear-gradient(135deg, #8D6E63 0%, #A1887F 100%)',
-    gradientSecondary: 'linear-gradient(135deg, #CFD8DC 0%, #ECEFF1 100%)',
-    gradientAccent: 'linear-gradient(135deg, #C62828 0%, #E53935 100%)',
-    gradientText: 'linear-gradient(135deg, #C62828 0%, #E53935 100%)',
-    modalBackground: '#1E1E1E',
-    modalHeaderBackground: 'linear-gradient(90deg, #8D6E63 0%, #CFD8DC 100%)',
-    modalBorderColor: '#8D6E63',
-    modalOverlayColor: 'rgba(18, 18, 18, 0.85)',
+    gradientPrimary: 'linear-gradient(135deg, #A67951 0%, #BF9777 100%)',
+    gradientSecondary: 'linear-gradient(135deg, #536D81 0%, #7990A3 100%)',
+    gradientAccent: 'linear-gradient(135deg, #B71C1C 0%, #D32F2F 100%)',
+    gradientText: 'linear-gradient(135deg, #F0F0F0 0%, #B0BEC5 100%)',
+    modalBackground: '#1D1D20',
+    modalHeaderBackground: 'linear-gradient(90deg, #A67951 0%, #B71C1C 100%)',
+    modalBorderColor: '#536D81',
+    modalOverlayColor: 'rgba(15, 15, 17, 0.85)',
   },
   'demon-slayer': {
     name: 'Demon Slayer',
-    primary: '#24AE60', // Tanjiro Green
-    secondary: '#0C71C3', // Water Breathing Blue  
-    tertiary: '#FBA919', // Zenitsu Yellow
-    background: '#14151F', // Night Dark Blue
-    accent: '#E61A50', // Nezuko Red
-    textPrimary: '#FFFFFF',
-    textSecondary: '#B8C6DB',
-    cardBackground: '#1C1E2E',
-    borderColor: '#363A54',
-    error: '#E61A50',
-    success: '#24AE60',
-    info: '#0C71C3',
-    warning: '#FBA919',
+    primary: '#24A66B', // Tanjiro Green - slightly adjusted
+    secondary: '#0A5CD1', // Water Breathing Blue - deeper
+    tertiary: '#FFC107', // Zenitsu Yellow - vibrant
+    background: '#0E1223', // Darker night for demons
+    accent: '#E3175D', // Nezuko Pink-Red - vibrant
+    textPrimary: '#FFFFFF', // Pure white
+    textSecondary: '#C7CDE8', // Light blue-tinted gray
+    cardBackground: '#1A1F37', // Deeper blue-night
+    borderColor: '#303A5C', // Hashira uniform edge
+    error: '#E3175D', // Nezuko Pink-Red
+    success: '#24A66B', // Tanjiro Green
+    info: '#0A5CD1', // Water Blue
+    warning: '#FFC107', // Zenitsu Yellow
     // Additional shades
-    primaryLight: '#3DD179',
-    primaryDark: '#198F4D',
-    secondaryLight: '#2388DB',
-    secondaryDark: '#085A9D',
-    tertiaryLight: '#FBB746',
-    tertiaryDark: '#D89106',
-    accentLight: '#FA3A69',
-    accentDark: '#C20037',
-    backgroundLight: '#1C1E2E',
-    backgroundDark: '#0C0D14',
+    primaryLight: '#35D989', // Lighter Green
+    primaryDark: '#1A7F52', // Darker Green
+    secondaryLight: '#2A7AEF', // Lightning blue
+    secondaryDark: '#0848A3', // Darker blue
+    tertiaryLight: '#FFD54F', // Lighter Yellow
+    tertiaryDark: '#FFA000', // Darker Yellow
+    accentLight: '#F63977', // Lighter pink-red
+    accentDark: '#B91048', // Deeper pink-red
+    backgroundLight: '#1A1F37', // Lighter night
+    backgroundDark: '#090C18', // Deepest night
     // Gradients
-    gradientPrimary: 'linear-gradient(135deg, #24AE60 0%, #3DD179 100%)',
-    gradientSecondary: 'linear-gradient(135deg, #0C71C3 0%, #2388DB 100%)',
-    gradientAccent: 'linear-gradient(135deg, #E61A50 0%, #FA3A69 100%)',
-    gradientText: 'linear-gradient(135deg, #24AE60 0%, #FA3A69 100%)',
-    modalBackground: '#1C1E2E',
-    modalHeaderBackground: 'linear-gradient(90deg, #24AE60 0%, #E61A50 100%)',
-    modalBorderColor: '#E61A50',
-    modalOverlayColor: 'rgba(20, 21, 31, 0.85)',
+    gradientPrimary: 'linear-gradient(135deg, #24A66B 0%, #35D989 100%)',
+    gradientSecondary: 'linear-gradient(135deg, #0A5CD1 0%, #2A7AEF 100%)',
+    gradientAccent: 'linear-gradient(135deg, #E3175D 0%, #F63977 100%)',
+    gradientText: 'linear-gradient(135deg, #FFFFFF 0%, #C7CDE8 100%)',
+    modalBackground: '#1A1F37',
+    modalHeaderBackground: 'linear-gradient(90deg, #24A66B 0%, #E3175D 100%)',
+    modalBorderColor: '#E3175D',
+    modalOverlayColor: 'rgba(14, 18, 35, 0.85)',
+  },
+  'solo-leveling-dark': {
+    name: 'Solo Leveling Dark Blue',
+    primary: '#41A6F6', // Status window blue
+    secondary: '#1E3A5F', // Dark blue hunter uniform
+    tertiary: '#3CEC97', // System message green
+    background: '#0A121F', // Shadow monarch darkness
+    accent: '#BB86FC', // Purple magic/gates
+    textPrimary: '#FFFFFF', // White text
+    textSecondary: '#A0B4CC', // Blue-tinged secondary text
+    cardBackground: '#15243A', // Status window background
+    borderColor: '#2A405C', // Window border
+    error: '#FF5252', // Danger red
+    success: '#3CEC97', // System success green
+    info: '#41A6F6', // Info blue
+    warning: '#FFAB40', // Warning amber
+    // Additional shades
+    primaryLight: '#68B9F8', // Lighter blue
+    primaryDark: '#2D88D8', // Darker blue
+    secondaryLight: '#2C527E', // Lighter navy blue
+    secondaryDark: '#132A45', // Darker navy
+    tertiaryLight: '#67F5B1', // Lighter system green
+    tertiaryDark: '#2BC77E', // Darker system green
+    accentLight: '#CFACFD', // Lighter magic purple
+    accentDark: '#9A67EA', // Darker magic purple
+    backgroundLight: '#15243A', // Lighter shadow
+    backgroundDark: '#060B15', // Deeper shadow
+    // Gradients
+    gradientPrimary: 'linear-gradient(135deg, #41A6F6 0%, #68B9F8 100%)',
+    gradientSecondary: 'linear-gradient(135deg, #1E3A5F 0%, #2C527E 100%)',
+    gradientAccent: 'linear-gradient(135deg, #BB86FC 0%, #CFACFD 100%)',
+    gradientText: 'linear-gradient(135deg, #FFFFFF 0%, #A0B4CC 100%)',
+    modalBackground: '#15243A',
+    modalHeaderBackground: 'linear-gradient(90deg, #41A6F6 0%, #BB86FC 100%)',
+    modalBorderColor: '#41A6F6',
+    modalOverlayColor: 'rgba(10, 18, 31, 0.85)',
+  },
+  'solo-leveling-purple': {
+    name: 'Solo Leveling Purple',
+    primary: '#8E42D1', // Shadow monarch purple - darker
+    secondary: '#4B1480', // Deeper royal purple - more saturated
+    tertiary: '#23856E', // Teal for skills - darker
+    background: '#0A001A', // Deep purple-black - even darker
+    accent: '#2F5FC8', // Magic blue - deeper
+    textPrimary: '#FFFFFF', // White text
+    textSecondary: '#B6A0D1', // Light purple text - slightly darker
+    cardBackground: '#1A0033', // Status window purple - darker
+    borderColor: '#2E0852', // Window border purple - darker
+    error: '#E03E3E', // Error red - deeper
+    success: '#2DA363', // Success green - darker
+    info: '#2969C6', // Info blue - deeper
+    warning: '#E67E00', // Warning orange - deeper
+    // Additional shades
+    primaryLight: '#A668DE', // Lighter purple - toned down
+    primaryDark: '#6A2C9E', // Darker purple - deeper
+    secondaryLight: '#661AA4', // Medium purple - darker
+    secondaryDark: '#360D5A', // Darkest purple - deeper
+    tertiaryLight: '#32A994', // Lighter teal - darker
+    tertiaryDark: '#1A6652', // Deeper teal - darker
+    accentLight: '#4776E0', // Lighter magic blue - darker
+    accentDark: '#1B4AA8', // Deeper magic blue - darker
+    backgroundLight: '#1A0033', // Lighter background - darker
+    backgroundDark: '#050010', // Deepest background - darker
+    // Gradients
+    gradientPrimary: 'linear-gradient(135deg, #8E42D1 0%, #A668DE 100%)',
+    gradientSecondary: 'linear-gradient(135deg, #4B1480 0%, #661AA4 100%)',
+    gradientAccent: 'linear-gradient(135deg, #2F5FC8 0%, #4776E0 100%)',
+    gradientText: 'linear-gradient(135deg, #FFFFFF 0%, #B6A0D1 100%)',
+    modalBackground: '#1A0033',
+    modalHeaderBackground: 'linear-gradient(90deg, #8E42D1 0%, #4B1480 100%)',
+    modalBorderColor: '#8E42D1',
+    modalOverlayColor: 'rgba(10, 0, 26, 0.9)',
   },
   'jujutsu-kaisen': {
     name: 'Jujutsu Kaisen',
-    primary: '#4F46E5', // Purple/Blue
-    secondary: '#334155', // Dark Gray
-    tertiary: '#94A3B8', // Light Gray
-    background: '#0F172A', // Very Dark Blue
-    accent: '#DC2626', // Cursed Energy Red
-    textPrimary: '#F1F5F9',
-    textSecondary: '#94A3B8',
-    cardBackground: '#1E293B',
-    borderColor: '#334155',
-    error: '#DC2626',
-    success: '#16A34A',
-    info: '#3B82F6',
-    warning: '#FBBF24',
+    primary: '#5438DC', // Gojo's blue/purple
+    secondary: '#303B4D', // Dark uniform gray
+    tertiary: '#7E889A', // Lighter uniform gray
+    background: '#0D1117', // Cursed energy dark
+    accent: '#EF2D56', // Blood/Sukuna red
+    textPrimary: '#F5F9FF', // Clean white with slight blue tint
+    textSecondary: '#A2AEC1', // Subdued blue-gray
+    cardBackground: '#1B2536', // Domain expansion background
+    borderColor: '#303B4D', // Uniform trim
+    error: '#EF2D56', // Sukuna red
+    success: '#1ABC9C', // Teal for Megumi's shikigami
+    info: '#4361EE', // Cursed energy blue
+    warning: '#F7B801', // Nobara's hammer glow
     // Additional shades
-    primaryLight: '#6366F1',
-    primaryDark: '#4338CA',
-    secondaryLight: '#475569',
-    secondaryDark: '#1E293B',
-    tertiaryLight: '#CBD5E1',
-    tertiaryDark: '#64748B',
-    accentLight: '#EF4444',
-    accentDark: '#B91C1C',
-    backgroundLight: '#1E293B',
-    backgroundDark: '#020617',
+    primaryLight: '#7258F6', // Lighter cursed energy
+    primaryDark: '#392CBD', // Darker Gojo blue
+    secondaryLight: '#4A5568', // Lighter uniform
+    secondaryDark: '#1E262F', // Darker uniform
+    tertiaryLight: '#A0AAC0', // Lightest gray
+    tertiaryDark: '#5E6B81', // Darker gray
+    accentLight: '#FF5377', // Lighter blood red
+    accentDark: '#D01B41', // Darker blood red
+    backgroundLight: '#1B2536', // Lighter cursed energy
+    backgroundDark: '#07090D', // Deepest cursed energy
     // Gradients
-    gradientPrimary: 'linear-gradient(135deg, #4F46E5 0%, #6366F1 100%)',
-    gradientSecondary: 'linear-gradient(135deg, #334155 0%, #475569 100%)',
-    gradientAccent: 'linear-gradient(135deg, #DC2626 0%, #EF4444 100%)',
-    gradientText: 'linear-gradient(135deg, #4F46E5 0%, #DC2626 100%)',
-    modalBackground: '#1E293B',
-    modalHeaderBackground: 'linear-gradient(90deg, #4F46E5 0%, #DC2626 100%)',
-    modalBorderColor: '#DC2626',
-    modalOverlayColor: 'rgba(15, 23, 42, 0.85)',
+    gradientPrimary: 'linear-gradient(135deg, #5438DC 0%, #7258F6 100%)',
+    gradientSecondary: 'linear-gradient(135deg, #303B4D 0%, #4A5568 100%)',
+    gradientAccent: 'linear-gradient(135deg, #EF2D56 0%, #FF5377 100%)',
+    gradientText: 'linear-gradient(135deg, #5438DC 0%, #7258F6 100%)',
+    modalBackground: '#1B2536',
+    modalHeaderBackground: 'linear-gradient(90deg, #5438DC 0%, #EF2D56 100%)',
+    modalBorderColor: '#5438DC',
+    modalOverlayColor: 'rgba(13, 17, 23, 0.85)',
   },
 };
 

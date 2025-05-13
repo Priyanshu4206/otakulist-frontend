@@ -66,15 +66,6 @@ const Main = styled.main`
 const ContentContainer = styled.div`
   max-width: var(--content-max-width);
   margin: 0 auto;
-  // padding: var(--content-padding-desktop);
-  
-  // @media (max-width: 768px) {
-  //   padding: var(--content-padding-tablet);
-  // }
-  
-  // @media (max-width: 480px) {
-  //   padding: var(--content-padding-mobile);
-  // }
 `;
 
 const Layout = ({ children, transparentHeader = false, fullWidth = false }) => {

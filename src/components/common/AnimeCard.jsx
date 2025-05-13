@@ -381,12 +381,12 @@ const AnimeCard = ({ anime }) => {
   // Get the correct image URL based on available format
   const getImageUrl = () => {
     // For schedule endpoint format
-    if (images?.jpg?.imageUrl || images?.jpg?.image_url) {
-      return images.jpg.imageUrl || images.jpg.image_url;
+    if (images?.jpg?.largeImageUrl || images?.jpg?.large_image_url || images?.jpg?.imageUrl || images?.jpg?.image_url) {
+      return images.jpg.largeImageUrl || images.jpg.large_image_url || images.jpg.imageUrl || images.jpg.image_url;
     }
     // For anime detail endpoint format
-    if (images?.jpg?.large_image_url) {
-      return images.jpg.large_image_url;
+    if (images?.jpg?.large_image_url || images?.jpg?.largeImageUrl || images?.jpg?.imageUrl || images?.jpg?.image_url) {
+      return images.jpg.large_image_url || images.jpg.largeImageUrl || images.jpg.imageUrl || images.jpg.image_url;
     }
     // Fallback
     return 'https://via.placeholder.com/225x350?text=No+Image';

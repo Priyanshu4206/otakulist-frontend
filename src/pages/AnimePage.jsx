@@ -9,7 +9,6 @@ import { animeAPI } from '../services/api';
 import useApiCache from '../hooks/useApiCache';
 import { Star, Calendar, Clock, Globe, Tv, Hash, Music, ExternalLink, BookOpen, Users, ChevronDown, ChevronUp } from 'lucide-react';
 import AnimeRatingModal from '../components/common/AnimeRatingModal';
-import QuickActionButtons from '../components/anime/QuickActionButtons';
 // Styles
 import { PageContainer,  AnimePageGrid,  LeftSidebar, MainContent, PosterContainer, ShimmerOverlay, QuickInfoCard, QuickInfoTitle, QuickInfoGrid, InfoLabel, InfoValue, ScoreDisplay, ScoreValue, ScoreLabel, AnimeHeaderSection, AnimeTitle, AlternativeTitles, ContentSection, SectionHeading, Synopsis, ViewMoreButton, VideoContainer, GradientBackground, ErrorMessage, NoContentMessage, ThemeSongsSection, ThemeCategory, ThemeCategoryTitle, ThemeItem, ExternalLinksGrid, ExternalLinkButton, GenreBadge, GenresContainer } from '../components/anime/AnimePageStyles'; 
 import formatNumberShort from '../utils/formatShortNumber';
@@ -62,8 +61,6 @@ const AnimePage = () => {
   const [characters, setCharacters] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [showRatingModal, setShowRatingModal] = useState(false);
-  const [showWatchlistModal, setShowWatchlistModal] = useState(false);
-  const [showPlaylistModal, setShowPlaylistModal] = useState(false);
   
   // Create cache keys
   const animeCacheKey = `anime_${id}`;
