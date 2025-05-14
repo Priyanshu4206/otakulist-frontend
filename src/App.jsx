@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { UIProvider } from './contexts/UIContext.jsx';
 import { AuthProvider } from './contexts/AuthContext.jsx';
 import { ThemeProvider } from './contexts/ThemeContext.jsx';
@@ -118,6 +118,9 @@ function RouteChangeHandler() {
 }
 
 function AppRoutes() {
+  // Access auth state for route decisions
+  const { isAuthenticated } = useAuth();
+  
   return (
     <>
       <RouteChangeHandler />
@@ -136,7 +139,13 @@ function AppRoutes() {
         <Route path="/playlist/id/:id" element={<PlaylistDetailPage />} />
         <Route path="/playlist/:slug" element={<PlaylistDetailPage />} />
         
-        <Route path="/auth-callback" element={<AuthCallback />} />
+        {/* Auth Callback routes with high priority and ensuring they render even with hash */}
+        <Route path="/auth-callback" element={
+          isAuthenticated 
+            ? <Navigate to="/dashboard" replace />
+            : <AuthCallback />
+        } />
+        <Route path="/api/auth/google/callback" element={<AuthCallback />} />
         
         {/* Dashboard routes with nested routing */}
         <Route path="/dashboard/*" element={
@@ -155,10 +164,38 @@ function AppRoutes() {
 // Main App component with loading state management
 function AuthContent() {
   const { initialAuthCheckComplete } = useAuth();
+  const [forceLoad, setForceLoad] = useState(false);
+  const [loadingKey] = useState(`loader-${Math.random().toString(36).substring(2, 9)}`);
+  
+  // Safety timeout to prevent getting stuck in loading state
+  useEffect(() => {
+    const loaderTimeout = setTimeout(() => {
+      if (!initialAuthCheckComplete && !forceLoad) {
+        console.warn('[APP] Auth check taking too long, forcing content to load');
+        setForceLoad(true);
+      }
+    }, 5000); // 5 second safety timeout
+    
+    return () => clearTimeout(loaderTimeout);
+  }, [initialAuthCheckComplete, forceLoad]);
+  
+  // Check if we have a hard redirect attempt in progress
+  const hardRedirectInProgress = localStorage.getItem('hard_redirect_attempted') === 'pending';
+  
+  // If a hard redirect is in progress, don't show loader to avoid flickering
+  if (hardRedirectInProgress) {
+    console.log('[APP] Hard redirect in progress, skipping loader');
+    return (
+      <AppWrapper>
+        <GlobalStyles />
+        <AppRoutes />
+      </AppWrapper>
+    );
+  }
   
   // Show loading screen until initial auth check is complete
-  if (!initialAuthCheckComplete) {
-    return <GameScreenLoader text="Loading Otakulist..." />;
+  if (!initialAuthCheckComplete && !forceLoad) {
+    return <GameScreenLoader key={loadingKey} text="Loading Otakulist..." />;
   }
   
   return (

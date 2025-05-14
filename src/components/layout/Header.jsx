@@ -119,10 +119,6 @@ const Header = ({ transparent = false, unreadCount = 0, openNotificationPanel })
   const { toggleSidebar } = useUI();
   const { isAuthenticated, user } = useAuth();
 
-  useEffect(() => {
-    console.log('[Header] Rendering with unreadCount:', unreadCount);
-  }, [unreadCount]);
-
   return (
     <HeaderContainer transparent={transparent}>
       <LogoContainer>

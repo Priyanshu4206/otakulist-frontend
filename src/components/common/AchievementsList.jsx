@@ -210,13 +210,6 @@ const AchievementsList = ({
     return IconComponent ? <IconComponent size={22} /> : <Award size={22} />;
   };
 
-  // Log incoming data for debugging
-  console.log('Rendering AchievementsList with:', {
-    allAchievementsCount: allAchievements.length,
-    userAchievementsCount: userAchievements.length,
-    isPublicProfile
-  });
-
   if (isPublicProfile) {
     // Enhanced grouping logic for public profile view
     const grouped = userAchievements.reduce((acc, uach) => {
@@ -333,7 +326,6 @@ const AchievementsList = ({
   const userAchMap = createUserAchievementMap(userAchievements);
 
   // Log for debugging
-  console.log(`User achievements map has ${Object.keys(userAchMap).length} entries`);
 
   // Merge with more explicit checking
   const mergedAchievements = allAchievements.map(ach => {

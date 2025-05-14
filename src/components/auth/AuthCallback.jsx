@@ -215,6 +215,63 @@ function AuthCallback() {
     };
   }, [navigate, handleLoginSuccess, success, error]);
 
+  // Hard redirect fallback - executed immediately on component initialization
+  const hash = window.location.hash;
+  if (hash && hash.includes('token=')) {
+    try {
+      const hashParams = new URLSearchParams(hash.substring(1));
+      const token = hashParams.get('token');
+      
+      if (token) {
+        // Store token and redirect immediately if component doesn't process properly
+        localStorage.setItem('auth_token', token);
+        localStorage.setItem('has_valid_token', 'true');
+        localStorage.setItem('auth_from_callback', 'true');
+        
+        // Get user data if possible
+        const userDataEncoded = hashParams.get('user');
+        if (userDataEncoded) {
+          try {
+            // Parse user data
+            const userData = JSON.parse(decodeURIComponent(userDataEncoded));
+            
+            // Set session flag for processing
+            sessionStorage.setItem(AUTH_PROCESSED_FLAG, 'true');
+            
+            // Immediate login success handling
+            setTimeout(() => {
+              handleLoginSuccess({ user: userData }, token);
+            }, 0);
+          } catch (e) {
+            console.error('[AUTH CALLBACK] Error parsing user data in immediate handling:', e);
+          }
+        }
+        
+        // Only set this flag once
+        if (!localStorage.getItem('hard_redirect_attempted')) {
+          localStorage.setItem('hard_redirect_attempted', 'pending');
+          
+          // Set a safety timeout to force redirect if component doesn't process correctly
+          setTimeout(() => {
+            if (localStorage.getItem('hard_redirect_attempted') === 'pending') {
+              localStorage.setItem('hard_redirect_attempted', 'processed');
+              
+              // Ensure the hash is removed to prevent redirect loops
+              if (window.history && window.history.replaceState) {
+                window.history.replaceState(null, null, '/dashboard');
+              }
+              
+              // Navigate to dashboard
+              window.location.href = '/dashboard';
+            }
+          }, 3000);
+        }
+      }
+    } catch (e) {
+      console.error('[AUTH CALLBACK] Error in hard redirect fallback:', e);
+    }
+  }
+
   return (
     <LoadingContainer>
       <LoadingCard

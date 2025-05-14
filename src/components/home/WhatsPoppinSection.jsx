@@ -65,12 +65,13 @@ const RefreshButton = styled.button`
   background: none;
   border: none;
   margin-right: 1rem;
-  cursor: pointer;
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
   transition: opacity 0.2s;
   font-weight: 500;
+  opacity: ${props => props.disabled ? 0.5 : 1};
   
   &:hover {
-    opacity: 0.8;
+    opacity: ${props => props.disabled ? 0.5 : 0.8};
   }
   
   svg {
@@ -231,13 +232,14 @@ const EmptyStateButton = styled.button`
   padding: 0.6rem 1.2rem;
   font-size: 0.9rem;
   font-weight: 500;
-  cursor: pointer;
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
   transition: all 0.2s;
   display: flex;
   align-items: center;
+  opacity: ${props => props.disabled ? 0.7 : 1};
   
   &:hover {
-    background-color: var(--primaryDark);
+    background-color: ${props => props.disabled ? 'var(--primary)' : 'var(--primaryDark)'};
   }
   
   svg {
@@ -290,52 +292,86 @@ const RefreshIcon = () => (
   </svg>
 );
 
+// Define constants
+const MAX_TRENDING_NEWS = 6;
+const REFRESH_LIMIT = 5;
+const CACHE_KEY = 'home_trending_news';
+
 const WhatsPoppinSection = () => {
   const [news, setNews] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Use API cache with 3-hour expiry
-  const { fetchWithCache, clearCacheItem } = useApiCache('localStorage', 3 * 60 * 60 * 1000);
+  // Use API cache with 6-hour expiry
+  const { fetchWithCache, clearCacheItem, checkRefreshLimit } = useApiCache('localStorage', 6 * 60 * 60 * 1000);
+  
+  // Get refresh count and limit information
+  const [refreshInfo, setRefreshInfo] = useState({ count: 0, canRefresh: true });
+  
+  // Initialize refresh count from our utility
+  useEffect(() => {
+    const { refreshCount, canRefresh } = checkRefreshLimit('trending_news', REFRESH_LIMIT);
+    setRefreshInfo({ count: refreshCount, canRefresh });
+  }, [checkRefreshLimit]);
   
   // Fetch news data
   const fetchNews = useCallback(async (forceRefresh = false) => {
     setIsLoading(true);
     
     try {
-      // Create a cache key
-      const cacheKey = 'home_latest_news';
-      
-      // If force refreshing, clear the cache item first
+      // Check refresh limits if we're trying to force refresh
       if (forceRefresh) {
-        clearCacheItem(cacheKey);
+        const { canRefresh, increment } = checkRefreshLimit('trending_news', REFRESH_LIMIT);
+        
+        if (canRefresh) {
+          // Increment the counter and update state
+          const newCount = increment();
+          setRefreshInfo({ count: newCount, canRefresh: newCount < REFRESH_LIMIT });
+          
+          // Clear cache to force a refresh
+          clearCacheItem(CACHE_KEY);
+        } else {
+          // If we've hit the limit, just return the cached data
+          setIsLoading(false);
+          const response = await fetchWithCache(CACHE_KEY, null, false);
+          return;
+        }
       }
       
       // Use the fetchWithCache to get data
       const fetchData = async () => {
-        return await newsAPI.getLatestNews(5);
+        return await newsAPI.getTrendingNews();
       };
       
       // Get response from cache or API
-      const response = await fetchWithCache(cacheKey, fetchData, forceRefresh);
+      const response = await fetchWithCache(CACHE_KEY, fetchData, forceRefresh);
       
       let newsData = [];
       if (response && response.data && Array.isArray(response.data)) {
-        newsData = response.data;
+        // Limit to MAX_TRENDING_NEWS items
+        newsData = response.data.slice(0, MAX_TRENDING_NEWS);
       } else if (response && Array.isArray(response)) {
-        newsData = response;
+        // Limit to MAX_TRENDING_NEWS items
+        newsData = response.slice(0, MAX_TRENDING_NEWS);
       }
       
       setNews(newsData);
     } catch (error) {
-      console.error('Error fetching news:', error);
+      console.error('Error fetching trending news:', error);
       setNews([]);
     } finally {
       setIsLoading(false);
     }
-  }, [fetchWithCache, clearCacheItem]);
+  }, [fetchWithCache, clearCacheItem, checkRefreshLimit]);
   
   // Handle refresh button click
   const handleRefresh = () => {
+    // Check if we have more refreshes available
+    if (!refreshInfo.canRefresh) {
+      // Show some feedback that we've hit the refresh limit
+      console.log('Refresh limit reached. Try again later.');
+      return;
+    }
+    
     fetchNews(true);
   };
   
@@ -373,8 +409,8 @@ const WhatsPoppinSection = () => {
         <EmptyStateContainer>
           <EmptyStateImage>📰</EmptyStateImage>
           <EmptyStateText>No news currently available</EmptyStateText>
-          <EmptyStateButton onClick={handleRefresh}>
-            <RefreshIcon /> Refresh Feed
+          <EmptyStateButton onClick={handleRefresh} disabled={!refreshInfo.canRefresh}>
+            <RefreshIcon /> Refresh Feed {!refreshInfo.canRefresh ? '(Limit reached)' : ''}
           </EmptyStateButton>
         </EmptyStateContainer>
       </Section>
@@ -386,14 +422,14 @@ const WhatsPoppinSection = () => {
       <SectionHeader>
         <Title>What's poppin'</Title>
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <RefreshButton onClick={handleRefresh}>
-            <RefreshIcon /> Refresh
+          <RefreshButton onClick={handleRefresh} disabled={!refreshInfo.canRefresh}>
+            <RefreshIcon /> Refresh {!refreshInfo.canRefresh ? `(Limit reached)` : `(${refreshInfo.count}/${REFRESH_LIMIT})`}
           </RefreshButton>
           <ViewMoreButton to="/news">View more</ViewMoreButton>
         </div>
       </SectionHeader>
       <List>
-        {news.map(item => (
+        {news.slice(0, MAX_TRENDING_NEWS).map(item => (
           <NewsCard key={item._id} onClick={() => handleNewsClick(item.url)}>
             <NewsImage>
               {item.imageUrl ? 

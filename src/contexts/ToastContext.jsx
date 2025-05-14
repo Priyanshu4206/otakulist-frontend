@@ -1,8 +1,18 @@
-import { createContext, useState, useCallback } from 'react';
+import { createContext, useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Check, AlertCircle, Info, AlertTriangle, Bell, Award, UserPlus, Heart, MessageCircle } from 'lucide-react';
+import { X, Check, AlertCircle, Info, AlertTriangle, Bell, Award, UserPlus, Heart, MessageCircle, Lightbulb } from 'lucide-react';
+
+// Logger utility for consistent logging format
+const logger = (area, action, data = null) => {
+  const logMessage = `[ToastContext] ${area} | ${action}`;
+  // if (data) {
+  //   console.log(logMessage, data);
+  // } else {
+  //   console.log(logMessage);
+  // }
+};
 
 // Create context
 export const ToastContext = createContext();
@@ -79,19 +89,40 @@ const CloseButton = styled.button`
 `;
 
 const NotificationIcon = ({ notificationType }) => {
+  logger('NotificationIcon', 'Rendering icon for type', notificationType);
+  
   switch (notificationType) {
-    case 'achievement': return <Award size={22} />;
-    case 'follow': return <UserPlus size={22} />;
-    case 'playlist_like': return <Heart size={22} />;
-    case 'playlist_comment':
-    case 'comment_reply': return <MessageCircle size={22} />;
-    case 'system': return <Bell size={22} />;
-    default: return <Bell size={22} />;
+    case 'achievements':
+      return <Award size={22} />;
+    case 'follows':
+      return <UserPlus size={22} />;
+    case 'playlist_likes':
+      return <Heart size={22} />;
+    case 'comments':
+    case 'playlist_comments':
+    case 'comment_replys':
+      return <MessageCircle size={22} />;
+    case 'announcements':
+      return <Bell size={22} />;
+    case 'recommendations':
+      return <Lightbulb size={22} />;
+    default:
+      return <Bell size={22} />;
   }
 };
 
 // Toast component with different icons based on type
 const Toast = ({ id, type, message, onClose, notificationType }) => {
+  logger('Toast', 'Rendering toast', { id, type, message, notificationType });
+  
+  useEffect(() => {
+    logger('Toast', 'Toast mounted', { id });
+    
+    return () => {
+      logger('Toast', 'Toast unmounted', { id });
+    };
+  }, [id]);
+  
   const getIcon = () => {
     if (type === 'notification') {
       return <NotificationIcon notificationType={notificationType} />;
@@ -109,6 +140,11 @@ const Toast = ({ id, type, message, onClose, notificationType }) => {
     }
   };
 
+  const handleClose = () => {
+    logger('Toast', 'Close button clicked', { id });
+    onClose(id);
+  };
+
   return (
     <ToastItem
       type={type}
@@ -120,7 +156,7 @@ const Toast = ({ id, type, message, onClose, notificationType }) => {
     >
       <IconContainer>{getIcon()}</IconContainer>
       <ToastMessage>{message}</ToastMessage>
-      <CloseButton onClick={() => onClose(id)}>
+      <CloseButton onClick={handleClose}>
         <X size={16} />
       </CloseButton>
     </ToastItem>
@@ -129,19 +165,59 @@ const Toast = ({ id, type, message, onClose, notificationType }) => {
 
 // Toast provider component
 export const ToastProvider = ({ children }) => {
+  logger('ToastProvider', 'Initializing');
+  
   const [toasts, setToasts] = useState([]);
+  const toastsRef = useRef(toasts);
+  const timeoutsRef = useRef({});
+  
+  // Update ref when state changes
+  useEffect(() => {
+    toastsRef.current = toasts;
+    logger('ToastProvider', 'Toasts state updated', { count: toasts.length, toasts });
+  }, [toasts]);
+  
+  // Cleanup function for timeouts on unmount
+  useEffect(() => {
+    logger('ToastProvider', 'Provider mounted');
+    
+    return () => {
+      logger('ToastProvider', 'Provider unmounting, clearing all timeouts');
+      
+      // Clear all timeout references
+      Object.values(timeoutsRef.current).forEach(timeoutId => {
+        clearTimeout(timeoutId);
+      });
+    };
+  }, []);
 
   // Function to add a new toast
-  const showToast = useCallback(({ type = 'info', message, duration = 1000 }) => {
+  const showToast = useCallback(({ type = 'info', message, duration = 3000, notificationType }) => {
+    logger('showToast', 'Called with params', { type, message, duration, notificationType });
+    
     const id = Date.now();
     
-    setToasts(prevToasts => [...prevToasts, { id, type, message }]);
+    // Add new toast
+    setToasts(prevToasts => {
+      const newToasts = [...prevToasts, { id, type, message, notificationType }];
+      logger('showToast', 'Adding toast to state', { id, newCount: newToasts.length });
+      return newToasts;
+    });
     
-    // Auto-dismiss toast after duration
+    // Set auto-dismiss timeout if duration is provided
     if (duration) {
-      setTimeout(() => {
+      logger('showToast', 'Setting auto-dismiss timeout', { id, duration });
+      
+      const timeoutId = setTimeout(() => {
+        logger('showToast', 'Auto-dismiss timeout triggered', { id });
         removeToast(id);
+        
+        // Clean up timeout reference
+        delete timeoutsRef.current[id];
       }, duration);
+      
+      // Store timeout reference
+      timeoutsRef.current[id] = timeoutId;
     }
     
     return id;
@@ -149,33 +225,74 @@ export const ToastProvider = ({ children }) => {
 
   // Function to remove a toast
   const removeToast = useCallback((id) => {
-    setToasts(prevToasts => prevToasts.filter(toast => toast.id !== id));
+    logger('removeToast', 'Removing toast', { id });
+    
+    // Clear any existing timeout for this toast
+    if (timeoutsRef.current[id]) {
+      logger('removeToast', 'Clearing timeout for toast', { id });
+      clearTimeout(timeoutsRef.current[id]);
+      delete timeoutsRef.current[id];
+    }
+    
+    setToasts(prevToasts => {
+      const filtered = prevToasts.filter(toast => toast.id !== id);
+      logger('removeToast', 'Filtered toasts', { 
+        id, 
+        previousCount: prevToasts.length, 
+        newCount: filtered.length 
+      });
+      return filtered;
+    });
   }, []);
 
   // Create toast portal, render only if document is available
-  const toastPortal = typeof document !== 'undefined' ? createPortal(
-    <ToastContainer>
-      <AnimatePresence>
-        {toasts.map(toast => (
-          <Toast
-            key={toast.id}
-            id={toast.id}
-            type={toast.type}
-            message={toast.message}
-            onClose={removeToast}
-          />
-        ))}
-      </AnimatePresence>
-    </ToastContainer>,
-    document.body
-  ) : null;
+  const portalElement = typeof document !== 'undefined' ? document.body : null;
+  
+  useEffect(() => {
+    if (portalElement) {
+      logger('ToastProvider', 'Portal element available', { element: 'document.body' });
+    } else {
+      logger('ToastProvider', 'Portal element not available - SSR mode or document not ready');
+    }
+  }, [portalElement]);
 
   return (
     <ToastContext.Provider value={{ showToast, removeToast }}>
+      {logger('ToastProvider', 'Rendering children')}
       {children}
-      {toastPortal}
+      {portalElement && createPortal(
+        <ToastContainer>
+          {logger('ToastContainer', 'Rendering toast container', { toastCount: toasts.length })}
+          <AnimatePresence>
+            {toasts.map(toast => (
+              <Toast
+                key={toast.id}
+                id={toast.id}
+                type={toast.type}
+                message={toast.message}
+                notificationType={toast.notificationType}
+                onClose={removeToast}
+              />
+            ))}
+          </AnimatePresence>
+        </ToastContainer>,
+        portalElement
+      )}
     </ToastContext.Provider>
   );
 };
 
-export default ToastContext; 
+// Custom hook for using the toast
+export const useToast = () => {
+  const context = React.useContext(ToastContext);
+  
+  if (!context) {
+    logger('useToast', 'ERROR: Hook used outside ToastProvider');
+    throw new Error('useToast must be used within a ToastProvider');
+  }
+  
+  logger('useToast', 'Hook accessed');
+  return context;
+};
+
+export default ToastContext;

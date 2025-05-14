@@ -6,16 +6,6 @@ import { notificationAPI, userAPI } from '../services/api';
 import { ToastContext } from './ToastContext';
 import { io } from 'socket.io-client';
 
-// Logger utility for consistent logging format
-const logger = (area, action, data = null) => {
-  const logMessage = `[NotificationContext] ${area} | ${action}`;
-  // if (data) {
-  //   console.log(logMessage, data);
-  // } else {
-  //   console.log(logMessage);
-  // }
-};
-
 const NotificationContext = createContext();
 
 const initialState = {
@@ -69,11 +59,6 @@ function notificationReducer(state, action) {
         ? state.unreadCount 
         : state.unreadCount + 1;
       
-      logger('State Update', 'Added new notification', { 
-        notificationId: action.notification._id,
-        newUnreadCount: unreadCount
-      });
-      
       return { 
         ...state, 
         notifications, 
@@ -111,21 +96,10 @@ export const NotificationProvider = ({ children }) => {
   const tokenCheckIntervalRef = useRef(null);
   const notificationTimeoutsRef = useRef([]);
 
-  // DEBUG: Monitor state changes
-  useEffect(() => {
-    logger('State', 'Updated', { 
-      notificationCount: state.notifications.length,
-      unreadCount: state.unreadCount,
-      hydrated: state.hydrated,
-      pagination: state.pagination
-    });
-  }, [state]);
-
   // Clear notification timeouts on unmount
   useEffect(() => {
     return () => {
       // Clean up any pending timeouts
-      logger('Cleanup', 'Clearing notification timeouts', { count: notificationTimeoutsRef.current.length });
       notificationTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
       notificationTimeoutsRef.current = [];
     };
@@ -134,17 +108,12 @@ export const NotificationProvider = ({ children }) => {
   // Helper to show a notification toast
   const showNotificationToast = useCallback((notif) => {
     // Create and store timeout ID for cleanup
-    logger('Toast', 'Scheduling notification toast', { 
-      notificationId: notif._id, 
-      type: notif.type
-    });
-    
     const timeoutId = setTimeout(() => {
       showToast({
         type: 'notification',
         message: notif.message,
         duration: 4000,
-        id: notif._id,
+        notificationId: notif._id,
         onClose: () => markRead(notif._id),
         notificationType: notif.type,
       });
@@ -158,7 +127,6 @@ export const NotificationProvider = ({ children }) => {
     if (!isAuthenticated) {
       // Clear any existing interval when not authenticated
       if (tokenCheckIntervalRef.current) {
-        logger('Auth', 'Clearing token check interval (not authenticated)');
         clearInterval(tokenCheckIntervalRef.current);
         tokenCheckIntervalRef.current = null;
       }
@@ -169,18 +137,11 @@ export const NotificationProvider = ({ children }) => {
       const currentToken = localStorage.getItem('auth_token');
       const socket = getGlobalSocket();
       
-      // Token status logging
-      logger('Auth', 'Token check', { 
-        tokenChanged: currentToken !== previousTokenRef.current,
-        socketConnected: socket?.connected,
-        hasToken: !!currentToken
-      });
-      
+      // Check if token has changed AND we have a connected socket
       if (currentToken && 
           currentToken !== previousTokenRef.current && 
           socket && 
           socket.connected) {
-        logger('Socket', 'Token changed - reconnecting WebSocket');
         // Disconnect current socket - this will trigger reconnection
         disconnectSocket();
         // Update the token reference
@@ -189,7 +150,6 @@ export const NotificationProvider = ({ children }) => {
         // Force immediate reconnection with new token after a short delay
         setTimeout(() => {
           if (currentToken) {
-            logger('Socket', 'Initiating reconnection with new token');
             const newSocket = io(import.meta.env.DEV
               ? 'http://localhost:3000'
               : import.meta.env.VITE_API_URL?.replace(/\/api.*/, '') || 'https://otaku-backend.jumpingcrab.com', {
@@ -201,19 +161,15 @@ export const NotificationProvider = ({ children }) => {
           }
         }, 500);
       } else if (currentToken && currentToken !== previousTokenRef.current) {
-        // Token changed but no socket exists or not connected
-        logger('Auth', 'Token changed - will use on next connection');
         previousTokenRef.current = currentToken;
       }
     };
     
     // Check token every 10 seconds (reduced frequency)
-    logger('Auth', 'Starting token check interval (10s)');
     tokenCheckIntervalRef.current = setInterval(checkToken, 10000);
     
     return () => {
       if (tokenCheckIntervalRef.current) {
-        logger('Auth', 'Cleaning up token check interval');
         clearInterval(tokenCheckIntervalRef.current);
         tokenCheckIntervalRef.current = null;
       }
@@ -223,18 +179,7 @@ export const NotificationProvider = ({ children }) => {
   // Paginated fetchNotifications
   const fetchNotifications = useCallback(async (page = 1, limit = 20, { append = false } = {}) => {
     try {
-      logger('API', `Fetching notifications (page: ${page}, limit: ${limit}, append: ${append})`);
-      
-      const res = await notificationAPI.getNotifications(page, limit);
-      const notifications = res.notifications || [];
-      const pagination = res.pagination || { page, limit, total: notifications.length, hasMore: false };
-      
-      logger('API', 'Fetch successful', { 
-        count: notifications.length, 
-        unreadCount: notifications.filter(n => !n.read).length,
-        pagination
-      });
-      
+      const { notifications, pagination } = await notificationAPI.getNotifications(page, limit);
       if (append) {
         dispatch({ type: 'APPEND_NOTIFICATIONS', notifications, pagination });
       } else {
@@ -243,7 +188,7 @@ export const NotificationProvider = ({ children }) => {
       
       return { notifications, pagination };
     } catch (err) {
-      logger('API', 'Error fetching notifications', { error: err.message });
+      console.error('[NotificationContext] Error fetching notifications:', err);
       return { notifications: [], pagination: { page, limit, total: 0, hasMore: false } };
     }
   }, []);
@@ -251,25 +196,17 @@ export const NotificationProvider = ({ children }) => {
   // Hydrate from backend on mount (if authenticated)
   useEffect(() => {
     if (!isAuthenticated) return;
-    logger('Lifecycle', 'User authenticated - hydrating notifications');
     
     fetchNotifications(1, 20, { append: false }).then(({ notifications }) => {
       const unread = notifications.filter(n => !n.read);
-      logger('Lifecycle', 'Hydration complete', { 
-        total: notifications.length,
-        unreadCount: unread.length
-      });
-      
       if (unread.length === 1) {
-        logger('Toast', 'Showing single unread notification');
         showNotificationToast(unread[0]);
       } else if (unread.length > 1) {
-        logger('Toast', 'Showing unread summary toast', { count: unread.length });
         showToast({
           type: 'notification',
           message: `You have ${unread.length} unread notifications`,
           duration: 4000,
-          id: 'unread-summary',
+          notificationId: 'unread-summary',
           onClose: null,
           notificationType: 'system',
         });
@@ -280,15 +217,8 @@ export const NotificationProvider = ({ children }) => {
   // Listen for real-time notifications
   useNotifications(
     useCallback((notif) => {
-      logger('Socket', 'Received real-time notification', { 
-        id: notif._id,
-        type: notif.type,
-        read: notif.read
-      });
-      
       // Check for duplicate notification before adding
       const exists = state.notifications.some(n => n._id === notif._id);
-      
       if (!exists) {
         // Force a state update with the new notification
         dispatch({ type: 'ADD_NOTIFICATION', notification: notif });
@@ -297,67 +227,53 @@ export const NotificationProvider = ({ children }) => {
         if (!notif.read) {
           // Slight delay to ensure UI is ready
           setTimeout(() => {
-            logger('Toast', 'Showing toast for real-time notification', { id: notif._id });
             showNotificationToast(notif);
           }, 300);
         }
-      } else {
-        logger('Socket', 'Duplicate notification ignored', { id: notif._id });
       }
     }, [showNotificationToast, state.notifications])
   );
 
   // Actions
   const addNotification = useCallback((notification) => {
-    logger('Action', 'Manual notification addition', { id: notification._id });
     dispatch({ type: 'ADD_NOTIFICATION', notification });
   }, []);
 
   const markRead = useCallback((id) => {
-    logger('Action', 'Marking notification as read', { id });
     dispatch({ type: 'MARK_READ', id });
     notificationAPI.markNotificationRead(id)
-      .then(() => logger('API', 'Successfully marked as read', { id }))
-      .catch(err => logger('API', 'Error marking as read', { id, error: err.message }));
+      .then(() => console.log('[NotificationContext] Marked as read'))
+      .catch(err => console.error('[NotificationContext] Error marking as read:', err));
   }, []);
 
   const markAllRead = useCallback(() => {
-    logger('Action', 'Marking all notifications as read');
     dispatch({ type: 'MARK_ALL_READ' });
     notificationAPI.markAllNotificationsRead()
-      .then(() => logger('API', 'Successfully marked all as read'))
-      .catch(err => logger('API', 'Error marking all as read', { error: err.message }));
+      .then(() => console.log('[NotificationContext] Marked all as read'))
+      .catch(err => console.error('[NotificationContext] Error marking all as read:', err));
   }, []);
 
   const deleteNotification = useCallback((id) => {
-    logger('Action', 'Deleting notification', { id });
     dispatch({ type: 'DELETE_NOTIFICATION', id });
     notificationAPI.deleteNotification(id)
-      .then(() => logger('API', 'Successfully deleted notification', { id }))
-      .catch(err => logger('API', 'Error deleting notification', { id, error: err.message }));
+      .then(() => console.log('[NotificationContext] Deleted notification'))
+      .catch(err => console.error('[NotificationContext] Error deleting notification:', err));
   }, []);
 
   const clearAll = useCallback(() => {
-    logger('Action', 'Clearing all notifications');
     dispatch({ type: 'CLEAR_ALL' });
     // Optionally, call backend to delete all
     notificationAPI.markAllNotificationsRead()
-      .then(() => logger('API', 'Successfully cleared all (marked as read)'))
-      .catch(err => logger('API', 'Error clearing all', { error: err.message }));
+      .then(() => console.log('[NotificationContext] Cleared all (marked as read)'))
+      .catch(err => console.error('[NotificationContext] Error clearing all:', err));
   }, []);
 
   // Force a refresh of the unread count every minute (as an extra precaution)
   useEffect(() => {
     if (!isAuthenticated) return;
-    
-    logger('Lifecycle', 'Starting unread count verification interval (60s)');
     const interval = setInterval(() => {
       const unreadCount = state.notifications.filter(n => !n.read).length;
       if (unreadCount !== state.unreadCount) {
-        logger('State', 'Correcting unread count', { 
-          calculated: unreadCount, 
-          current: state.unreadCount 
-        });
         dispatch({ 
           type: 'SET_NOTIFICATIONS', 
           notifications: state.notifications,
@@ -366,10 +282,7 @@ export const NotificationProvider = ({ children }) => {
       }
     }, 60000); // every minute
     
-    return () => {
-      logger('Lifecycle', 'Cleaning up unread count verification interval');
-      clearInterval(interval);
-    }
+    return () => clearInterval(interval);
   }, [isAuthenticated, state.notifications, state.unreadCount]);
 
   return (
@@ -396,4 +309,4 @@ NotificationProvider.propTypes = {
   children: PropTypes.node.isRequired,
 };
 
-export const useNotificationContext = () => useContext(NotificationContext);
+export const useNotificationContext = () => useContext(NotificationContext); 

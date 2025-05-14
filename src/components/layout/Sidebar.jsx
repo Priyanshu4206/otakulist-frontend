@@ -425,11 +425,6 @@ const Sidebar = ({ unreadCount = 0, openNotificationPanel }) => {
     }
   };
 
-  // Add this useEffect for debugging
-  useEffect(() => {
-    console.log('[Sidebar] Rendering with unreadCount:', unreadCount);
-  }, [unreadCount]);
-
   return (
     <>
       {/* Overlay for mobile click-outside */}

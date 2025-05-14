@@ -42,6 +42,16 @@ const FilterBar = styled.div`
   }
 `;
 
+const FilterSection = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  
+  @media (max-width: 768px) {
+    width: 100%;
+  }
+`;
+
 const CategoryFilters = styled.div`
   display: flex;
   gap: 0.5rem;
@@ -322,6 +332,38 @@ const SmallRefreshButton = styled.button`
   }
 `;
 
+const SourceSelector = styled.select`
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--borderColor);
+  background-color: var(--backgroundLight);
+  color: var(--textPrimary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  min-width: 120px;
+  
+  &:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+`;
+
+const CacheStatus = styled.div`
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--textSecondary);
+  margin-left: auto;
+  
+  .indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: ${props => props.isCached ? 'var(--success)' : 'var(--primary)'};
+  }
+`;
+
 // RefreshIcon component
 const RefreshIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -353,6 +395,10 @@ const cardVariants = {
   }
 };
 
+// Define constants
+const NEWS_PER_PAGE = 20;
+const DEFAULT_CACHE_KEY = 'news_all_all_1_none';
+
 // Category emojis for visual representation
 const categoryEmojis = {
   'Anime': '📺',
@@ -366,26 +412,20 @@ const categoryEmojis = {
   'Live-Action': '🎬'
 };
 
-// Get all available categories
-const allCategories = Object.keys(categoryEmojis);
-
-// Format date for display
-const formatDate = (dateString) => {
-  const date = new Date(dateString);
-  const options = { month: 'short', day: 'numeric', year: 'numeric' };
-  return date.toLocaleDateString('en-US', options);
-};
-
 const NewsPage = () => {
   const [news, setNews] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedSource, setSelectedSource] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [categories, setCategories] = useState(Object.keys(categoryEmojis)); // Default to hardcoded categories
+  const [sources, setSources] = useState([]);
+  const [isFromCache, setIsFromCache] = useState(false);
   
-  // Use API cache with 3-hour expiry
-  const { fetchWithCache, clearCacheItem } = useApiCache('localStorage', 3 * 60 * 60 * 1000);
+  // Use API cache with session storage for the news page
+  const { fetchWithCache, clearCacheItem } = useApiCache('sessionStorage');
   
   // Debounce search query to reduce API calls
   const [debouncedQuery, setDebouncedQuery] = useState('');
@@ -398,13 +438,57 @@ const NewsPage = () => {
     return () => clearTimeout(timer);
   }, [searchQuery]);
   
+  // Fetch categories from API
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await newsAPI.getNewsCategories();
+        if (response && response.data && Array.isArray(response.data)) {
+          setCategories(response.data);
+        } else if (response && Array.isArray(response)) {
+          setCategories(response);
+        }
+      } catch (error) {
+        console.error('Error fetching news categories:', error);
+        // Fallback to hardcoded categories
+      }
+    };
+    
+    fetchCategories();
+  }, []);
+  
+  // Fetch sources from API
+  useEffect(() => {
+    const fetchSources = async () => {
+      try {
+        const response = await newsAPI.getNewsSources();
+        if (response && response.data && Array.isArray(response.data)) {
+          setSources(response.data);
+        } else if (response && Array.isArray(response)) {
+          setSources(response);
+        }
+      } catch (error) {
+        console.error('Error fetching news sources:', error);
+        // Fallback to empty sources array
+      }
+    };
+    
+    fetchSources();
+  }, []);
+  
+  // Generate cache key based on current filters
+  const generateCacheKey = useCallback(() => {
+    return `news_${selectedCategory || 'all'}_${selectedSource || 'all'}_${currentPage}_${debouncedQuery || 'none'}`;
+  }, [selectedCategory, selectedSource, currentPage, debouncedQuery]);
+  
   // Fetch news data
   const fetchNews = useCallback(async (forceRefresh = false) => {
     setIsLoading(true);
+    setIsFromCache(false);
     
     try {
       // Create a cache key based on filters
-      const cacheKey = `news_${selectedCategory}_${currentPage}_${debouncedQuery}`;
+      const cacheKey = generateCacheKey();
       
       // If force refreshing, clear the cache item first
       if (forceRefresh) {
@@ -413,40 +497,78 @@ const NewsPage = () => {
       
       // Use the fetchWithCache to get data
       const fetchData = async () => {
-        return await newsAPI.getNews({
-          page: currentPage,
-          category: selectedCategory,
-          search: debouncedQuery
-        });
+        // Use category-specific API if a category is selected
+        if (selectedCategory || selectedSource || debouncedQuery) {
+          return await newsAPI.getNews({
+            page: currentPage,
+            limit: NEWS_PER_PAGE,
+            category: selectedCategory,
+            source: selectedSource,
+            search: debouncedQuery
+          });
+        } else {
+          return await newsAPI.getNews({
+            page: currentPage,
+            limit: NEWS_PER_PAGE
+          });
+        }
       };
+      
+      // Check if the data is cached before making the request
+      const cachedData = sessionStorage.getItem(cacheKey);
+      if (cachedData && !forceRefresh) {
+        setIsFromCache(true);
+      }
       
       // Get response from cache or API
       const response = await fetchWithCache(cacheKey, fetchData, forceRefresh);
       
-      if (response && response.data) {
+      // Process response based on structure
+      if (response && response.data && Array.isArray(response.data)) {
+        // Standard API response format with data property
         setNews(response.data);
         
         // Set pagination data
         if (response.pagination) {
-          setTotalPages(response.pagination.pages || 1);
+          setTotalPages(response.pagination.pages || Math.ceil(response.pagination.total / response.pagination.limit) || 1);
         }
       } else if (response && Array.isArray(response)) {
+        // Direct array response
         setNews(response);
+        // For array responses, assume we have only one page if no pagination info
+        setTotalPages(1);
+      } else if (response && response.success && response.data) {
+        // Success wrapper format
+        setNews(Array.isArray(response.data) ? response.data : []);
+        
+        // Handle pagination if available
+        if (response.pagination) {
+          setTotalPages(response.pagination.pages || Math.ceil(response.pagination.total / response.pagination.limit) || 1);
+        }
       } else {
+        // Fallback for unexpected formats
         setNews([]);
+        setTotalPages(1);
       }
     } catch (error) {
       console.error('Error fetching news:', error);
       setNews([]);
+      setTotalPages(1);
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, selectedCategory, debouncedQuery, fetchWithCache, clearCacheItem]);
+  }, [currentPage, selectedCategory, selectedSource, debouncedQuery, fetchWithCache, clearCacheItem, generateCacheKey]);
   
   // Load news when filters change
   useEffect(() => {
     fetchNews();
   }, [fetchNews]);
+  
+  // Clear cache when user changes category or search
+  useEffect(() => {
+    // When category or search changes, reset to page 1
+    setCurrentPage(1);
+  }, [selectedCategory, debouncedQuery]);
   
   // Handle category filter click
   const handleCategoryClick = (category) => {
@@ -454,7 +576,12 @@ const NewsPage = () => {
     setSelectedCategory(prevCategory => 
       prevCategory === category ? '' : category
     );
-    setCurrentPage(1); // Reset to first page
+  };
+  
+  // Handle source selector change
+  const handleSourceChange = (e) => {
+    setSelectedSource(e.target.value);
+    setCurrentPage(1);
   };
   
   // Handle page change
@@ -474,15 +601,6 @@ const NewsPage = () => {
   const handleRefresh = () => {
     fetchNews(true);
   };
-  
-  // Filter news by search query (client-side for better UX)
-  const filteredNews = debouncedQuery 
-    ? news.filter(item => 
-        item.title?.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
-        item.content?.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
-        item.summary?.toLowerCase().includes(debouncedQuery.toLowerCase())
-      )
-    : news;
   
   // Generate pagination buttons
   const renderPagination = () => {
@@ -565,40 +683,57 @@ const NewsPage = () => {
         <PageTitle>News Feed</PageTitle>
         
         <FilterBar>
-          <CategoryFilters>
-            {allCategories.map(category => (
-              <CategoryButton
-                key={category}
-                active={selectedCategory === category}
-                onClick={() => handleCategoryClick(category)}
-              >
-                {categoryEmojis[category]} {category}
-              </CategoryButton>
-            ))}
-          </CategoryFilters>
+          <FilterSection>
+            <CategoryFilters>
+              {categories.map(category => (
+                <CategoryButton
+                  key={category}
+                  active={selectedCategory === category}
+                  onClick={() => handleCategoryClick(category)}
+                >
+                  {categoryEmojis[category] || '📰'} {category}
+                </CategoryButton>
+              ))}
+            </CategoryFilters>
+          </FilterSection>
           
-          <SearchInput
-            type="text"
-            placeholder="Search news..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+          <FilterSection>
+            <SourceSelector value={selectedSource} onChange={handleSourceChange}>
+              <option value="">All Sources</option>
+              {sources.map(source => (
+                <option key={source.name || source} value={source.name || source}>
+                  {source.name || source}
+                </option>
+              ))}
+            </SourceSelector>
+            
+            <SearchInput
+              type="text"
+              placeholder="Search news..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </FilterSection>
         </FilterBar>
         
         {isLoading ? (
           <LoadingContainer>
             <Spinner />
           </LoadingContainer>
-        ) : filteredNews.length > 0 ? (
+        ) : news.length > 0 ? (
           <>
             <RefreshBarContainer>
+              <CacheStatus isCached={isFromCache}>
+                <span className="indicator"></span>
+                {isFromCache ? 'Showing cached results' : 'Showing fresh results'}
+              </CacheStatus>
               <SmallRefreshButton onClick={handleRefresh}>
                 <RefreshIcon /> Refresh News
               </SmallRefreshButton>
             </RefreshBarContainer>
             
             <NewsGrid>
-              {filteredNews.map(item => (
+              {news.map(item => (
                 <NewsCard
                   key={item._id}
                   variants={cardVariants}
@@ -646,6 +781,13 @@ const NewsPage = () => {
 const getCategoryEmoji = (categories) => {
   if (!categories || categories.length === 0) return '📰';
   return categoryEmojis[categories[0]] || '📰';
+};
+
+// Format date for display
+const formatDate = (dateString) => {
+  const date = new Date(dateString);
+  const options = { month: 'short', day: 'numeric', year: 'numeric' };
+  return date.toLocaleDateString('en-US', options);
 };
 
 export default NewsPage; 

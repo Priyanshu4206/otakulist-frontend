@@ -1,6 +1,6 @@
 import React from 'react';
 import styled, { css } from 'styled-components';
-import { Award, UserPlus, Bell, Heart, MessageCircle, Trash2, CheckCircle, Circle } from 'lucide-react';
+import { Award, UserPlus, Bell, Heart, MessageCircle, Trash2, CheckCircle, Circle, Trophy } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 const Card = styled.div`
@@ -29,7 +29,8 @@ const IconWrapper = styled.div`
   justify-content: center;
   background: ${({ type }) => {
     switch (type) {
-      case 'achievement': return 'var(--gradientPrimary, linear-gradient(135deg, #FFA500 0%, #FFB733 100%))';
+      case 'achievement':
+      case 'achievements': return 'var(--gradientPrimary, linear-gradient(135deg, #FFA500 0%, #FFB733 100%))';
       case 'follow': return 'var(--gradientSecondary, linear-gradient(135deg, #1E88E5 0%, #64B5F6 100%))';
       case 'playlist_like': return 'var(--gradientAccent, linear-gradient(135deg, #FF8C00 0%, #FFB733 100%))';
       case 'playlist_comment':
@@ -101,7 +102,8 @@ const DeleteButton = styled.button`
 
 function getIcon(type) {
   switch (type) {
-    case 'achievement': return <Award size={22} />;
+    case 'achievement': 
+    case 'achievements': return <Trophy size={22} />;
     case 'follow': return <UserPlus size={22} />;
     case 'playlist_like': return <Heart size={22} />;
     case 'playlist_comment':
@@ -112,16 +114,34 @@ function getIcon(type) {
 }
 
 const NotificationCard = ({ notification, onMarkRead, onDelete, onClick, compact }) => {
+  // Ensure we have a valid notification object
+  if (!notification) {
+    console.error('[NotificationCard] Received invalid notification object:', notification);
+    return null;
+  }
+  
   const { type, message, createdAt, read } = notification;
+  
+  // Normalize the type to handle variations
+  const normalizedType = type ? type.toLowerCase() : 'system';
+
+  // Check for valid createdAt date
+  const createdDate = createdAt ? new Date(createdAt) : new Date();
+  const isValidDate = !isNaN(createdDate.getTime());
+
   return (
     <Card read={read} compact={compact} onClick={() => {
       if (onClick) onClick(notification);
     }}>
       <UnreadDot read={read} />
-      <IconWrapper type={type} compact={compact}>{getIcon(type)}</IconWrapper>
+      <IconWrapper type={normalizedType} compact={compact}>{getIcon(normalizedType)}</IconWrapper>
       <Content compact={compact}>
         <Message compact={compact}>{message}</Message>
-        <Timestamp compact={compact}>{formatDistanceToNow(new Date(createdAt), { addSuffix: true })}</Timestamp>
+        <Timestamp compact={compact}>
+          {isValidDate 
+            ? formatDistanceToNow(createdDate, { addSuffix: true })
+            : 'Recently'}
+        </Timestamp>
       </Content>
       <Actions compact={compact}>
         {!compact && (

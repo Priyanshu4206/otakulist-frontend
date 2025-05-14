@@ -337,7 +337,7 @@ const EditProfileCard = styled(Card)`
 `;
 
 const ProfilePage = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   // Support both user and user.user (from /auth/me)
   const userData = user || {};
 

@@ -141,11 +141,8 @@ const LoadMoreButton = styled.button`
 const NotificationSidePanel = ({ open, onClose }) => {
   const {
     notifications,
-    unreadCount,
     markAllRead,
     deleteNotification,
-    hydrated,
-    clearAll,
     fetchNotifications,
     pagination,
   } = useNotificationContext();
@@ -161,13 +158,22 @@ const NotificationSidePanel = ({ open, onClose }) => {
     return notifications;
   }, [notifications, tab]);
 
-  // Fetch notifications on open or refresh
+  // Hydrate in case the panel was opened directly
   useEffect(() => {
     if (!open) return;
     setLoading(true);
-    fetchNotifications(1, pagination.limit, { append: false }).finally(() => setLoading(false));
+    
+    fetchNotifications(1, pagination.limit, { append: false })
+      .then(({ notifications }) => {
+      })
+      .catch(err => {
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+      
     setTab('unread'); // Always show unread by default when opening
-  }, [open]);
+  }, [open, fetchNotifications, pagination.limit]);
 
   // Only mark all as read when panel transitions from open to closed
   useEffect(() => {

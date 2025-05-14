@@ -392,7 +392,7 @@ const PlaylistCard = ({ playlist, onDelete, onEdit, refetchPlaylists }) => {
   const { showToast } = useToast();
   const navigate = useNavigate();
   
-  const isOwner = user && user._id === playlist.owner._id;
+  const isOwner = user && user.id || user._id === playlist.owner._id;
   
   // Get up to 4 anime images for the grid
   const animeImages = playlist?.coverImages || [];

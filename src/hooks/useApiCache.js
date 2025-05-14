@@ -59,20 +59,17 @@ const useApiCache = (storageType = 'localStorage', expiryTime = null) => {
     try {
       // Don't cache empty arrays
       if (Array.isArray(data) && data.length === 0) {
-        console.log('Not caching empty array data for key:', key);
         return;
       }
       
       // Don't cache null or undefined
       if (data === null || data === undefined) {
-        console.log('Not caching null or undefined data for key:', key);
         return;
       }
       
       // For objects that may contain an empty data array
       if (data && typeof data === 'object' && !Array.isArray(data)) {
         if (data.data && Array.isArray(data.data) && data.data.length === 0) {
-          console.log('Not caching object with empty data array for key:', key);
           return;
         }
       }
@@ -87,6 +84,59 @@ const useApiCache = (storageType = 'localStorage', expiryTime = null) => {
       console.error('Error saving to cache:', error);
     }
   }, [storage]);
+
+  /**
+   * Check refresh limits for the given feature
+   * 
+   * @param {string} feature - Feature identifier (e.g., 'trending_news')
+   * @param {number} maxRefreshes - Maximum number of refreshes allowed per day
+   * @returns {Object} - Contains: canRefresh (boolean), refreshCount (number), and increment function
+   */
+  const checkRefreshLimit = useCallback((feature, maxRefreshes = 5) => {
+    try {
+      // Only applicable to localStorage
+      if (storageType !== 'localStorage') {
+        return { canRefresh: true, refreshCount: 0, increment: () => {} };
+      }
+      
+      const countKey = `${feature}_refresh_count`;
+      const dateKey = `${feature}_refresh_date`;
+      
+      // Get current count
+      let refreshCount = parseInt(localStorage.getItem(countKey) || '0', 10);
+      
+      // Check if it's a new day
+      const lastRefreshDate = localStorage.getItem(dateKey);
+      const today = new Date().toDateString();
+      
+      if (lastRefreshDate !== today) {
+        // Reset count for new day
+        refreshCount = 0;
+        localStorage.setItem(dateKey, today);
+        localStorage.setItem(countKey, '0');
+      }
+      
+      // Check if we've hit the limit
+      const canRefresh = refreshCount < maxRefreshes;
+      
+      // Function to increment the counter
+      const increment = () => {
+        if (canRefresh) {
+          const newCount = refreshCount + 1;
+          localStorage.setItem(countKey, newCount.toString());
+          localStorage.setItem(dateKey, today);
+          return newCount;
+        }
+        return refreshCount;
+      };
+      
+      return { canRefresh, refreshCount, increment };
+    } catch (error) {
+      console.error('Error checking refresh limit:', error);
+      // Default to allowing refresh on error
+      return { canRefresh: true, refreshCount: 0, increment: () => {} };
+    }
+  }, [storageType]);
 
   /**
    * Fetch data with caching
@@ -111,6 +161,12 @@ const useApiCache = (storageType = 'localStorage', expiryTime = null) => {
         }
       }
       
+      // Skip API call if fetchFunction is not provided (used for returning cached data only)
+      if (!fetchFunction) {
+        setLoading(false);
+        return getFromCache(key);
+      }
+      
       // Fetch from API if not in cache or force refresh
       const response = await fetchFunction();
       
@@ -121,10 +177,10 @@ const useApiCache = (storageType = 'localStorage', expiryTime = null) => {
         if (response.data) {
           // Only cache if data is not an empty array
           if (!Array.isArray(response.data) || response.data.length > 0) {
-            saveToCache(key, response.data);
+            saveToCache(key, response);
           }
           setLoading(false);
-          return response.data;
+          return response;
         } else if (Array.isArray(response)) {
           // Only cache if the array is not empty
           if (response.length > 0) {
@@ -141,6 +197,7 @@ const useApiCache = (storageType = 'localStorage', expiryTime = null) => {
       }
       
       // Fallback for other response structures
+      saveToCache(key, response);
       setLoading(false);
       return response;
     } catch (err) {
@@ -183,6 +240,7 @@ const useApiCache = (storageType = 'localStorage', expiryTime = null) => {
     saveToCache,
     clearCacheItem,
     clearAllCache,
+    checkRefreshLimit,
   };
 };
 

@@ -6,51 +6,56 @@ import { getGlobalSocket, setGlobalSocket } from '../../hooks/useNotifications';
 /**
  * SocketInitializer - Silent component that ensures WebSocket connection 
  * is established and maintained throughout the application lifecycle
+ * 
+ * Only initializes socket after complete auth validation to prevent premature connections
  */
 const SocketInitializer = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, initialAuthCheckComplete } = useAuth();
   const connectionAttemptRef = useRef(0);
   const initializedRef = useRef(false);
+  const userConfirmedRef = useRef(false);
 
   // Initialize socket connection on app load or auth change
   useEffect(() => {
-    // Only attempt connection if user is authenticated
     if (!isAuthenticated) {
-      console.log('[SocketInitializer] Not authenticated, skipping socket initialization');
       return;
     }
 
+    if (!initialAuthCheckComplete) {
+      return;
+    }
+
+    if (!user || !user.id || user._id) {
+      return;
+    }
+
+    // Check if we have a valid token
     const token = localStorage.getItem('auth_token');
     if (!token) {
-      console.log('[SocketInitializer] No auth token found, skipping socket initialization');
       return;
     }
 
     // If we already have a socket instance that's connected, ensure it has the correct token
     const existingSocket = getGlobalSocket();
     if (existingSocket && existingSocket.connected) {
-      console.log('[SocketInitializer] Socket already connected:', existingSocket.id);
       
       // Check if the socket is using the current token
       if (existingSocket.auth && existingSocket.auth.token === token) {
-        console.log('[SocketInitializer] Socket already using current token');
         initializedRef.current = true;
         return;
       }
       
       // Token has changed, need to recreate socket
-      console.log('[SocketInitializer] Token changed, will recreate socket');
       existingSocket.disconnect();
     }
 
     // Ensure we don't initialize multiple times
     if (initializedRef.current && existingSocket && existingSocket.connecting) {
-      console.log('[SocketInitializer] Socket already connecting, skipping initialization');
       return;
     }
 
-    console.log('[SocketInitializer] Initializing socket connection');
     initializedRef.current = true;
+    userConfirmedRef.current = true;
     connectionAttemptRef.current++;
     
     // Get socket URL based on environment
@@ -61,7 +66,7 @@ const SocketInitializer = () => {
     // Create a new socket connection with improved options
     const socket = io(SOCKET_URL, {
       path: '/socket.io',
-      auth: { token },
+      auth: { token, userId: user.id || user._id }, // Include userId in socket auth
       transports: ['websocket'],
       reconnection: true,
       reconnectionAttempts: 10,
@@ -76,26 +81,21 @@ const SocketInitializer = () => {
     
     // Enhanced logging
     socket.on('connect', () => {
-      console.log(`[SocketInitializer] Socket connected: ${socket.id} (attempt ${connectionAttemptRef.current})`);
       connectionAttemptRef.current = 0; // Reset counter on successful connection
     });
     
     socket.on('connect_error', (err) => {
-      console.error(`[SocketInitializer] Socket connection error: ${err.message}`);
+      console.error(`[SocketInitializer] Socket connection error:`, err.message);
       // If we've tried more than 5 times, back off
       if (connectionAttemptRef.current > 5) {
-        console.log('[SocketInitializer] Multiple connection attempts failed, will retry on user interaction');
       }
     });
     
     socket.on('disconnect', (reason) => {
       console.log(`[SocketInitializer] Socket disconnected: ${reason}`);
     });
-    
-    // No need to disconnect the socket on component unmount
-    // as we want it to persist throughout the app lifecycle
-    
-  }, [isAuthenticated, user?.id]); // Include user.id to reinitialize on user change
+        
+  }, [isAuthenticated, user, initialAuthCheckComplete]); // Include initialAuthCheckComplete in dependency array
 
   // This component doesn't render anything
   return null;

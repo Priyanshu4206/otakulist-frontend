@@ -48,7 +48,7 @@ const PlaylistDetailPage = () => {
   
   // Check if the current user is the owner of the playlist
   const isOwner = user && playlist?.owner && 
-    (user.id === playlist.owner._id || user._id === playlist.owner._id);
+    (user.id || user._id === playlist.owner._id || user.id || user._id === playlist.owner._id);
   
   // Check if the identifier is more likely to be an ID (MongoDB ObjectId) or a slug
   const isMongoId = id || /^[0-9a-fA-F]{24}$/.test(playlistId);

@@ -527,7 +527,7 @@ const AvtivityPage = () => {
     if (!user) return;
     setFollowersLoading(true);
     try {
-      const response = await userAPI.getFollowers(user._id, pageNum, 10);
+      const response = await userAPI.getFollowers(user.id || user._id, pageNum, 10);
       if (response.success) {
         const followersArray = Array.isArray(response.data) ? response.data : [];
         // Use isFollowing from API response directly
@@ -562,7 +562,7 @@ const AvtivityPage = () => {
     if (!user) return;
     setFollowingLoading(true);
     try {
-      const response = await userAPI.getFollowing(user._id, pageNum, 10);
+      const response = await userAPI.getFollowing(user.id || user._id, pageNum, 10);
       if (response.success) {
         const followingArray = Array.isArray(response.data) ? response.data : [];
         // Use isFollowing from API response directly

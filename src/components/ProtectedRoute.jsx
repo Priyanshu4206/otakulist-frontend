@@ -73,9 +73,16 @@ const ProtectedRoute = ({ children }) => {
   if (!isAuthenticated && initialAuthCheckComplete && hasTriedRefresh) {
     // Store the current location for redirect after login
     const redirectPath = location.pathname + location.search + location.hash;
+    const redirectUrl = `/login?redirect=${encodeURIComponent(redirectPath)}`;
+    
+    
+    // If there's an active hard redirect in progress, don't interfere with it
+    if (localStorage.getItem('hard_redirect_attempted') === 'pending') {
+      return <LoadingSpinner fullScreen />;
+    }
     
     // Use replace to avoid populating history
-    return <Navigate to={`/login?redirect=${encodeURIComponent(redirectPath)}`} replace />;
+    return <Navigate to={redirectUrl} replace />;
   }
 
   // If authenticated, render the protected route content

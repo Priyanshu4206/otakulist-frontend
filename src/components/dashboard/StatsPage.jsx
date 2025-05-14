@@ -269,8 +269,7 @@ const StatsPage = () => {
         return;
       }
       try {
-        // 1. Fetch user achievements (always fresh)
-        const userAchRes = await userAPI.getUserAchievements(user._id);
+        const userAchRes = await userAPI.getUserAchievements(user.id || user._id);
         setUserAchievements(userAchRes?.data || []);
 
         // 2. Fetch all achievements (cache for 30 days)

@@ -351,7 +351,7 @@ const DashboardLayout = ({ children }) => {
 };
 
 const DashboardPage = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isLoading } = useAuth();
   
   if (isLoading) {
     return (
@@ -361,10 +361,6 @@ const DashboardPage = () => {
         </LoadingContainer>
       </Layout>
     );
-  }
-  
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
   }
   
   return (
