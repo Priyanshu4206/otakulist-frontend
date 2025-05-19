@@ -16,7 +16,8 @@ const CardContainer = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
-  
+  max-width: 250px;
+
   &:hover {
     transform: translateY(-5px);
     box-shadow: 0 10px 25px rgba(var(--primary-rgb), 0.15);
@@ -33,6 +34,7 @@ const ImageContainer = styled.div`
   border-radius: 12px 12px 0 0;
   overflow: hidden;
   background: rgba(var(--backgroundLight-rgb), 0.3);
+  min-height: 200px;
 `;
 
 const ImageGrid = styled.div`
@@ -380,7 +382,7 @@ const LikeButton = styled.button`
   }
 `;
 
-const PlaylistCard = ({ playlist, onDelete, onEdit, refetchPlaylists }) => {
+const PlaylistCard = ({ playlist, onDelete, onEdit }) => {
   const [showActions, setShowActions] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -483,7 +485,7 @@ const PlaylistCard = ({ playlist, onDelete, onEdit, refetchPlaylists }) => {
     setIsProcessingLike(true);
     
     try {
-      const response = await playlistAPI.likePlaylist(playlist.id);
+      const response = await playlistAPI.toggleLikePlaylist(playlist.id);
       
       if (response.success) {
         setIsLiked(response.data.liked);

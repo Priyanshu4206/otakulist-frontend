@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { User, Settings, Trophy, List, BookOpen, Activity } from 'lucide-react';
+import { User, Settings, Trophy, List, BookOpen, Activity, Clock } from 'lucide-react';
 import Layout from '../components/layout/Layout.jsx';
 import useAuth from '../hooks/useAuth.js';
 
@@ -203,16 +203,16 @@ const LoadingContainer = styled.div`
 // Animation variants
 const contentVariants = {
   hidden: { opacity: 0, y: 20 },
-  visible: { 
-    opacity: 1, 
-    y: 0, 
+  visible: {
+    opacity: 1,
+    y: 0,
     transition: {
       duration: 0.4,
       ease: "easeOut"
     }
   },
-  exit: { 
-    opacity: 0, 
+  exit: {
+    opacity: 0,
     y: -20,
     transition: {
       duration: 0.3
@@ -224,16 +224,16 @@ const contentVariants = {
 const DashboardNavigation = () => {
   const location = useLocation();
   const currentPath = location.pathname;
-  
+
   const isActive = (path) => {
-    return currentPath === path || 
+    return currentPath === path ||
       (path !== '/dashboard' && currentPath.startsWith(path));
   };
-  
+
   const [scrolled, setScrolled] = useState(false);
-  
+
   const tabsRef = useRef(null);
-  
+
   // Scroll active tab into view
   useEffect(() => {
     if (tabsRef.current) {
@@ -243,7 +243,7 @@ const DashboardNavigation = () => {
         const tabsRect = tabsRef.current.getBoundingClientRect();
         const activeTabRect = activeTab.getBoundingClientRect();
         const scrollLeft = activeTabRect.left - tabsRect.left - (tabsRect.width / 2) + (activeTabRect.width / 2);
-        
+
         tabsRef.current.scrollTo({
           left: Math.max(0, scrollLeft),
           behavior: 'smooth'
@@ -251,7 +251,7 @@ const DashboardNavigation = () => {
       }
     }
   }, [currentPath]);
-  
+
   const handleScroll = () => {
     if (window.scrollY > 10) {
       setScrolled(true);
@@ -259,12 +259,12 @@ const DashboardNavigation = () => {
       setScrolled(false);
     }
   };
-  
+
   useEffect(() => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-  
+
   return (
     <NavWrapper
       initial={{ opacity: 0, y: -20 }}
@@ -274,54 +274,63 @@ const DashboardNavigation = () => {
       }}
     >
       <DashboardTabs ref={tabsRef}>
-        <Tab 
-          to="/dashboard" 
-          $active={currentPath === '/dashboard'} 
+        <Tab
+          to="/dashboard"
+          $active={currentPath === '/dashboard'}
           data-active={currentPath === '/dashboard'}
         >
           <User size={20} />
           <TabLabel $active={currentPath === '/dashboard'}>Profile</TabLabel>
         </Tab>
-        
-        <Tab 
-          to="/dashboard/stats" 
-          $active={isActive('/dashboard/stats')} 
+
+        <Tab
+          to="/dashboard/stats"
+          $active={isActive('/dashboard/stats')}
           data-active={isActive('/dashboard/stats')}
         >
           <Trophy size={20} />
           <TabLabel $active={isActive('/dashboard/stats')}>Stats</TabLabel>
         </Tab>
-        
-        <Tab 
-          to="/dashboard/watchlist" 
-          $active={isActive('/dashboard/watchlist')} 
+
+        <Tab
+          to="/dashboard/watchlist"
+          $active={isActive('/dashboard/watchlist')}
           data-active={isActive('/dashboard/watchlist')}
         >
           <List size={20} />
           <TabLabel $active={isActive('/dashboard/watchlist')}>Watchlist</TabLabel>
         </Tab>
-        
-        <Tab 
-          to="/dashboard/playlists" 
-          $active={isActive('/dashboard/playlists')} 
+
+        <Tab
+          to="/dashboard/playlists"
+          $active={isActive('/dashboard/playlists')}
           data-active={isActive('/dashboard/playlists')}
         >
           <BookOpen size={20} />
           <TabLabel $active={isActive('/dashboard/playlists')}>Playlists</TabLabel>
         </Tab>
-        
-        <Tab 
-          to="/dashboard/activity" 
-          $active={isActive('/dashboard/activity')} 
+
+        <Tab
+          to="/dashboard/history"
+          $active={isActive('/dashboard/history')}
+          data-active={isActive('/dashboard/history')}
+        >
+          <Clock size={20} />
+          <TabLabel $active={isActive('/dashboard/history')}>History</TabLabel>
+        </Tab>
+
+        <Tab
+          to="/dashboard/activity"
+          $active={isActive('/dashboard/activity')}
           data-active={isActive('/dashboard/activity')}
         >
           <Activity size={20} />
           <TabLabel $active={isActive('/dashboard/activity')}>Activity</TabLabel>
         </Tab>
-        
-        <Tab 
-          to="/dashboard/settings" 
-          $active={isActive('/dashboard/settings')} 
+
+        <Tab
+          to="/dashboard/settings"
+          $active={isActive('/dashboard/settings')}
           data-active={isActive('/dashboard/settings')}
         >
           <Settings size={20} />
@@ -352,7 +361,7 @@ const DashboardLayout = ({ children }) => {
 
 const DashboardPage = () => {
   const { isLoading } = useAuth();
-  
+
   if (isLoading) {
     return (
       <Layout>
@@ -362,7 +371,7 @@ const DashboardPage = () => {
       </Layout>
     );
   }
-  
+
   return (
     <Layout fullWidth>
       <Routes>

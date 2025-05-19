@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { TrendingUp, Trophy, Users, Award, Check, Film, Heart, List, Clock } from 'lucide-react';
+import { TrendingUp, Trophy, Users, Award, Check, Film, Heart, List, Clock, RefreshCw } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
-import { userAPI } from '../../services/api';
 import AchievementsList from '../common/AchievementsList';
-import { Link } from 'react-router-dom';
 import useToast from '../../hooks/useToast';
-import useApiCache from '../../hooks/useApiCache';
+import { userAPI } from '../../services/modules';
 
 const StatsGrid = styled.div`
   display: grid;
@@ -119,119 +117,8 @@ const SectionDivider = styled.div`
   opacity: 0.5;
 `;
 
-const NoContent = styled.div`
-  text-align: center;
-  padding: 3rem 2rem;
-  color: var(--textSecondary);
-  font-size: 1rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.5rem;
-  background-color: var(--backgroundLight);
-  border-radius: 12px;
-  border: 1px dashed var(--borderColor);
-`;
-
-const SocialContainer = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 2.5rem;
-  margin-top: 1.5rem;
-  
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const SocialSection = styled.div`
-  margin-bottom: 1.5rem;
-`;
-
-const SocialGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-  gap: 1.25rem;
-  
-  @media (max-width: 480px) {
-    grid-template-columns: repeat(3, 1fr);
-  }
-`;
-
-const SocialItem = styled(Link)`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  
-  &:hover {
-    transform: translateY(-5px);
-  }
-`;
-
-const SocialName = styled.div`
-  font-size: 0.85rem;
-  margin-top: 0.5rem;
-  color: var(--textPrimary);
-  max-width: 100%;
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
-  transition: color 0.2s ease;
-  
-  ${SocialItem}:hover & {
-    color: var(--primary);
-  }
-`;
-
-const HowToUnlock = styled.div`
-  display: flex;
-  flex-direction: column;
-  background-color: var(--backgroundLight);
-  padding: 2rem;
-  border-radius: 12px;
-  max-width: 650px;
-  margin: 0 auto;
-  text-align: left;
-  border: 1px solid var(--borderColor);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
-  
-  h4 {
-    color: var(--textPrimary);
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    font-size: 1.1rem;
-  }
-  
-  ul {
-    list-style-type: none;
-    padding-left: 0.5rem;
-    margin-bottom: 1rem;
-  }
-  
-  li {
-    padding: 0.75rem 0;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    border-bottom: 1px solid rgba(var(--borderColor-rgb), 0.5);
-    
-    &:last-child {
-      border-bottom: none;
-    }
-  }
-  
-  li svg {
-    color: var(--primary);
-    background: rgba(var(--primary-rgb), 0.1);
-    padding: 0.5rem;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
+const TopAchievements = styled.div`
+  margin-bottom: 2rem;
 `;
 
 const LoadingText = styled.div`
@@ -240,55 +127,114 @@ const LoadingText = styled.div`
   color: var(--textSecondary);
 `;
 
-const TopAchievements = styled.div`
-  margin-bottom: 2rem;
+const CacheStatus = styled.div`
+  margin-top: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: ${props => props.fromCache ? 'rgba(var(--success-rgb), 0.1)' : 'rgba(var(--primary-rgb), 0.1)'};
+  color: ${props => props.fromCache ? 'var(--success)' : 'var(--primary)'};
+  max-width: fit-content;
 `;
 
-const ALL_ACHIEVEMENTS_CACHE_KEY = 'all_achievements_v2';
-const ALL_ACHIEVEMENTS_TTL = 1000 * 60 * 60 * 24 * 30; // 30 days
+const RefreshButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: var(--backgroundLight);
+  color: var(--textPrimary);
+  border: 1px solid var(--borderColor);
+  border-radius: 8px;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: auto;
+  
+  &:hover {
+    background-color: rgba(var(--primary-rgb), 0.05);
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+
+const HeaderRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+`;
+
+const AchievementCategories = styled.div`
+  margin-top: 2rem;
+`;
 
 const StatsPage = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [userAchievements, setUserAchievements] = useState([]);
+  const [dashboardData, setDashboardData] = useState(null);
   const [allAchievements, setAllAchievements] = useState([]);
   const [error, setError] = useState('');
+  const [cacheInfo, setCacheInfo] = useState({
+    fromCache: false,
+    notModified: false
+  });
 
-  // Use useApiCache for allAchievements
-  const {
-    fetchWithCache: fetchAllAchievementsWithCache,
-  } = useApiCache('localStorage', ALL_ACHIEVEMENTS_TTL);
+  // Function to fetch dashboard data (stats and achievements)
+  const fetchDashboardData = async (forceRefresh = false) => {
+    setLoading(true);
+    setError('');
+    
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    
+    try {
+      // 1. Fetch user's stats and achievements in one call
+      const response = await userAPI.getDashboardSections({
+        sections: ['stats', 'achievements'],
+        useCache: true,
+        forceRefresh
+      });
+      
+      if (response?.success) {
+        setDashboardData(response.data);
+        setCacheInfo({
+          fromCache: !!response.fromCache,
+          notModified: !!response.notModified
+        });
+      } else {
+        throw new Error(response?.error || 'Failed to load dashboard data');
+      }
+      
+      // 2. Fetch all achievements for reference (with caching)
+      const allAchRes = await userAPI.getAllAchievements({ useCache: true });
+      setAllAchievements(allAchRes?.data || []);
+    } catch (err) {
+      setError('Failed to load dashboard data.');
+      showToast({ type: 'error', message: 'Error loading dashboard data' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  // Fetch data on mount
   useEffect(() => {
-    const fetchAchievements = async () => {
-      setLoading(true);
-      setError('');
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-      try {
-        const userAchRes = await userAPI.getUserAchievements(user.id || user._id);
-        setUserAchievements(userAchRes?.data || []);
-
-        // 2. Fetch all achievements (cache for 30 days)
-        const allAch = await fetchAllAchievementsWithCache(
-          ALL_ACHIEVEMENTS_CACHE_KEY,
-          () => userAPI.getAllAchievements()
-        );
-        setAllAchievements(allAch || []);
-      } catch (err) {
-        setError('Failed to load achievements.');
-        showToast({ type: 'error', message: 'Error loading achievements' });
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAchievements();
-  }, [user, showToast, fetchAllAchievementsWithCache]);
+    fetchDashboardData();
+  }, [user, showToast]);
   
-  if (loading) {
+  if (loading && !dashboardData) {
     return <LoadingText>Loading stats...</LoadingText>;
   }
   
@@ -296,18 +242,91 @@ const StatsPage = () => {
     return <LoadingText>Please log in to view your stats</LoadingText>;
   }
   
-  // Get values from user data
-  const watching = user.watchlistStats?.watching || 0;
-  const completed = user.achievements?.animeWatchedCount || 0;
-  const totalInWatchlist = user.watchlistStats?.total || 0;
-  const followersCount = user.followersCount || 0;
-  const currentRank = user.achievements?.current || 'Newbie';
-  const unlockedCount = user.achievements?.unlockedCount || 0;
-  const totalAchievements = user.achievements?.totalAchievements || 0;
-  const completionPercentage = user.achievements?.completionPercentage || 0;
+  // Extract stats and achievements data
+  const stats = dashboardData?.stats || {};
+  const achievements = dashboardData?.achievements || {};
+  
+  // Get values from dashboard data
+  const watching = stats.animeWatching || 0;
+  const completed = stats.animeWatched || 0;
+  const totalInWatchlist = stats.totalWatchlist || 0;
+  const followersCount = stats.followersCount || 0;
+  const totalRatings = stats.totalRatings || 0;
+  
+  // Achievement stats
+  const currentRank = stats.achievements?.tier?.title || 'Novice';
+  const tierColor = stats.achievements?.tier?.color || '#8bc34a';
+  const points = stats.achievements?.points || 0;
+  const unlockedCount = achievements?.unlocked?.length || 0;
+  const totalAchievements = allAchievements?.length || 0;
+  const completionPercentage = stats.achievements?.completionPercentage || 
+    Math.round((unlockedCount / (totalAchievements || 1)) * 100) || 0;
+  
+  // Format achievement data for AchievementsList component
+  const formattedUnlocked = achievements?.unlocked?.map(achievement => ({
+    achievementId: {
+      _id: achievement.id,
+      title: achievement.title,
+      description: achievement.description,
+      category: achievement.category,
+      iconUrl: achievement.iconUrl,
+      points: achievement.points
+    },
+    unlockedAt: achievement.unlockedAt,
+    progress: {
+      current: 100,
+      target: 100,
+      percentage: 100
+    }
+  })) || [];
+  
+  const formattedInProgress = achievements?.inProgress?.map(achievement => ({
+    achievementId: {
+      _id: achievement.id,
+      title: achievement.title,
+      description: achievement.description,
+      category: achievement.category,
+      iconUrl: achievement.iconUrl,
+      points: achievement.points
+    },
+    progress: achievement.progress,
+    unlockedAt: null
+  })) || [];
+  
+  const formattedNext = achievements?.next?.map(achievement => ({
+    achievementId: {
+      _id: achievement.id,
+      title: achievement.title,
+      description: achievement.description,
+      category: achievement.category,
+      iconUrl: achievement.iconUrl,
+      points: achievement.points
+    },
+    progress: achievement.progress,
+    unlockedAt: null
+  })) || [];
+  
+  // Combine all achievement entries for the AchievementsList
+  const userAchievements = [...formattedUnlocked, ...formattedInProgress, ...formattedNext];
   
   return (
     <>
+      <HeaderRow>
+        <h2>Your Anime Stats</h2>
+        <RefreshButton onClick={() => fetchDashboardData(true)} disabled={loading}>
+          <RefreshCw size={16} />
+          {loading ? 'Refreshing...' : 'Refresh Stats'}
+        </RefreshButton>
+      </HeaderRow>
+      
+      {(cacheInfo.fromCache || cacheInfo.notModified) && (
+        <CacheStatus fromCache={cacheInfo.fromCache}>
+          {cacheInfo.notModified 
+            ? '✓ Data is up-to-date (304 Not Modified)' 
+            : '✓ Using cached data'}
+        </CacheStatus>
+      )}
+      
       {/* Stats Grid */}
       <StatsGrid>
         <StatItem>
@@ -341,6 +360,16 @@ const StatsPage = () => {
           <StatValue>{followersCount}</StatValue>
           <StatLabel>Followers</StatLabel>
         </StatItem>
+
+        {totalRatings > 0 && (
+          <StatItem>
+            <StatIcon>
+              <Heart size={24} />
+            </StatIcon>
+            <StatValue>{totalRatings}</StatValue>
+            <StatLabel>Ratings</StatLabel>
+          </StatItem>
+        )}
       </StatsGrid>
       
       {/* Current Rank and Achievements */}
@@ -350,65 +379,24 @@ const StatsPage = () => {
       </SectionTitle>
       
       <TopAchievements>
-        {currentRank && (
-          <StatItem style={{ maxWidth: '350px', margin: '0 auto 2rem auto' }}>
-            <StatIcon style={{ backgroundColor: 'var(--primary)', color: 'white' }}>
-              <Trophy size={24} />
-            </StatIcon>
-            <StatValue>{currentRank}</StatValue>
-            <StatLabel>Current Rank ({unlockedCount}/{totalAchievements} - {completionPercentage}% Complete)</StatLabel>
-          </StatItem>
-        )}
+        <StatItem style={{ maxWidth: '350px', margin: '0 auto 2rem auto' }}>
+          <StatIcon style={{ backgroundColor: tierColor, color: 'white' }}>
+            <Trophy size={24} />
+          </StatIcon>
+          <StatValue>{currentRank}</StatValue>
+          <StatLabel>{points} Points ({unlockedCount}/{totalAchievements} - {completionPercentage}% Complete)</StatLabel>
+        </StatItem>
       </TopAchievements>
       
-      <AchievementsList allAchievements={allAchievements} userAchievements={userAchievements} showProgress={true} showCategory={true} />
-      
-      <SectionDivider />
-      
-      {/* How to Unlock More */}
-      <SectionTitle>
-        <Award size={22} />
-        How to Unlock More Achievements
-      </SectionTitle>
-      
-      <HowToUnlock>
-        <h4>
-          <Trophy size={20} />
-          Complete these actions to earn achievements:
-        </h4>
-        <ul>
-          <li>
-            <Film size={18} />
-            <div>
-              <strong>Watch more anime</strong> - Complete series to earn higher ranks
-            </div>
-          </li>
-          <li>
-            <Heart size={18} />
-            <div>
-              <strong>Diversify your genres</strong> - Watch anime from different genres to earn specialist badges
-            </div>
-          </li>
-          <li>
-            <List size={18} />
-            <div>
-              <strong>Build your collection</strong> - Add anime to your watchlist to earn collector achievements
-            </div>
-          </li>
-          <li>
-            <Users size={18} />
-            <div>
-              <strong>Grow your following</strong> - Share content and interact to earn social achievements
-            </div>
-          </li>
-          <li>
-            <Clock size={18} />
-            <div>
-              <strong>Stay active</strong> - Log in regularly and keep rating anime to earn special badges
-            </div>
-          </li>
-        </ul>
-      </HowToUnlock>
+      <AchievementCategories>
+        <AchievementsList 
+          allAchievements={allAchievements} 
+          userAchievements={userAchievements} 
+          showProgress={true} 
+          showCategory={true} 
+          isPublicProfile={false}
+        />
+      </AchievementCategories>
     </>
   );
 };

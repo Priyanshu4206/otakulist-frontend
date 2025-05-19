@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { X, Plus, Save, Loader, BookOpen } from 'lucide-react';
-import { playlistAPI } from '../../services/api';
+import { playlistAPI } from '../../services/modules';
 import useToast from '../../hooks/useToast';
 import useAuth from '../../hooks/useAuth';
 import CustomSelect from './CustomSelect';
@@ -343,7 +343,7 @@ const PlaylistAddModal = ({
       (async () => {
         const response = await playlistAPI.getMyPlaylists(1, 100); // Fetch up to 100 playlists
         if (response.success) {
-          setPlaylists(response.data || []);
+          setPlaylists(response?.data?.items || []);
         } else {
           setPlaylists([]);
           showToast({
@@ -456,7 +456,7 @@ const PlaylistAddModal = ({
       }
 
       if (response.success) {
-        const status = response.data?.status;
+        const status = response.data?.message;
         let message = 'Anime added to playlist successfully';
 
         if (status === 'created_new') {

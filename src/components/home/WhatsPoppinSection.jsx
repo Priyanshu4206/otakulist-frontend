@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import { newsAPI } from '../../services/api';
-import useApiCache from '../../hooks/useApiCache';
+import { fetchWithETagAndCache } from '../../services/conditionalFetch';
+import LoadingSpinner from '../common/LoadingSpinner';
 
 const Section = styled.section`
   width: 100%;
@@ -183,21 +184,6 @@ const CategoryChip = styled.span`
   white-space: nowrap;
 `;
 
-const LoadingSpinner = styled.div`
-  width: 24px;
-  height: 24px;
-  border: 2px solid rgba(var(--primary-rgb), 0.2);
-  border-top: 2px solid var(--primary);
-  border-radius: 50%;
-  margin: 1.5rem auto;
-  animation: spin 0.8s linear infinite;
-
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-`;
-
 const EmptyStateContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -296,72 +282,176 @@ const RefreshIcon = () => (
 const MAX_TRENDING_NEWS = 6;
 const REFRESH_LIMIT = 5;
 const CACHE_KEY = 'home_trending_news';
+const ETAG_KEY = 'trending_news_etag';
+const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours
+const REFRESH_KEY = 'trending_news_refresh_count';
+const REFRESH_DATE_KEY = 'trending_news_refresh_date';
 
 const WhatsPoppinSection = () => {
   const [news, setNews] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Use API cache with 6-hour expiry
-  const { fetchWithCache, clearCacheItem, checkRefreshLimit } = useApiCache('localStorage', 6 * 60 * 60 * 1000);
-  
-  // Get refresh count and limit information
+  // Remove the useApiCache hook and manage refresh count manually
   const [refreshInfo, setRefreshInfo] = useState({ count: 0, canRefresh: true });
+  
+  // Check refresh limits and initialize refresh count
+  const checkRefreshLimit = useCallback(() => {
+    try {
+      const countKey = REFRESH_KEY;
+      const dateKey = REFRESH_DATE_KEY;
+      
+      // Get current count
+      let refreshCount = parseInt(localStorage.getItem(countKey) || '0', 10);
+      
+      // Check if it's a new day
+      const lastRefreshDate = localStorage.getItem(dateKey);
+      const today = new Date().toDateString();
+      
+      if (lastRefreshDate !== today) {
+        // Reset count for new day
+        refreshCount = 0;
+        localStorage.setItem(dateKey, today);
+        localStorage.setItem(countKey, '0');
+      }
+      
+      // Check if we've hit the limit
+      const canRefresh = refreshCount < REFRESH_LIMIT;
+      
+      return { 
+        canRefresh, 
+        refreshCount, 
+        increment: () => {
+          if (canRefresh) {
+            const newCount = refreshCount + 1;
+            localStorage.setItem(countKey, newCount.toString());
+            localStorage.setItem(dateKey, today);
+            return newCount;
+          }
+          return refreshCount;
+        }
+      };
+    } catch (error) {
+      console.error('Error checking refresh limit:', error);
+      // Default to allowing refresh on error
+      return { canRefresh: true, refreshCount: 0, increment: () => {} };
+    }
+  }, []);
   
   // Initialize refresh count from our utility
   useEffect(() => {
-    const { refreshCount, canRefresh } = checkRefreshLimit('trending_news', REFRESH_LIMIT);
+    const { refreshCount, canRefresh } = checkRefreshLimit();
     setRefreshInfo({ count: refreshCount, canRefresh });
   }, [checkRefreshLimit]);
   
-  // Fetch news data
+  // Get data from cache helper function
+  const getFromCache = useCallback(() => {
+    try {
+      const cachedItem = localStorage.getItem(CACHE_KEY);
+      if (!cachedItem) return null;
+      
+      const { data, timestamp } = JSON.parse(cachedItem);
+      
+      // Check if data is expired
+      if (timestamp && Date.now() - timestamp > CACHE_TTL) {
+        localStorage.removeItem(CACHE_KEY);
+        return null;
+      }
+      
+      return data;
+    } catch (error) {
+      return null;
+    }
+  }, []);
+  
+  // Save to cache helper function
+  const saveToCache = useCallback((data) => {
+    try {
+      const cacheObject = {
+        data,
+        timestamp: Date.now()
+      };
+      localStorage.setItem(CACHE_KEY, JSON.stringify(cacheObject));
+    } catch (error) {
+      console.error('Error saving to cache:', error);
+    }
+  }, []);
+  
+  // Fetch news data with improved caching
   const fetchNews = useCallback(async (forceRefresh = false) => {
     setIsLoading(true);
     
     try {
       // Check refresh limits if we're trying to force refresh
       if (forceRefresh) {
-        const { canRefresh, increment } = checkRefreshLimit('trending_news', REFRESH_LIMIT);
+        const { canRefresh, increment } = checkRefreshLimit();
         
         if (canRefresh) {
           // Increment the counter and update state
           const newCount = increment();
           setRefreshInfo({ count: newCount, canRefresh: newCount < REFRESH_LIMIT });
           
-          // Clear cache to force a refresh
-          clearCacheItem(CACHE_KEY);
+          // Use direct API call with cache-control header
+          const response = await newsAPI.getNews(MAX_TRENDING_NEWS, {
+            headers: { 'Cache-Control': 'no-cache' }
+          });
+          
+          if (response?.success && response?.data) {
+            setNews(Array.isArray(response.data.items) 
+              ? response.data.items.slice(0, MAX_TRENDING_NEWS) 
+              : []);
+            saveToCache(response.data);
+          }
+          
+          setIsLoading(false);
+          return;
         } else {
           // If we've hit the limit, just return the cached data
           setIsLoading(false);
-          const response = await fetchWithCache(CACHE_KEY, null, false);
+          const cachedData = getFromCache();
+          if (cachedData) {
+            processNewsResponse(cachedData);
+          }
           return;
         }
       }
       
-      // Use the fetchWithCache to get data
-      const fetchData = async () => {
-        return await newsAPI.getTrendingNews();
-      };
+      // Use fetchWithETagAndCache
+      const response = await fetchWithETagAndCache(
+        '/news',
+        ETAG_KEY,
+        getFromCache,
+        saveToCache,
+        { params: { limit: MAX_TRENDING_NEWS } }
+      );
       
-      // Get response from cache or API
-      const response = await fetchWithCache(CACHE_KEY, fetchData, forceRefresh);
-      
-      let newsData = [];
-      if (response && response.data && Array.isArray(response.data)) {
-        // Limit to MAX_TRENDING_NEWS items
-        newsData = response.data.slice(0, MAX_TRENDING_NEWS);
-      } else if (response && Array.isArray(response)) {
-        // Limit to MAX_TRENDING_NEWS items
-        newsData = response.slice(0, MAX_TRENDING_NEWS);
-      }
-      
-      setNews(newsData);
+      processNewsResponse(response?.data || response);
     } catch (error) {
       console.error('Error fetching trending news:', error);
       setNews([]);
     } finally {
       setIsLoading(false);
     }
-  }, [fetchWithCache, clearCacheItem, checkRefreshLimit]);
+  }, [checkRefreshLimit, getFromCache, saveToCache]);
+  
+  // Process the news response
+  const processNewsResponse = (response) => {
+    let newsData = [];
+    
+    if (response && response.success && response.data) {
+      // Success wrapper with data property
+      newsData = Array.isArray(response.data.items) 
+        ? response.data.items.slice(0, MAX_TRENDING_NEWS) 
+        : [];
+    } else if (response && response.items && Array.isArray(response.items)) {
+      // Standard data property with array
+      newsData = response.items.slice(0, MAX_TRENDING_NEWS);
+    } else if (response && Array.isArray(response)) {
+      // Direct array response (legacy)
+      newsData = response.slice(0, MAX_TRENDING_NEWS);
+    }
+    
+    setNews(newsData);
+  };
   
   // Handle refresh button click
   const handleRefresh = () => {

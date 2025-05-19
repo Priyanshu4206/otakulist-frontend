@@ -186,8 +186,8 @@ const ErrorMessage = styled.div`
 `;
 
 const TimezoneSelect = ({ onSave }) => {
-  // Get user from auth context to access settings
-  const { user } = useContext(AuthContext);
+  // Get user and settings from auth context
+  const { user, settings } = useContext(AuthContext);
   
   const {
     timezones,
@@ -199,12 +199,24 @@ const TimezoneSelect = ({ onSave }) => {
   
   const [currentTime, setCurrentTime] = useState('');
   
-  // Use user.settings.timezone if available (on initial load)
+  // Check both new settings structure and legacy structure
   useEffect(() => {
-    if (user && user.settings && user.settings.timezone) {
-      updateTimezone(user.settings.timezone);
+    // First check the dedicated settings object (new structure)
+    if (settings && settings.display && settings.display.timezone) {
+      updateTimezone(settings.display.timezone);
     }
-  }, [user, updateTimezone]);
+    // Fallback to legacy structure
+    else if (user && user.settings) {
+      // Check new API structure in user object
+      if (user.settings.display && user.settings.display.timezone) {
+        updateTimezone(user.settings.display.timezone);
+      }
+      // Check old API structure
+      else if (user.settings.timezone) {
+        updateTimezone(user.settings.timezone);
+      }
+    }
+  }, [user, settings, updateTimezone]);
   
   // Update current time based on selected timezone
   useEffect(() => {

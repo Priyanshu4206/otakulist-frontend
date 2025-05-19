@@ -2,9 +2,9 @@ import React, { createContext, useContext, useReducer, useEffect, useCallback, u
 import PropTypes from 'prop-types';
 import useAuth from '../hooks/useAuth';
 import useNotifications, { disconnectSocket, getGlobalSocket, setGlobalSocket } from '../hooks/useNotifications';
-import { notificationAPI, userAPI } from '../services/api';
 import { ToastContext } from './ToastContext';
 import { io } from 'socket.io-client';
+import { notificationAPI } from '../../services/modules';
 
 const NotificationContext = createContext();
 
@@ -248,7 +248,7 @@ export const NotificationProvider = ({ children }) => {
 
   const markAllRead = useCallback(() => {
     dispatch({ type: 'MARK_ALL_READ' });
-    notificationAPI.markAllNotificationsRead()
+    notificationAPI.markAllAsRead()
       .then(() => console.log('[NotificationContext] Marked all as read'))
       .catch(err => console.error('[NotificationContext] Error marking all as read:', err));
   }, []);
@@ -263,7 +263,7 @@ export const NotificationProvider = ({ children }) => {
   const clearAll = useCallback(() => {
     dispatch({ type: 'CLEAR_ALL' });
     // Optionally, call backend to delete all
-    notificationAPI.markAllNotificationsRead()
+    notificationAPI.markAllAsRead()
       .then(() => console.log('[NotificationContext] Cleared all (marked as read)'))
       .catch(err => console.error('[NotificationContext] Error clearing all:', err));
   }, []);

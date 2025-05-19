@@ -216,7 +216,6 @@ const RecommendationsList = ({ recommendations, loading }) => {
         {recommendationItems.map((rec, index) => {
           // Extract the anime entry from the recommendation
           const anime = rec.entry || rec.anime || rec;
-          
           // Add recommendation note if present
           if (rec.votes && !anime.recommendationNote) {
             anime.recommendationNote = rec.votes > 0 

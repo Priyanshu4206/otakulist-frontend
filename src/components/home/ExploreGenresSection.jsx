@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
 import AnimeCard from './AnimeCard';
-import useApiCache from '../../hooks/useApiCache';
-import { genreAPI } from '../../services/api';
 import { GENRE_DESCRIPTIONS } from '../../constants/genres';
+import { getETag, setETag } from '../../services/etagManager';
+import { genreAPI } from '../../services/modules';
+import { Link } from 'react-router-dom';
 
 const Section = styled.section`
   width: 100%;
@@ -105,7 +106,7 @@ const CardRow = styled.div`
   }
 `;
 
-const ViewAllLink = styled.a`
+const ViewAllLink = styled(Link)`
   color: var(--primaryLight);
   font-size: 0.95rem;
   font-weight: 600;
@@ -175,6 +176,32 @@ const ErrorMessage = styled.div`
   padding: 1rem;
   color: var(--textSecondary);
   margin: 1rem 0;
+  display: flex;
+  align-items: center;
+`;
+
+const LoadingIndicator = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 1rem;
+  color: var(--textSecondary);
+  font-style: italic;
+`;
+
+const RetryButton = styled.button`
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-weight: 600;
+  margin-left: 0.5rem;
+  cursor: pointer;
+  text-decoration: underline;
+  
+  &:hover {
+    color: var(--primaryDark);
+  }
 `;
 
 // Limit the number of anime to display in the home page
@@ -186,17 +213,15 @@ const ExploreGenresSection = () => {
   const [animeList, setAnimeList] = useState([]);
   const [animeLoading, setAnimeLoading] = useState(false);
   const [animeError, setAnimeError] = useState(null);
+  const [genresLoading, setGenresLoading] = useState(false);
+  const [genresError, setGenresError] = useState(null);
   
   // Ref for the card row to control scrolling
   const cardRowRef = useRef(null);
 
-  // 30 days in ms for genre list
-  const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
-  // 2 days in ms for anime by genre
-  const TWO_DAYS = 2 * 24 * 60 * 60 * 1000;
-
-  const { fetchWithCache: fetchGenres, loading: genresLoading, error: genresError } = useApiCache('localStorage', THIRTY_DAYS);
-  const { fetchWithCache: fetchAnimeByGenre } = useApiCache('localStorage', TWO_DAYS);
+  // Cache keys for ETag-based caching
+  const GENRES_CACHE_KEY = 'all_genres';
+  const ANIME_BY_GENRE_CACHE_PREFIX = 'anime_by_genre';
 
   // Helper to get the ID from a genre object
   const getGenreId = (genre) => {
@@ -206,7 +231,7 @@ const ExploreGenresSection = () => {
   // Helper to generate a consistent cache key for a genre
   const getGenreCacheKey = (genre) => {
     const id = getGenreId(genre);
-    return `anime_by_genre_${id}`;
+    return `${ANIME_BY_GENRE_CACHE_PREFIX}_${id}`;
   };
 
   // Helper to scroll to the beginning of the card row
@@ -215,15 +240,45 @@ const ExploreGenresSection = () => {
       cardRowRef.current.scrollLeft = 0;
     }
   };
+  
+  // Helper to get cached data from localStorage
+  const getCachedData = (cacheKey) => {
+    try {
+      const cachedData = localStorage.getItem(cacheKey);
+      return cachedData ? JSON.parse(cachedData) : null;
+    } catch (error) {
+      console.error('Error retrieving cached data:', error);
+      return null;
+    }
+  };
+  
+  // Helper to set cached data in localStorage
+  const setCachedData = (cacheKey, data) => {
+    try {
+      localStorage.setItem(cacheKey, JSON.stringify(data));
+      localStorage.setItem(`${cacheKey}_timestamp`, Date.now().toString());
+    } catch (error) {
+      console.error('Error setting cached data:', error);
+    }
+  };
 
-  // Fetch genres on mount only
-  useEffect(() => {
-    let isMounted = true;
+  // Function to fetch genres - extracted for reusability
+  const getGenres = async () => {
+    setGenresLoading(true);
+    setGenresError(null);
     
-    const getGenres = async () => {
-      try {
-        const data = await fetchGenres('all_genres', genreAPI.getAllGenres);
-        if (isMounted && Array.isArray(data) && data.length > 0) {
+    try {
+      // Use the genreAPI with ETag support
+      const response = await genreAPI.getAllGenres({
+        useCache: true,
+        forceRefresh: false
+      });
+      
+      if (response.success && response.data) {
+        const data = response.data;
+        console.log("All genres:", data);
+        
+        if (Array.isArray(data) && data.length > 0) {
           if (window.innerWidth > 768) {
             setGenres(data.slice(0, 8));
           } else {
@@ -234,15 +289,30 @@ const ExploreGenresSection = () => {
             setActiveGenre(data[0]);
           }
         }
-      } catch (err) {
-        console.error('Error fetching genres:', err);
+      } else {
+        setGenresError('Failed to fetch genres');
       }
+    } catch (err) {
+      console.error('Error fetching genres:', err);
+      setGenresError('Error fetching genres');
+    } finally {
+      setGenresLoading(false);
+    }
+  };
+  
+  // Fetch genres on mount only
+  useEffect(() => {
+    let isMounted = true;
+    
+    const fetchGenres = async () => {
+      if (!isMounted) return;
+      await getGenres();
     };
     
-    getGenres();
+    fetchGenres();
     
     return () => { isMounted = false; };
-  }, [fetchGenres]); // Only depend on fetchGenres, not activeGenre
+  }, []); // No dependencies as we're using the new approach
 
   // Fetch anime when active genre changes
   useEffect(() => {
@@ -258,19 +328,52 @@ const ExploreGenresSection = () => {
       try {
         const genreId = getGenreId(activeGenre);
         const cacheKey = getGenreCacheKey(activeGenre);
+        const etagKey = `${cacheKey}_etag`;
         
-        const data = await fetchAnimeByGenre(
-          cacheKey,
-          () => genreAPI.getAnimeByGenre(genreId, { limit: ANIME_DISPLAY_LIMIT })
-        );
+        // Get the current ETag if it exists
+        const etag = getETag(etagKey);
+        
+        // Prepare headers for conditional request
+        const headers = {};
+        if (etag) {
+          headers['If-None-Match'] = etag;
+        }
+        
+        // Try to get data from cache first
+        const cachedData = getCachedData(cacheKey);
+        
+        // Make the API request with proper options
+        const response = await genreAPI.getAnimeByGenre(genreId, 1, ANIME_DISPLAY_LIMIT);
         
         if (!isMounted) return;
         
+        // Handle the response
         let anime = [];
-        if (data && Array.isArray(data.anime)) {
-          anime = data.anime;
-        } else if (Array.isArray(data)) {
-          anime = data;
+        
+        // If we got a 304 Not Modified and have cached data, use the cached data
+        if (response.status === 304 && cachedData) {
+          console.log('Using cached anime data (304 Not Modified)');
+          anime = cachedData;
+        } 
+        // Otherwise use the new data from the response
+        else if (response.success && response.data) {
+          console.log("Anime based on the genre:", response.data);
+          
+          // Store the new ETag if present
+          const newEtag = response.headers?.etag;
+          if (newEtag) {
+            setETag(etagKey, newEtag);
+          }
+          
+          // Extract anime from the response
+          if (response.data && Array.isArray(response.data.anime)) {
+            anime = response.data.anime;
+          } else if (Array.isArray(response.data)) {
+            anime = response.data;
+          }
+          
+          // Cache the new data
+          setCachedData(cacheKey, anime);
         }
         
         // Sort by rank if available
@@ -288,7 +391,17 @@ const ExploreGenresSection = () => {
       } catch (err) {
         if (isMounted) {
           console.error('Error fetching anime:', err);
-          setAnimeError('Failed to load anime for this genre.');
+          
+          // Try to use cached data as fallback on error
+          const cacheKey = getGenreCacheKey(activeGenre);
+          const cachedData = getCachedData(cacheKey);
+          
+          if (cachedData) {
+            console.log('Using cached anime data (error fallback)');
+            setAnimeList(cachedData);
+          } else {
+            setAnimeError('Failed to load anime for this genre.');
+          }
         }
       } finally {
         if (isMounted) {
@@ -304,12 +417,15 @@ const ExploreGenresSection = () => {
     fetchAnimeData();
     
     return () => { isMounted = false; };
-  }, [activeGenre, fetchAnimeByGenre]);
+  }, [activeGenre]); // Only depend on activeGenre, not fetchAnimeByGenre anymore
 
   const handleGenreClick = (genre) => {
     if (!activeGenre || (getGenreId(activeGenre) !== getGenreId(genre))) {
       // Set the new active genre
       setActiveGenre(genre);
+      
+      // Reset any previous errors
+      setAnimeError(null);
     }
   };
 
@@ -336,9 +452,14 @@ const ExploreGenresSection = () => {
       )}
       
       {genresLoading ? (
-        <div>Loading genres...</div>
+        <div style={{ padding: '1rem 0', color: 'var(--textSecondary)' }}>
+          <LoadingIndicator>Loading genres...</LoadingIndicator>
+        </div>
       ) : genresError ? (
-        <ErrorMessage>Error loading genres. Please try again later.</ErrorMessage>
+        <ErrorMessage>
+          Error loading genres. 
+          <RetryButton onClick={getGenres}>Try again</RetryButton>
+        </ErrorMessage>
       ) : (
         <GenreRow>
           {genres.map((genre) => (
@@ -364,7 +485,17 @@ const ExploreGenresSection = () => {
             // Show 4 shimmer cards as placeholders
             Array.from({ length: 4 }).map((_, idx) => <ShimmerCard key={idx} />)
           ) : animeError ? (
-            <ErrorMessage>{animeError}</ErrorMessage>
+            <ErrorMessage>
+              {animeError}
+              <RetryButton onClick={() => {
+                if (activeGenre) {
+                  // Reset error and trigger a fresh fetch
+                  setAnimeError(null);
+                  // We can reuse handleGenreClick to fetch anime for the current genre
+                  handleGenreClick(activeGenre);
+                }
+              }}>Try again</RetryButton>
+            </ErrorMessage>
           ) : animeList.length === 0 ? (
             <EmptyState>
               <p>No anime found for this genre.</p>

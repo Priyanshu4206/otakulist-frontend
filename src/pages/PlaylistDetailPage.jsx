@@ -117,7 +117,7 @@ const PlaylistDetailPage = () => {
     try {
       const dbPlaylistId = playlist.id || playlist._id;
       
-      const response = await playlistAPI.likePlaylist(dbPlaylistId);
+      const response = await playlistAPI.toggleLikePlaylist(dbPlaylistId);
       
       // Check if response is directly the data object or has success property
       if (response && response.liked !== undefined) {

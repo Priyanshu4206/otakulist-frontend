@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect, useCallback, useRef } from 'react';
-import { authAPI, resetAuthFailedState } from '../services/api';
+import { authAPI, userAPI, resetAuthFailedState } from '../services/api';
 import { saveUserTimezone } from '../utils/simpleTimezoneUtils';
 import { saveUserTheme } from '../components/dashboard/SettingsPage';
 import { themes } from '../contexts/ThemeContext';
@@ -74,6 +74,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [stats, setStats] = useState(null);
   const [notifications, setNotifications] = useState(null);
+  const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [initialAuthCheckComplete, setInitialAuthCheckComplete] = useState(false);
@@ -82,57 +83,105 @@ export const AuthProvider = ({ children }) => {
   const { showToast } = useToast();
 
   // Function to sync user preferences (theme, etc.) after setting user data
-  const syncUserPreferences = useCallback((userData) => {
+  const syncUserPreferences = useCallback((userData, settingsData) => {
+    logger('Preferences', 'Syncing user preferences initiated');
+    
     if (!userData) {
       logger('Preferences', 'No user data provided for preference sync');
       return;
     }
     
-    logger('Preferences', 'Syncing user preferences');
+    // First try to use dedicated settings object if available (new API structure)
+    if (settingsData) {
+      logger('Preferences', 'Using dedicated settings data for preference sync');
+      
+      // Theme handling
+      if (settingsData.display && settingsData.display.theme) {
+        const newTheme = settingsData.display.theme;
+        const currentTheme = getCurrentTheme();
+        logger('Preferences', 'Processing theme from settings.display.theme', { 
+          newTheme, 
+          currentTheme 
+        });
+        
+        if (newTheme !== currentTheme) {
+          logger('Preferences', 'Theme changed, applying');
+          saveUserTheme(newTheme);
+          applyThemeDirectly(newTheme);
+        } else {
+          logger('Preferences', 'Theme unchanged, skipping apply');
+        }
+      } else {
+        logger('Preferences', 'No theme found in settings.display.theme');
+      }
+      
+      // Timezone handling
+      if (settingsData.display && settingsData.display.timezone) {
+        logger('Preferences', 'Saving timezone from settings.display.timezone', { 
+          timezone: settingsData.display.timezone 
+        });
+        saveUserTimezone(settingsData.display.timezone);
+      } else {
+        logger('Preferences', 'No timezone found in settings.display.timezone');
+      }
+      
+      return;
+    }
     
-    // Check for theme in settings.display.theme (new API structure)
-    if (userData.settings && userData.settings.display && userData.settings.display.theme) {
+    // Fallback to legacy settings structure in user object if no dedicated settings object
+    logger('Preferences', 'No dedicated settings object, checking user.settings');
+    
+    if (!userData.settings) {
+      logger('Preferences', 'No settings found in user object');
+      return;
+    }
+    
+    // Try settings.display.theme (newer format in user object)
+    if (userData.settings.display && userData.settings.display.theme) {
       const newTheme = userData.settings.display.theme;
       const currentTheme = getCurrentTheme();
-      logger('Preferences', 'Processing theme preference', { 
+      logger('Preferences', 'Processing theme from user.settings.display.theme', { 
         newTheme, 
         currentTheme 
       });
       
-      saveUserTheme(newTheme);
       if (newTheme !== currentTheme) {
-        logger('Preferences', 'Theme changed, applying directly');
+        logger('Preferences', 'Theme changed, applying');
+        saveUserTheme(newTheme);
         applyThemeDirectly(newTheme);
       }
-    }
-    // Fallback to settings.interfaceTheme for backward compatibility
-    else if (userData.settings && userData.settings.interfaceTheme) {
+    } 
+    // Try settings.interfaceTheme (legacy format)
+    else if (userData.settings.interfaceTheme) {
       const newTheme = userData.settings.interfaceTheme;
       const currentTheme = getCurrentTheme();
-      logger('Preferences', 'Processing theme preference (legacy format)', { 
+      logger('Preferences', 'Processing theme from user.settings.interfaceTheme (legacy)', { 
         newTheme, 
         currentTheme 
       });
-      
-      saveUserTheme(newTheme);
+
       if (newTheme !== currentTheme) {
-        logger('Preferences', 'Theme changed, applying directly');
+        logger('Preferences', 'Theme changed, applying');
+        saveUserTheme(newTheme);
         applyThemeDirectly(newTheme);
       }
+    } else {
+      logger('Preferences', 'No theme information found in user settings');
     }
     
-    if (userData.settings && userData.settings.timezone) {
-      logger('Preferences', 'Saving user timezone', { 
-        timezone: userData.settings.timezone 
-      });
-      saveUserTimezone(userData.settings.timezone);
-    }
-    // Check for timezone in settings.display.timezone (new API structure)
-    else if (userData.settings && userData.settings.display && userData.settings.display.timezone) {
-      logger('Preferences', 'Saving user timezone from display settings', { 
+    // Handle timezone settings
+    if (userData.settings.display && userData.settings.display.timezone) {
+      logger('Preferences', 'Saving timezone from user.settings.display.timezone', { 
         timezone: userData.settings.display.timezone 
       });
       saveUserTimezone(userData.settings.display.timezone);
+    } else if (userData.settings.timezone) {
+      logger('Preferences', 'Saving timezone from user.settings.timezone (legacy)', { 
+        timezone: userData.settings.timezone 
+      });
+      saveUserTimezone(userData.settings.timezone);
+    } else {
+      logger('Preferences', 'No timezone information found in user settings');
     }
   }, []);
 
@@ -152,6 +201,7 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setStats(null);
       setNotifications(null);
+      setSettings(null);
       setInitialAuthCheckComplete(true);
       return null;
     }
@@ -172,53 +222,63 @@ export const AuthProvider = ({ children }) => {
       setError(null);
       
       logger('API', 'Making getCurrentUser API call');
-      const response = await authAPI.getCurrentUser();
+      // Use getCurrentUser which internally calls getDashboardSections with all needed sections including settings
+      const response = await userAPI.getCurrentUser();
       
       if (response && response.success && response.data) {
-        logger('API', 'User fetch successful', { 
+        logger('API', 'User data fetch successful', { 
           hasUserData: !!response.data.user,
           hasStats: !!response.data.stats,
-          hasNotifications: !!response.data.notifications 
+          hasNotifications: !!response.data.notifications,
+          hasSettings: !!response.data.settings
         });
 
+        // Extract the data we need
+        const userData = response.data.user || null;
+        const statsData = response.data.stats || null;
+        const notificationsData = response.data.notifications || null;
+        const settingsData = response.data.settings || null;
         if (!preserveUIState) {
           logger('State', 'Setting full user state (UI reset)');
-          setUser(response.data.user || null);
-          setStats(response.data.stats || null);
-          setNotifications(response.data.notifications || null);
+          setUser(userData);
+          setStats(statsData);
+          setNotifications(notificationsData);
+          setSettings(settingsData);
         } else {
           logger('State', 'Merging user state (preserving UI state)');
           // When preserving UI state, we still need to update user data, but we do it
           // carefully to avoid UI resets
-          setUser(prevUser => {
-            // Merge the new data with the existing user object, preserving UI state
-            return {
-              ...prevUser,
-              ...response.data.user
-            };
-          });
-          setStats(prevStats => {
-            return {
-              ...prevStats,
-              ...response.data.stats
-            };
-          });
-          setNotifications(prevNotifications => {
-            return {
-              ...prevNotifications,
-              ...response.data.notifications
-            };
-          });
+          setUser(prevUser => ({
+            ...prevUser,
+            ...userData
+          }));
+          
+          setStats(prevStats => ({
+            ...prevStats,
+            ...statsData
+          }));
+          
+          setNotifications(prevNotifications => ({
+            ...prevNotifications,
+            ...notificationsData
+          }));
+          
+          setSettings(prevSettings => ({
+            ...prevSettings,
+            ...settingsData
+          }));
         }
 
         logger('Preferences', 'Syncing user preferences after successful fetch');
-        syncUserPreferences(response.data.user);
-        authFailCount.current = 0;
+        // First try to use the dedicated settings object, then fall back to user's settings
+        syncUserPreferences(userData, settingsData);
         
+        authFailCount.current = 0;
         return {
-          user: response.data.user || null,
-          stats: response.data.stats || null,
-          notifications: response.data.notifications || null
+          user: userData,
+          stats: statsData,
+          notifications: notificationsData,
+          settings: settingsData
         };
       } else {
         logger('API', 'User fetch unsuccessful or empty response');
@@ -227,6 +287,7 @@ export const AuthProvider = ({ children }) => {
           setUser(null);
           setStats(null);
           setNotifications(null);
+          setSettings(null);
         }
         authFailCount.current++;
         logger('Auth', 'Authentication failure count increased', { count: authFailCount.current });
@@ -248,6 +309,7 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
         setStats(null);
         setNotifications(null);
+        setSettings(null);
       }
       
       setError(err.message || 'Failed to authenticate');
@@ -288,6 +350,7 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setStats(null);
       setNotifications(null);
+      setSettings(null);
       authFailCount.current = 0;
       resetAuthFailedState();
       
@@ -309,6 +372,7 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setStats(null);
       setNotifications(null);
+      setSettings(null);
       
       // Disconnect WebSocket even on error
       logger('Socket', 'Disconnecting socket after logout error');
@@ -330,8 +394,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const refreshUser = useCallback((preserveUIState = false) => {
-    logger('Auth', 'Manual user refresh requested', { preserveUIState });
+  /**
+   * Refresh user data from the API
+   * @param {boolean} preserveUIState - Whether to preserve the UI state (avoid flicker)
+   * @param {Array<string>} sections - Specific sections to refresh (defaults to all)
+   * @returns {Promise} Promise that resolves with user data
+   */
+  const refreshUser = useCallback((preserveUIState = false, sections = ['user', 'stats', 'notifications', 'settings']) => {
+    logger('Auth', 'Manual user refresh requested', { preserveUIState, sections });
     authFailCount.current = 0;
     return fetchCurrentUser(true, preserveUIState);
   }, [fetchCurrentUser]);
@@ -339,31 +409,13 @@ export const AuthProvider = ({ children }) => {
   const handleLoginSuccess = (userData, token) => {
     // Check if we already have a session to avoid duplicate work
     const hasSession = localStorage.getItem('has_valid_token') === 'true' && user;
-    
+    console.log(userData);
     logger('Auth', 'Login success handler', { 
       hasUserData: !!userData, 
       hasToken: !!token,
       hasExistingSession: hasSession
     });
     
-    if (userData) {
-      // Only set user data if not already set
-      if (!hasSession) {
-        logger('State', 'Setting user data from login response');
-        
-        // Flatten user object if needed (for backward compatibility)
-        const userObj = userData.user || userData;
-        
-        setUser(userObj || null);
-        setStats(userData.stats || null);
-        setNotifications(userData.notifications || null);
-        
-        // Make sure to sync user preferences immediately after login
-        logger('Preferences', 'Syncing user preferences after login');
-        syncUserPreferences(userObj);
-      }
-    }
-  
     if (token) {
       logger('Storage', 'Storing auth token');
       localStorage.setItem('auth_token', token);
@@ -390,13 +442,19 @@ export const AuthProvider = ({ children }) => {
       logger('Navigation', 'Processed hard redirect during login success');
     }
     
-    // Only fetch fresh data if we didn't already set user data above
-    if (!userData && !hasSession) {
-      logger('API', 'No user data provided, fetching from API');
-      fetchCurrentUser(true, true);
-    } else {
-      logger('State', 'Using provided user data or existing session');
+    // We only set the basic user data from the login response
+    // The complete data will be loaded via getCurrentUser
+    if (userData && !hasSession) {
+      // Set only the basic user data, don't try to use other properties from userData
+      // that might not exist in the login response
+      const userObj = userData.user || userData;
+      logger('State', 'Setting basic user data from login response');
+      setUser(userObj || null);
     }
+    
+    // Always fetch the full user data from the API to get settings, stats, notifications
+    logger('API', 'Fetching complete user data after login');
+    fetchCurrentUser(true, true);
   };
 
   const loginWithGoogle = () => {
@@ -411,6 +469,7 @@ export const AuthProvider = ({ children }) => {
     user,
     stats,
     notifications,
+    settings,
     loading,
     error,
     isAuthenticated: !!user,

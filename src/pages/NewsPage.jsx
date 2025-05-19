@@ -3,7 +3,8 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import Layout from '../components/layout/Layout';
 import { newsAPI } from '../services/api';
-import useApiCache from '../hooks/useApiCache';
+import { fetchWithETagAndCache } from '../services/conditionalFetch';
+import { X, Search, Globe } from 'lucide-react';
 
 // Styled components
 const PageContainer = styled(motion.div)`
@@ -424,9 +425,6 @@ const NewsPage = () => {
   const [sources, setSources] = useState([]);
   const [isFromCache, setIsFromCache] = useState(false);
   
-  // Use API cache with session storage for the news page
-  const { fetchWithCache, clearCacheItem } = useApiCache('sessionStorage');
-  
   // Debounce search query to reduce API calls
   const [debouncedQuery, setDebouncedQuery] = useState('');
   
@@ -443,7 +441,7 @@ const NewsPage = () => {
     const fetchCategories = async () => {
       try {
         const response = await newsAPI.getNewsCategories();
-        if (response && response.data && Array.isArray(response.data)) {
+        if (response && response.success && response.data) {
           setCategories(response.data);
         } else if (response && Array.isArray(response)) {
           setCategories(response);
@@ -462,7 +460,7 @@ const NewsPage = () => {
     const fetchSources = async () => {
       try {
         const response = await newsAPI.getNewsSources();
-        if (response && response.data && Array.isArray(response.data)) {
+        if (response && response.success && response.data) {
           setSources(response.data);
         } else if (response && Array.isArray(response)) {
           setSources(response);
@@ -481,6 +479,11 @@ const NewsPage = () => {
     return `news_${selectedCategory || 'all'}_${selectedSource || 'all'}_${currentPage}_${debouncedQuery || 'none'}`;
   }, [selectedCategory, selectedSource, currentPage, debouncedQuery]);
   
+  // Generate ETag key based on current filters
+  const generateEtagKey = useCallback(() => {
+    return `news_etag_${selectedCategory || 'all'}_${selectedSource || 'all'}_${debouncedQuery || 'none'}`;
+  }, [selectedCategory, selectedSource, debouncedQuery]);
+  
   // Fetch news data
   const fetchNews = useCallback(async (forceRefresh = false) => {
     setIsLoading(true);
@@ -489,67 +492,68 @@ const NewsPage = () => {
     try {
       // Create a cache key based on filters
       const cacheKey = generateCacheKey();
+      const etagKey = generateEtagKey();
       
-      // If force refreshing, clear the cache item first
+      // Build query options object
+      const options = {
+        page: currentPage,
+        limit: NEWS_PER_PAGE
+      };
+      
+      // Add optional filters if present
+      if (selectedCategory) options.category = selectedCategory;
+      if (selectedSource) options.source = selectedSource;
+      if (debouncedQuery) options.search = debouncedQuery;
+      
+      // If force refreshing, use API directly with cache-control header
       if (forceRefresh) {
-        clearCacheItem(cacheKey);
+        const response = await newsAPI.getNews({
+          ...options,
+          headers: { 'Cache-Control': 'no-cache' }
+        });
+        
+        processNewsResponse(response);
+        return;
       }
       
-      // Use the fetchWithCache to get data
-      const fetchData = async () => {
-        // Use category-specific API if a category is selected
-        if (selectedCategory || selectedSource || debouncedQuery) {
-          return await newsAPI.getNews({
-            page: currentPage,
-            limit: NEWS_PER_PAGE,
-            category: selectedCategory,
-            source: selectedSource,
-            search: debouncedQuery
-          });
-        } else {
-          return await newsAPI.getNews({
-            page: currentPage,
-            limit: NEWS_PER_PAGE
-          });
+      // Create wrapper functions for cache
+      const getCachedData = () => {
+        const cachedItem = sessionStorage.getItem(cacheKey);
+        if (!cachedItem) return null;
+        
+        try {
+          const { data } = JSON.parse(cachedItem);
+          if (data) {
+            setIsFromCache(true);
+            return data;
+          }
+          return null;
+        } catch (e) {
+          return null;
         }
       };
       
-      // Check if the data is cached before making the request
-      const cachedData = sessionStorage.getItem(cacheKey);
-      if (cachedData && !forceRefresh) {
-        setIsFromCache(true);
-      }
-      
-      // Get response from cache or API
-      const response = await fetchWithCache(cacheKey, fetchData, forceRefresh);
-      
-      // Process response based on structure
-      if (response && response.data && Array.isArray(response.data)) {
-        // Standard API response format with data property
-        setNews(response.data);
+      const setCachedData = (data) => {
+        if (!data) return;
         
-        // Set pagination data
-        if (response.pagination) {
-          setTotalPages(response.pagination.pages || Math.ceil(response.pagination.total / response.pagination.limit) || 1);
-        }
-      } else if (response && Array.isArray(response)) {
-        // Direct array response
-        setNews(response);
-        // For array responses, assume we have only one page if no pagination info
-        setTotalPages(1);
-      } else if (response && response.success && response.data) {
-        // Success wrapper format
-        setNews(Array.isArray(response.data) ? response.data : []);
+        const cacheObject = {
+          data,
+          timestamp: Date.now()
+        };
         
-        // Handle pagination if available
-        if (response.pagination) {
-          setTotalPages(response.pagination.pages || Math.ceil(response.pagination.total / response.pagination.limit) || 1);
-        }
-      } else {
-        // Fallback for unexpected formats
-        setNews([]);
-        setTotalPages(1);
-      }
+        sessionStorage.setItem(cacheKey, JSON.stringify(cacheObject));
+      };
+      
+      // Use the fetchWithETagAndCache utility
+      const response = await fetchWithETagAndCache(
+        '/news',
+        etagKey,
+        getCachedData,
+        setCachedData,
+        { params: options }
+      );
+      
+      processNewsResponse(response);
     } catch (error) {
       console.error('Error fetching news:', error);
       setNews([]);
@@ -557,7 +561,37 @@ const NewsPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, selectedCategory, selectedSource, debouncedQuery, fetchWithCache, clearCacheItem, generateCacheKey]);
+  }, [currentPage, selectedCategory, selectedSource, debouncedQuery, generateCacheKey, generateEtagKey]);
+  
+  // Helper function to process news response
+  const processNewsResponse = (response) => {
+    if (response && response.data && Array.isArray(response.data.items)) {
+      // Standard API response format with data property
+      setNews(response.data.items);
+      
+      // Set pagination data
+      if (response.data.pagination) {
+        setTotalPages(response.data.pagination.pages || Math.ceil(response.data.pagination.total / response.data.pagination.limit) || 1);
+      }
+    } else if (response && Array.isArray(response)) {
+      // Direct array response
+      setNews(response);
+      // For array responses, assume we have only one page if no pagination info
+      setTotalPages(1);
+    } else if (response && response.success && response.data) {
+      // Success wrapper format
+      setNews(Array.isArray(response.data) ? response.data : []);
+      
+      // Handle pagination if available
+      if (response.pagination) {
+        setTotalPages(response.pagination.pages || Math.ceil(response.pagination.total / response.pagination.limit) || 1);
+      }
+    } else {
+      // Fallback for unexpected formats
+      setNews([]);
+      setTotalPages(1);
+    }
+  };
   
   // Load news when filters change
   useEffect(() => {

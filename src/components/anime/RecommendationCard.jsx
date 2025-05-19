@@ -3,7 +3,7 @@ import styled, { keyframes } from 'styled-components';
 import { Link, useNavigate } from 'react-router-dom';
 import { Star, Bookmark, BookOpen, ExternalLink, Tv } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
-import { watchlistAPI } from '../../services/api';
+import { watchlistAPI } from '../../services/modules';
 import WatchlistModal from '../common/WatchlistModal';
 import PlaylistAddModal from '../common/PlaylistAddModal';
 import useToast from '../../hooks/useToast';
@@ -26,15 +26,6 @@ const shimmer = keyframes`
   }
   100% {
     background-position: 200% 0;
-  }
-`;
-
-const tilt = keyframes`
-  0% {
-    transform: perspective(1000px) rotateY(0deg);
-  }
-  100% {
-    transform: perspective(1000px) rotateY(3deg);
   }
 `;
 
@@ -278,8 +269,8 @@ const RecommendationCard = ({ anime }) => {
     if (!images) return '';
 
     // Handle different API response structures
-    if (images.jpg) return images.jpg.large_image_url || images.jpg.image_url;
-    if (images.webp) return images.webp.large_image_url || images.webp.image_url;
+    if (images.jpg) return images.jpg.largeImageUrl || images.jpg.large_image_url || images.jpg.imageUrl || images.jpg.image_url;
+    if (images.webp) return images.webp.largeImageUrl || images.webp.large_image_url || images.webp.imageUrl || images.webp.image_url;
     if (images.image_url) return images.image_url;
     if (images.large) return images.large;
     if (images.medium) return images.medium;

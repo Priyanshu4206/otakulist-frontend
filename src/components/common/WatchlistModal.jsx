@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import styled from 'styled-components';
 import { X } from 'lucide-react';
-import { watchlistAPI } from '../../services/api';
+import { watchlistAPI } from '../../services/modules';
 import { createPortal } from 'react-dom';
 import useToast from '../../hooks/useToast';
 

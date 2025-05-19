@@ -2,7 +2,7 @@ import styled, { keyframes } from 'styled-components';
 import { useState } from 'react';
 import { Star, Bookmark, BookOpen, Lock } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
-import { watchlistAPI } from '../../services/api';
+import { watchlistAPI } from '../../services/modules';
 import WatchlistModal from '../common/WatchlistModal';
 import PlaylistAddModal from '../common/PlaylistAddModal';
 import useToast from '../../hooks/useToast';

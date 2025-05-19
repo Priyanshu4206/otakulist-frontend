@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { X } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
-import { watchlistAPI } from '../../services/api';
+import { watchlistAPI } from '../../services/modules';
 import { useNavigate } from 'react-router-dom';
 import WatchlistFilter from './WatchlistFilter';
 import WatchlistTabs, { STATUSES } from './WatchlistTabs';

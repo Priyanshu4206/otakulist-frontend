@@ -1,10 +1,10 @@
 import React from 'react';
-import { Trophy, ListFilter } from 'lucide-react';
+import { Trophy, ListFilter, Sliders } from 'lucide-react';
 import { TabsContainer, Tab } from './ProfileStyles';
 
 export const TABS = {
   ACHIEVEMENTS: 'achievements',
-  PLAYLISTS: 'playlists'
+  PLAYLISTS: 'playlists',
 };
 
 const ProfileTabs = ({ activeTab, setActiveTab }) => {

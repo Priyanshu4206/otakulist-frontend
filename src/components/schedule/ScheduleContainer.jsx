@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import styled from 'styled-components';
-import useApiCache from '../../hooks/useApiCache';
-import { scheduleAPI } from '../../services/api';
 import { getUserTimezone, getIANATimezone } from '../../utils/simpleTimezoneUtils';
 import { useNavigate } from 'react-router-dom';
+import { scheduleAPI } from '../../services/modules';
 
 const Container = styled.div`
   position: relative;
@@ -274,6 +273,10 @@ const LoadingSpinner = styled.div`
   }
 `;
 
+// Rate limiting mechanism to prevent excessive API calls
+const API_CALL_THROTTLE = 5000; // 5 seconds between API calls
+const lastApiCallTime = {};
+
 // Move these outside the component so they don't recreate on each render
 const getTodayDayName = () => {
   const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
@@ -290,8 +293,20 @@ const ScheduleContainer = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  // UseApiCache hook for caching API calls (30 mins cache time)
-  const { fetchWithCache } = useApiCache('localStorage', 30 * 60 * 1000);
+  // Keep track of whether we've already loaded the data
+  const hasLoadedRef = useRef(false);
+
+  // Check if API call is allowed based on throttling
+  const canMakeApiCall = useCallback((day) => {
+    const now = Date.now();
+    
+    if (!lastApiCallTime[day] || (now - lastApiCallTime[day]) > API_CALL_THROTTLE) {
+      lastApiCallTime[day] = now;
+      return true;
+    }
+    
+    return false;
+  }, []);
 
   // Format genres for display - now stable across renders
   const formatGenres = useCallback((anime) => {
@@ -358,7 +373,7 @@ const ScheduleContainer = () => {
       
       if (hours > currentHours || (hours === currentHours && minutes > currentMinutes)) {
         return {
-          title: anime?.titles?.english || anime?.title_english || anime?.title || anime?.titles?.default || anime?.name || 'Untitled',
+          title: anime?.titles?.default || anime?.titles?.english || anime?.title_english || anime?.title || 'Untitled',
           time: formatTimeDisplay(anime?.broadcast?.time)
         };
       }
@@ -366,68 +381,113 @@ const ScheduleContainer = () => {
     
     // If no show is airing later today, return the first one (tomorrow)
     return shows[0] ? {
-      title: shows[0].title,
+      title: shows[0]?.titles?.default || shows[0]?.titles?.english || shows[0]?.title_english || shows[0]?.title || 'Untitled',
       time: formatTimeDisplay(shows[0].broadcast?.time || '')
     } : null;
   }, [shows, formatTimeDisplay]);
 
-  // Fetch schedule data - core data fetching
-  useEffect(() => {
-    const fetchSchedule = async () => {
-      setIsLoading(true);
-      setError(null);
+  // Fetch schedule data using scheduleAPI directly
+  const fetchSchedule = useCallback(async () => {
+    // Check if we can make an API call for today (throttling)
+    const today = getTodayDayName();
+    if (!canMakeApiCall(today) && !isLoading) {
+      console.warn(`API call for ${today} was throttled. Try again later.`);
+      return;
+    }
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Use the scheduleAPI.getDaySchedule method with caching built-in
+      const response = await scheduleAPI.getDaySchedule(
+        today,
+        userTimezone,
+        {
+          useCache: true,
+          forceRefresh: false
+        }
+      );
       
-      try {
-        const today = getTodayDayName();
-        
-        // Create cache key for this specific day and timezone
-        const cacheKey = `home_schedule_${today}_${userTimezoneCode}`;
-        
-        // Fetch data using the cache or fresh from API
-        const fetchData = async () => {
-          // Get schedule for today
-          return await scheduleAPI.getScheduleByDay(today, {
-            timezone: userTimezone,
-            limit: 12
-          });
-        };
-        
-        // Use refresh flag to force refresh
-        const response = await fetchWithCache(cacheKey, fetchData);
-        
-        let processedShows = [];
-        if (response && Array.isArray(response)) {
-          // API returned array directly
-          processedShows = response;
-        } else if (response && response.data && Array.isArray(response.data)) {
-          // API returned {data: [...]}
+      let processedShows = [];
+      
+      // Handle API response formats
+      if (response) {
+        if (response.success && response.data?.items) {
+          // New API structure: {success: true, data: {items: [...], pagination: {...}}}
+          processedShows = response.data.items || [];
+        } else if (response.data?.items && Array.isArray(response.data.items)) {
+          // Data with items array
+          processedShows = response.data.items;
+        } else if (Array.isArray(response.data)) {
+          // Direct array response (legacy)
+          processedShows = response.data;
+        } else if (response.data) {
+          // For any other structure, try to use the data directly
           processedShows = response.data;
         }
-        
-        // Sort by broadcast time
-        processedShows.sort((a, b) => {
-          if (!a.broadcast?.time) return 1;
-          if (!b.broadcast?.time) return -1;
-          
-          const [aHours, aMinutes] = a.broadcast.time.split(':').map(Number);
-          const [bHours, bMinutes] = b.broadcast.time.split(':').map(Number);
-          
-          // Compare hours first, then minutes
-          return aHours !== bHours ? aHours - bHours : aMinutes - bMinutes;
-        });
-        
-        setShows(processedShows);
-      } catch (err) {
-        console.error('Error fetching schedule:', err);
-        setError('Failed to load anime schedule');
-      } finally {
-        setIsLoading(false);
       }
-    };
+      
+      // Sort by broadcast time
+      processedShows.sort((a, b) => {
+        if (!a.broadcast?.time) return 1;
+        if (!b.broadcast?.time) return -1;
+        
+        const [aHours, aMinutes] = a.broadcast.time.split(':').map(Number);
+        const [bHours, bMinutes] = b.broadcast.time.split(':').map(Number);
+        
+        // Compare hours first, then minutes
+        return aHours !== bHours ? aHours - bHours : aMinutes - bMinutes;
+      });
+      
+      // Limit to 12 shows for homepage display
+      processedShows = processedShows.slice(0, 12);
+      
+      setShows(processedShows);
+      // Mark as loaded
+      hasLoadedRef.current = true;
+    } catch (err) {
+      console.error('Error fetching schedule:', err);
+      setError('Failed to load anime schedule');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [canMakeApiCall, isLoading, userTimezone]);
 
-    // Execute fetch
+  // Fetch data on component mount
+  useEffect(() => {
+    // Only fetch if we haven't loaded yet or if we don't have data
+    if (hasLoadedRef.current && shows.length > 0) return;
+    
     fetchSchedule();
-  }, [fetchWithCache]); // Only depends on stable values
+  }, [fetchSchedule, shows.length]);
+
+  // Reset hasLoaded if timezone changes or if shows are empty
+  useEffect(() => {
+    if (userTimezoneCode !== getUserTimezone()) {
+      hasLoadedRef.current = false;
+    }
+  }, [userTimezoneCode]);
+  
+  // Reset hasLoaded when component unmounts or if shows are empty
+  useEffect(() => {
+    if (shows.length === 0 && hasLoadedRef.current) {
+      hasLoadedRef.current = false;
+    }
+    
+    return () => {
+      // Reset when component unmounts
+      hasLoadedRef.current = false;
+    };
+  }, [shows.length]);
+
+  // Handle refresh button click
+  const handleRefresh = () => {
+    // Clear day cache and refetch
+    scheduleAPI.clearScheduleCache('day');
+    hasLoadedRef.current = false;
+    fetchSchedule();
+  };
 
   // Render loading state
   if (isLoading && !shows.length) {
@@ -476,6 +536,9 @@ const ScheduleContainer = () => {
           
           <LoadingContainer>
             <LoadingText>Failed to load schedule. Please try again.</LoadingText>
+            <ButtonContainer>
+              <RefreshBtn onClick={handleRefresh}>Try Again</RefreshBtn>
+            </ButtonContainer>
           </LoadingContainer>
         </Notification>
       </Container>
@@ -504,12 +567,12 @@ const ScheduleContainer = () => {
               <AnimeItem key={anime.malId} onClick={()=> navigate(`/anime/${anime.malId}`)}>
                 <AnimeImage>
                   <img 
-                    src={anime?.images?.jpg?.imageUrl|| anime?.images?.jpg?.image_url || anime?.image_url || '/api/placeholder/80/120'} 
-                    alt={anime?.titles?.english || anime?.title_english || anime?.title || anime?.titles?.default || anime?.name || 'Untitled'} 
+                    src={anime?.images?.jpg?.imageUrl || anime?.images?.jpg?.image_url || anime?.image_url || '/api/placeholder/80/120'} 
+                    alt={anime?.titles?.default || anime?.titles?.english || anime?.title_english || anime?.title || 'Untitled'} 
                   />
                 </AnimeImage>
                 <AnimeDetails>
-                  <AnimeTitle>{anime?.titles?.english || anime?.title_english || anime?.title || anime?.titles?.default || anime?.name || 'Untitled'}</AnimeTitle>
+                  <AnimeTitle>{anime?.titles?.default || anime?.titles?.english || anime?.title_english || anime?.title || anime?.name || 'Untitled'}</AnimeTitle>
                   <AnimeGenre>{formatGenres(anime)}</AnimeGenre>
                   <AnimeTime>
                     <TimeIcon>⏱</TimeIcon> 
@@ -536,6 +599,10 @@ const ScheduleContainer = () => {
               <StatusValue>{nextAiring.title} ({nextAiring.time})</StatusValue>
             </StatusRow>
           )}
+          
+          <ButtonContainer>
+            <RefreshBtn onClick={handleRefresh}>Refresh</RefreshBtn>
+          </ButtonContainer>
         </StatusSection>
       </Notification>
     </Container>

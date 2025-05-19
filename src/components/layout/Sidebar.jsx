@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import styled from 'styled-components';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { Home, Calendar, Search, User, LogOut, Settings, Tv, LogIn, Bell } from 'lucide-react';
 import useUI from '../../hooks/useUI';
 import useAuth from '../../hooks/useAuth';
@@ -32,7 +32,7 @@ const SidebarContainer = styled.div`
   }
   
   /* When nav items are hovered or sidebar is explicitly opened, expand the sidebar */
-  ${props => 
+  ${props =>
     ((props.isNavHovered && !props.isMobileView) || props.isOpen) && `
     width: var(--sidebar-width);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
@@ -377,18 +377,18 @@ const SidebarOverlay = styled.div`
 `;
 
 const Sidebar = ({ unreadCount = 0, openNotificationPanel }) => {
-  const { 
-    isSidebarOpen, 
-    isMobileView, 
-    closeSidebar, 
-    isNavHovered, 
-    handleNavMouseEnter, 
-    handleNavMouseLeave 
+  const {
+    isSidebarOpen,
+    isMobileView,
+    closeSidebar,
+    isNavHovered,
+    handleNavMouseEnter,
+    handleNavMouseLeave
   } = useUI();
   const { isAuthenticated, logout, user } = useAuth();
   const location = useLocation();
   const sidebarRef = useRef();
-  
+
   // Close sidebar on route change (mobile only)
   useEffect(() => {
     if (isMobileView && isSidebarOpen) {
@@ -400,24 +400,24 @@ const Sidebar = ({ unreadCount = 0, openNotificationPanel }) => {
   // Click outside to close (mobile only)
   useEffect(() => {
     if (!isMobileView) return;
-    
+
     function handleClick(e) {
       if (sidebarRef.current && !sidebarRef.current.contains(e.target)) {
         closeSidebar();
       }
     }
-    
+
     if (isSidebarOpen) {
       document.addEventListener('mousedown', handleClick);
       document.addEventListener('touchstart', handleClick);
     }
-    
+
     return () => {
       document.removeEventListener('mousedown', handleClick);
       document.removeEventListener('touchstart', handleClick);
     };
   }, [isSidebarOpen, isMobileView, closeSidebar]);
-  
+
   // Close sidebar on mobile when clicking a link
   const handleNavClick = () => {
     if (isMobileView) {
@@ -429,9 +429,9 @@ const Sidebar = ({ unreadCount = 0, openNotificationPanel }) => {
     <>
       {/* Overlay for mobile click-outside */}
       <SidebarOverlay show={isSidebarOpen && isMobileView} onClick={closeSidebar} />
-      <SidebarContainer 
+      <SidebarContainer
         ref={sidebarRef}
-        isOpen={isSidebarOpen} 
+        isOpen={isSidebarOpen}
         isNavHovered={isNavHovered}
         isMobileView={isMobileView}
       >
@@ -441,41 +441,41 @@ const Sidebar = ({ unreadCount = 0, openNotificationPanel }) => {
             <span>OtakuList</span>
           </LogoContainer>
         </SidebarHeader>
-        
+
         <NavList onMouseEnter={handleNavMouseEnter} onMouseLeave={handleNavMouseLeave}>
           <NavItemContainer>
-            <StyledNavLink 
-              to="/" 
+            <StyledNavLink
+              to="/"
               onClick={handleNavClick}
-              isOpen={isSidebarOpen} 
+              isOpen={isSidebarOpen}
               isNavHovered={isNavHovered}
             >
               <Home size={22} />
               <span>Home</span>
             </StyledNavLink>
           </NavItemContainer>
-          
+
           <NavItemContainer>
-            <StyledNavLink 
-              to="/schedule" 
+            <StyledNavLink
+              to="/schedule"
               onClick={handleNavClick}
-              isOpen={isSidebarOpen} 
+              isOpen={isSidebarOpen}
               isNavHovered={isNavHovered}
             >
               <Calendar size={22} />
               <span>Schedule</span>
             </StyledNavLink>
           </NavItemContainer>
-          
+
           <NavItemContainer>
-            <StyledNavLink 
-              to="/search" 
+            <StyledNavLink
+              to="/explore"
               onClick={handleNavClick}
-              isOpen={isSidebarOpen} 
+              isOpen={isSidebarOpen}
               isNavHovered={isNavHovered}
             >
               <Search size={22} />
-              <span>Search</span>
+              <span>Explore</span>
             </StyledNavLink>
           </NavItemContainer>
 
@@ -484,7 +484,7 @@ const Sidebar = ({ unreadCount = 0, openNotificationPanel }) => {
               <StyledButton
                 type="button"
                 onClick={openNotificationPanel}
-                isOpen={isSidebarOpen} 
+                isOpen={isSidebarOpen}
                 isNavHovered={isNavHovered}
               >
                 <IconWrapper>
@@ -498,10 +498,10 @@ const Sidebar = ({ unreadCount = 0, openNotificationPanel }) => {
 
           {isAuthenticated && (
             <NavItemContainer>
-              <StyledNavLink 
-                to={`/user/${user ? user.username : ''}`} 
+              <StyledNavLink
+                to={`/user/${user ? user.username : ''}`}
                 onClick={handleNavClick}
-                isOpen={isSidebarOpen} 
+                isOpen={isSidebarOpen}
                 isNavHovered={isNavHovered}
               >
                 <User size={22} />
@@ -510,29 +510,29 @@ const Sidebar = ({ unreadCount = 0, openNotificationPanel }) => {
             </NavItemContainer>
           )}
         </NavList>
-        
+
         {/* Footer with conditionally rendered content based on authentication status */}
         <Footer isOpen={isSidebarOpen} isNavHovered={isNavHovered}>
           <FooterNav onMouseEnter={handleNavMouseEnter} onMouseLeave={handleNavMouseLeave}>
             {isAuthenticated ? (
               <>
                 <NavItemContainer>
-                  <StyledNavLink 
-                    to="/dashboard" 
+                  <StyledNavLink
+                    to="/dashboard"
                     onClick={handleNavClick}
-                    isOpen={isSidebarOpen} 
+                    isOpen={isSidebarOpen}
                     isNavHovered={isNavHovered}
                   >
                     <Settings size={22} />
                     <span>Dashboard</span>
                   </StyledNavLink>
                 </NavItemContainer>
-                
+
                 <NavItemContainer>
-                  <LogoutLink 
-                    href="#" 
+                  <LogoutLink
+                    href="#"
                     onClick={(e) => { e.preventDefault(); logout(); handleNavClick(); }}
-                    isOpen={isSidebarOpen} 
+                    isOpen={isSidebarOpen}
                     isNavHovered={isNavHovered}
                   >
                     <LogOut size={22} />

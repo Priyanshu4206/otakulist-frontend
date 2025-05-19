@@ -210,166 +210,118 @@ const AchievementsList = ({
     return IconComponent ? <IconComponent size={22} /> : <Award size={22} />;
   };
 
+  // Process achievements based on whether this is a public profile or private stats page
+  let normalizedAchievements = [];
+  
   if (isPublicProfile) {
-    // Enhanced grouping logic for public profile view
-    const grouped = userAchievements.reduce((acc, uach) => {
-      // Safely extract achievement data
-      let achievement;
-
-      if (typeof uach.achievementId === 'object' && uach.achievementId !== null) {
-        achievement = uach.achievementId;
-      } else {
-        // If it's not an object, we can't display it properly
-        console.warn('Skipping achievement with non-object achievementId:', uach);
-        return acc;
+    // For public profile (ProfilePage.jsx), userAchievements is an array of achievement objects
+    // that already have all the necessary data
+    normalizedAchievements = userAchievements.map(achievement => ({
+      _id: achievement.id,
+      title: achievement.title,
+      description: achievement.description,
+      category: achievement.category,
+      iconUrl: achievement.iconUrl,
+      points: achievement.points,
+      unlocked: !!achievement.unlockedAt,
+      unlockedAt: achievement.unlockedAt || null,
+      progress: {
+        current: 100,
+        target: 100,
+        percentage: 100
       }
-
-      const category = achievement.category || 'other';
-
-      if (!acc[category]) acc[category] = [];
-
-      acc[category].push({
-        ...achievement,
-        progress: uach.progress || {
-          current: 0,
-          target: achievement.criteria?.target || 1,
-          percentage: 0
-        },
-        unlocked: !!uach.unlockedAt,
-        unlockedAt: uach.unlockedAt || null,
-        iconUrl: achievement.iconUrl,
+    }));
+  } else {
+    // For StatsPage.jsx, we need to use allAchievements and merge with userAchievements
+    // First, create a map of user achievements for easy lookup
+    const userAchMap = {};
+    
+    userAchievements.forEach(achievement => {
+      if (achievement.achievementId) {
+        // Handle the nested structure
+        userAchMap[achievement.achievementId._id] = {
+          ...achievement.achievementId,
+          unlocked: !!achievement.unlockedAt,
+          unlockedAt: achievement.unlockedAt || null,
+          progress: achievement.progress || {
+            current: 0,
+            target: 100,
+            percentage: 0
+          }
+        };
+      } else if (achievement._id || achievement.id) {
+        // Handle flat structure
+        const achievementId = achievement._id || achievement.id;
+        userAchMap[achievementId] = {
+          _id: achievementId,
+          title: achievement.title,
+          description: achievement.description,
+          category: achievement.category,
+          iconUrl: achievement.iconUrl,
+          points: achievement.points,
+          unlocked: !!achievement.unlockedAt,
+          unlockedAt: achievement.unlockedAt || null,
+          progress: achievement.progress || {
+            current: 0,
+            target: 100,
+            percentage: 0
+          }
+        };
+      }
+    });
+    
+    // If allAchievements is provided, use it as the base and merge with user data
+    if (allAchievements && allAchievements.length > 0) {
+      normalizedAchievements = allAchievements.map(achievement => {
+        const achievementId = achievement._id.toString();
+        const userAchievement = userAchMap[achievementId];
+        
+        if (userAchievement) {
+          // Merge the achievement data with user progress
+          return {
+            ...achievement,
+            _id: achievementId,
+            unlocked: userAchievement.unlocked,
+            unlockedAt: userAchievement.unlockedAt,
+            progress: userAchievement.progress
+          };
+        } else {
+          // Achievement exists but user hasn't unlocked or made progress
+          return {
+            ...achievement,
+            _id: achievementId,
+            unlocked: false,
+            unlockedAt: null,
+            progress: {
+              current: 0,
+              target: achievement.criteria?.target || 100,
+              percentage: 0
+            }
+          };
+        }
       });
-
-      return acc;
-    }, {});
-
-    if (userAchievements.length === 0) {
-      return (
-        <Container>
-          <NoAchievementsText>No achievements to display.</NoAchievementsText>
-        </Container>
-      );
+    } else {
+      // If no allAchievements provided, just use the user achievements
+      normalizedAchievements = Object.values(userAchMap);
     }
+  }
 
+  // If no achievements to display
+  if (normalizedAchievements.length === 0) {
     return (
       <Container>
-        {Object.keys(grouped).map(category => (
-          <CategoryContainer key={category}>
-            {showCategory && (
-              <CategoryTitle>
-                {category.charAt(0).toUpperCase() + category.slice(1)}
-                <CategoryProgress>
-                  {grouped[category].filter(a => a.unlocked).length} / {grouped[category].length}
-                </CategoryProgress>
-              </CategoryTitle>
-            )}
-            <AchievementsGrid>
-              {grouped[category].map(achievement => (
-                <AchievementCard key={achievement._id} unlocked={achievement.unlocked}>
-                  <AchievementIcon unlocked={achievement.unlocked}>{renderLucideIcon(achievement.iconUrl)}</AchievementIcon>
-                  <AchievementInfo>
-                    <AchievementTitle unlocked={achievement.unlocked}>{achievement.title}</AchievementTitle>
-                    <AchievementDescription>{achievement.description}</AchievementDescription>
-                    {showProgress && achievement.progress && achievement.progress.target > 1 && (
-                      <>
-                        <ProgressBar unlocked={achievement.unlocked}>
-                          <ProgressFill percentage={achievement.progress.percentage || 0} unlocked={achievement.unlocked} />
-                        </ProgressBar>
-                        <ProgressText unlocked={achievement.unlocked}>
-                          {achievement.progress.current} / {achievement.progress.target}
-                          {achievement.progress.percentage > 0 && ` (${achievement.progress.percentage}%)`}
-                        </ProgressText>
-                      </>
-                    )}
-                    {achievement.unlocked && achievement.unlockedAt && (
-                      <UnlockDate>Unlocked: {new Date(achievement.unlockedAt).toLocaleDateString()}</UnlockDate>
-                    )}
-                  </AchievementInfo>
-                </AchievementCard>
-              ))}
-            </AchievementsGrid>
-          </CategoryContainer>
-        ))}
+        <NoAchievementsText>No achievements to display.</NoAchievementsText>
       </Container>
     );
   }
 
-  // Default view: Improved merging of allAchievements with userAchievements
-  const createUserAchievementMap = (userAchievements) => {
-    return userAchievements.reduce((acc, userAch) => {
-      // Handle cases where achievementId could be an object or string
-      let achievementId;
-
-      if (typeof userAch.achievementId === 'object' && userAch.achievementId !== null) {
-        // Handle populated reference
-        achievementId = userAch.achievementId._id;
-      } else if (typeof userAch.achievementId === 'string') {
-        // Handle string ID
-        achievementId = userAch.achievementId;
-      } else {
-        console.warn('Unknown achievementId format:', userAch);
-        return acc;
-      }
-
-      if (!achievementId) {
-        console.warn('Could not extract achievementId from:', userAch);
-        return acc;
-      }
-
-      // Store the full user achievement object
-      acc[achievementId.toString()] = userAch;
-      return acc;
-    }, {});
-  };
-
-  // Create robust user achievement map
-  const userAchMap = createUserAchievementMap(userAchievements);
-
-  // Log for debugging
-
-  // Merge with more explicit checking
-  const mergedAchievements = allAchievements.map(ach => {
-    const achievementId = ach._id.toString();
-    const userAch = userAchMap[achievementId];
-
-    // Set defaults with explicit checking
-    let progress = {
-      current: 0,
-      target: ach.criteria?.target || 1,
-      percentage: 0
-    };
-
-    let unlocked = false;
-    let unlockedAt = null;
-    let bestReached = 0;
-
-    // If user has this achievement, use their data
-    if (userAch) {
-      if (userAch.progress) {
-        progress = userAch.progress;
-      }
-
-      unlocked = !!userAch.unlockedAt;
-      unlockedAt = userAch.unlockedAt;
-      bestReached = userAch.bestReached || 0;
-    }
-
-    // Return merged achievement with all necessary properties
-    return {
-      ...ach,
-      progress,
-      unlocked,
-      unlockedAt,
-      bestReached,
-      iconUrl: ach.iconUrl,
-    };
-  });
-
-  // Group by category
-  const grouped = mergedAchievements.reduce((acc, ach) => {
-    const category = ach.category || 'other';
+  // Group achievements by category
+  const grouped = normalizedAchievements.reduce((acc, achievement) => {
+    const category = achievement.category || 'other';
+    
     if (!acc[category]) acc[category] = [];
-    acc[category].push(ach);
+    acc[category].push(achievement);
+    
     return acc;
   }, {});
 

@@ -134,7 +134,7 @@ const PlaylistsGrid = ({ username, isPublic = false, refreshTrigger }) => {
         }
         
         if (response.success) {
-          setPlaylists(response.data);
+          setPlaylists(response?.data?.items || []);
           setError(null);
         } else {
           throw new Error(response.error?.message || 'Failed to fetch playlists');

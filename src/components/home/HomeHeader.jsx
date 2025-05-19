@@ -2,6 +2,8 @@ import React from 'react';
 import styled from 'styled-components';
 import { UserPlus, Shuffle } from 'lucide-react';
 import HomeButton from './HomeButton';
+import UserStatsDisplay from './UserStatsDisplay';
+import useAuth from '../../hooks/useAuth';
 
 const HeaderContainer = styled.section`
   display: flex;
@@ -49,8 +51,18 @@ const Tagline = styled.div`
 
 const ActionsRow = styled.div`
   display: flex;
+  align-items: center;
   gap: 1.1rem;
   margin-top: 0.2rem;
+  width: 100%;
+  justify-content: space-between;
+  
+  @media (max-width: 1000px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.5rem;
+  }
+  
   @media (max-width: 600px) {
     flex-direction: column;
     gap: 0.7rem;
@@ -58,7 +70,19 @@ const ActionsRow = styled.div`
   }
 `;
 
+const ButtonsGroup = styled.div`
+  display: flex;
+  gap: 1rem;
+  
+  @media (max-width: 600px) {
+    flex-direction: column;
+    width: 100%;
+  }
+`;
+
 const HomeHeader = () => {
+  const { user } = useAuth();
+  
   // Dummy handlers
   const handleRandomAnime = () => alert('Random Anime!');
   const handleRandomAvatars = () => alert('Get 3 Random Anime Avatars!');
@@ -72,20 +96,24 @@ const HomeHeader = () => {
         Welcome to Animeverse — Your gateway to the world of anime. Discover, play, and connect with the community!
       </Tagline>
       <ActionsRow>
-        <HomeButton
-          icon={Shuffle}
-          label="Get a Random Anime Suggestion"
-          variant="primary"
-          size="large"
-          onClick={handleRandomAnime}
-        />
-        <HomeButton
-          icon={UserPlus}
-          label="Get 3 Random Anime Avatars"
-          variant="secondary"
-          size="large"
-          onClick={handleRandomAvatars}
-        />
+        <ButtonsGroup>
+          <HomeButton
+            icon={Shuffle}
+            label="Get a Random Anime Suggestion"
+            variant="primary"
+            size="large"
+            onClick={handleRandomAnime}
+          />
+          <HomeButton
+            icon={UserPlus}
+            label="Get 3 Random Anime Avatars"
+            variant="secondary"
+            size="large"
+            onClick={handleRandomAvatars}
+          />
+        </ButtonsGroup>
+        
+        {user && <UserStatsDisplay />}
       </ActionsRow>
     </HeaderContainer>
   );

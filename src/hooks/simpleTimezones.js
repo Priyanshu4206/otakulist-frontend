@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { userAPI } from '../services/api';
-import useApiCache from './useApiCache';
 import { getUserTimezone, saveUserTimezone } from '../utils/simpleTimezoneUtils';
 
 /**
@@ -12,9 +11,6 @@ const useSimpleTimezones = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // Get the cache functions with 30-day expiry time
-  const { getFromCache, saveToCache } = useApiCache('localStorage', 30 * 24 * 60 * 60 * 1000); // 30 days
-  
   // Get the current timezone
   const [currentTimezone, setCurrentTimezone] = useState(getUserTimezone());
   
@@ -23,22 +19,13 @@ const useSimpleTimezones = () => {
     setLoading(true);
     
     try {
-      // First try to get from cache
-      if (!forceRefresh) {
-        const cached = getFromCache('all_timezones');
-        if (cached && Array.isArray(cached) && cached.length > 0) {
-          setTimezones(cached);
-          setLoading(false);
-          return cached;
-        }
-      }
-      
-      // If not in cache or forced refresh, fetch from API
-      const response = await userAPI.getTimezones();
+      // Use the enhanced API with built-in caching
+      const response = await userAPI.getAvailableTimezones({
+        useCache: !forceRefresh,
+        forceRefresh
+      });
       
       if (response && response.success && Array.isArray(response.data)) {
-        // Save to cache
-        saveToCache('all_timezones', response.data);
         setTimezones(response.data);
         setLoading(false);
         return response.data;
@@ -54,7 +41,7 @@ const useSimpleTimezones = () => {
       setLoading(false);
       return [];
     }
-  }, [getFromCache, saveToCache]);
+  }, []);
   
   // Update the current timezone and save to localStorage
   const updateTimezone = useCallback((timezone) => {

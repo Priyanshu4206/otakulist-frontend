@@ -1,8 +1,8 @@
 import React from 'react';
-import { Calendar, Users, Share2, Edit, Settings, CheckCircle2, Circle, EyeOff } from 'lucide-react';
+import { Calendar, Users, Share2, Edit, Settings, CheckCircle2, Circle, EyeOff, BarChart3, Crown, Trophy, Award, Film, ThumbsUp, ListFilter, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import UserAvatar from '../common/UserAvatar';
-import { formatJoinDate } from './ProfileStyles';
+import { formatJoinDate, ProfileSection, RankBadge, SectionTitle, StatCard, StatIconContainer, StatName, StatNumber, StatsGrid } from './ProfileStyles';
 import styled from 'styled-components';
 import ShareButton from '../common/ShareButton';
 
@@ -71,23 +71,6 @@ const Username = styled.h2`
   color: var(--textPrimary);
   @media (max-width: 768px) {
     font-size: 1.1rem;
-  }
-`;
-
-const StatusBadge = styled.span`
-  display: flex;
-  align-items: center;
-  gap: 0.2rem;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: ${({ status }) => status === 'active' ? 'var(--success)' : 'var(--textSecondary)'};
-  background: ${({ status }) => status === 'active' ? 'rgba(0,200,83,0.08)' : 'rgba(120,120,120,0.08)'};
-  border-radius: 999px;
-  padding: 0.15rem 0.7rem 0.15rem 0.4rem;
-  margin-left: 0.2rem;
-  @media (max-width: 768px) {
-    font-size: 0.85rem;
-    padding: 0.1rem 0.5rem 0.1rem 0.3rem;
   }
 `;
 
@@ -192,48 +175,58 @@ const JoinDate = styled.div`
   }
 `;
 
-const StatsRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 2.5rem;
-  margin-bottom: 0.5rem;
-  @media (max-width: 768px) {
-    width: 100%;
-    justify-content: space-between;
-    gap: 0.2rem;
-    margin: 0.5rem 0 0.2rem 0;
-    padding: 0.2rem 0;
-    border-top: 1px solid var(--borderColor);
-    border-bottom: 1px solid var(--borderColor);
-  }
-`;
-
-const StatItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 60px;
-  @media (max-width: 768px) {
-    min-width: 48px;
-  }
-`;
-
-const StatValue = styled.div`
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--textPrimary);
-  @media (max-width: 768px) {
-    font-size: 1rem;
-  }
-`;
-
-const StatLabel = styled.div`
-  font-size: 0.85rem;
-  color: var(--textSecondary);
-  @media (max-width: 768px) {
-    font-size: 0.78rem;
-  }
-`;
+  // Helper functions for rank tier formatting and styling
+  const formatRankName = (rankTierId) => {
+    if (!rankTierId) return 'Novice';
+    
+    const rankMap = {
+      'novice': 'Novice',
+      'fan': 'Anime Fan',
+      'enthusiast': 'Enthusiast',
+      'expert': 'Anime Expert',
+      'otaku': 'True Otaku',
+      'sensei': 'Anime Sensei',
+      'legend': 'Anime Legend'
+    };
+    
+    return rankMap[rankTierId.toLowerCase()] || 'Anime Fan';
+  };
+  
+  const getRankBgColor = (rankTierId) => {
+    if (!rankTierId) return 'rgba(var(--primary-rgb), 0.1)';
+    
+    const rankColorMap = {
+      'novice': 'rgba(149, 165, 166, 0.2)', // Gray
+      'fan': 'rgba(52, 152, 219, 0.2)',     // Blue
+      'enthusiast': 'rgba(46, 204, 113, 0.2)', // Green
+      'expert': 'rgba(155, 89, 182, 0.2)',   // Purple
+      'otaku': 'rgba(241, 196, 15, 0.2)',    // Yellow
+      'sensei': 'rgba(230, 126, 34, 0.2)',   // Orange
+      'legend': 'rgba(231, 76, 60, 0.2)'     // Red
+    };
+    
+    return rankColorMap[rankTierId.toLowerCase()] || 'rgba(52, 152, 219, 0.2)';
+  };
+  
+  const getRankTextColor = (rankTierId) => {
+    if (!rankTierId) return 'var(--primary)';
+    
+    const rankColorMap = {
+      'novice': '#7f8c8d',      // Gray
+      'fan': '#2980b9',         // Blue
+      'enthusiast': '#27ae60',  // Green
+      'expert': '#8e44ad',      // Purple
+      'otaku': '#f39c12',       // Yellow
+      'sensei': '#d35400',      // Orange
+      'legend': '#c0392b'       // Red
+    };
+    
+    return rankColorMap[rankTierId.toLowerCase()] || '#2980b9';
+  };
+  
+  const getRankIconColor = (rankTierId) => {
+    return getRankTextColor(rankTierId);
+  };
 
 const ProfileHeader = ({ 
   profileData, 
@@ -241,14 +234,8 @@ const ProfileHeader = ({
   isOwner, 
   isFollowing, 
   followLoading, 
-  handleFollowToggle, 
-  hideFollowers = false, 
-  hideFollowing = false, 
-  hideAchievements = false,
-  hidePlaylists = false
+  handleFollowToggle,
 }) => {
-  const stats = profileData.stats || {};
-  const status = profileData.status || 'inactive';
   return (
     <ProfileHeaderContainer>
       {/* Top row: avatar, username, status, settings */}
@@ -263,9 +250,14 @@ const ProfileHeader = ({
         <MainInfo>
           <UsernameRow>
             <Username>{profileData.username}</Username>
-            <StatusBadge status={status}>
-              {status === 'active' ? <CheckCircle2 size={14} color="#00c853" /> : <Circle size={14} color="#888" />} {status.charAt(0).toUpperCase() + status.slice(1)}
-            </StatusBadge>
+            <RankBadge 
+              bgColor={getRankBgColor(profileData.stats?.rankTierId)} 
+              textColor={getRankTextColor(profileData.stats?.rankTierId)}
+              iconColor={getRankIconColor(profileData.stats?.rankTierId)}
+            >
+              <Crown size={18} />
+              {formatRankName(profileData.stats?.rankTierId)}
+            </RankBadge>
             {isOwner && (
               <SettingsButton to="/dashboard/settings" aria-label="Profile Settings">
                 <Settings size={20} />
@@ -276,7 +268,7 @@ const ProfileHeader = ({
           <ActionButtons>
             {isOwner ? (
               <>
-                <ActionButton as={Link} to="/dashboard/profile">
+                <ActionButton as={Link} to="/dashboard">
                   <Edit size={18} /> Edit Profile
                 </ActionButton>
               </>
@@ -326,26 +318,60 @@ const ProfileHeader = ({
         Joined {formatJoinDate(profileData.createdAt)}
       </JoinDate>
       </TopRow>
-      {/* Stats row: Following, Followers, Playlists, Achievements */}
-      <StatsRow>
-          <StatItem>
-            <StatValue>{ !hideFollowing  ? stats.followingCount ?? 0 : <EyeOff size={14} />}</StatValue>
-            <StatLabel>Following</StatLabel>
-          </StatItem>
-
-          <StatItem>
-            <StatValue>{ !hideFollowers ? stats.followersCount ?? 0 : <EyeOff size={14} />}</StatValue>
-            <StatLabel>Followers</StatLabel>
-          </StatItem>
-        <StatItem>
-          <StatValue>{ !hidePlaylists ? stats.playlistsCount ?? 0 : <EyeOff size={14} />}</StatValue>
-          <StatLabel>Playlists</StatLabel>
-        </StatItem>
-          <StatItem>
-          <StatValue>{ !hideAchievements ? stats.achievementsUnlocked ?? 0 : <EyeOff size={14} />}</StatValue>
-          <StatLabel>Achievements</StatLabel>
-        </StatItem>
-      </StatsRow>
+      {/* User Stats Section */}
+      <ProfileSection>        
+        
+        {/* Stats Grid */}
+        <StatsGrid>
+          <StatCard>
+            <StatIconContainer bgColor="rgba(255, 215, 0, 0.1)" iconColor="#FFD700">
+              <Trophy size={20} />
+            </StatIconContainer>
+            <StatNumber>{profileData.stats?.achievementPoints || 0}</StatNumber>
+            <StatName>Achievement Points</StatName>
+          </StatCard>
+          
+          <StatCard>
+            <StatIconContainer bgColor="rgba(52, 152, 219, 0.1)" iconColor="#3498db">
+              <Award size={20} />
+            </StatIconContainer>
+            <StatNumber>{profileData.stats?.achievementsUnlocked || 0}</StatNumber>
+            <StatName>Achievements</StatName>
+          </StatCard>
+          
+          <StatCard>
+            <StatIconContainer bgColor="rgba(231, 76, 60, 0.1)" iconColor="#e74c3c">
+              <Film size={20} />
+            </StatIconContainer>
+            <StatNumber>{profileData.stats?.animeWatched || 0}</StatNumber>
+            <StatName>Anime Watched</StatName>
+          </StatCard>
+          
+          <StatCard>
+            <StatIconContainer bgColor="rgba(155, 89, 182, 0.1)" iconColor="#9b59b6">
+              <ThumbsUp size={20} />
+            </StatIconContainer>
+            <StatNumber>{profileData.stats?.totalRatings || 0}</StatNumber>
+            <StatName>Ratings</StatName>
+          </StatCard>
+          
+          <StatCard>
+            <StatIconContainer bgColor="rgba(46, 204, 113, 0.1)" iconColor="#2ecc71">
+              <ListFilter size={20} />
+            </StatIconContainer>
+            <StatNumber>{profileData.stats?.playlistsCount || 0}</StatNumber>
+            <StatName>Playlists</StatName>
+          </StatCard>
+          
+          <StatCard>
+            <StatIconContainer bgColor="rgba(241, 196, 15, 0.1)" iconColor="#f1c40f">
+              <Zap size={20} />
+            </StatIconContainer>
+            <StatNumber>{Math.round(profileData.stats?.profileCompletenessPercentage || 0)}%</StatNumber>
+            <StatName>Profile Completeness</StatName>
+          </StatCard>
+        </StatsGrid>
+      </ProfileSection>
     </ProfileHeaderContainer>
   );
 };

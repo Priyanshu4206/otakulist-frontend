@@ -1,13 +1,15 @@
-import React from 'react';
+import { useEffect, useState } from 'react';
 import Layout from '../components/layout/Layout';
 import ForYouSection from '../components/home/ForYouSection';
 import ExploreGenresSection from '../components/home/ExploreGenresSection';
-import AnimePlayZoneSection from '../components/home/AnimePlayZoneSection';
 import CommunityHighlightsSection from '../components/home/CommunityHighlightsSection';
 import HomePageHeader from '../components/home/HomePageHeader';
 import HomeGridSection from '../components/home/HomeGridSection';
+import LeaderboardAndActivities from '../components/home/LeaderboardAndActivities';
 import styled from 'styled-components';
 import animeBackground from '../assets/images/home-bg.jpeg';
+import useAuth from '../hooks/useAuth';
+import { userAPI } from '../services/api';
 
 const AnimeBackground = styled.div`
   position: fixed;
@@ -48,18 +50,50 @@ const HomePageContainer = styled.div`
   }
 `;
 
-const HomePage = () => (
-  <Layout>
-    <AnimeBackground image={animeBackground} />
-    <HomePageContainer>
-      <HomePageHeader />
-      <ForYouSection />
-      <HomeGridSection />
-      {/* <AnimePlayZoneSection /> */}
-      <ExploreGenresSection />
-      <CommunityHighlightsSection />
-    </HomePageContainer>
-  </Layout>
-);
+const HomePage = () => {
+  const { user } = useAuth();
+  const [userStats, setUserStats] = useState(null);
+  // Fetch user stats when user is logged in (using ETag caching)
+  useEffect(() => {
+    const fetchUserStats = async () => {
+      if (user) {
+        try {
+          // This will leverage ETag for conditional requests
+          const response = await userAPI.getUserStats({ useCache: false, forceRefresh: true });
+          if (response?.success) {
+            setUserStats(response.data);
+          }
+        } catch (error) {
+          console.error('Error fetching user stats:', error);
+        }
+      }
+    };
+
+    fetchUserStats();
+
+    // Set up periodic refresh (every 10 minutes)
+    const intervalId = setInterval(() => {
+      if (user) {
+        fetchUserStats();
+      }
+    }, 10 * 60 * 1000);
+
+    return () => clearInterval(intervalId);
+  }, [user]);
+
+  return (
+    <Layout>
+      <AnimeBackground image={animeBackground} />
+      <HomePageContainer>
+        <HomePageHeader userStats={userStats} />
+        <ForYouSection />
+        <LeaderboardAndActivities userStats={userStats} />
+        <ExploreGenresSection />
+        <HomeGridSection />
+        <CommunityHighlightsSection />
+      </HomePageContainer>
+    </Layout>
+  );
+};
 
 export default HomePage; 

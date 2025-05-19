@@ -24,6 +24,7 @@ const shimmer = keyframes`
 
 const Card = styled.div`
   width: 100%;
+  max-width: 300px;
   background-color: var(--cardBackground);
   border-radius: 12px;
   overflow: hidden;
@@ -218,15 +219,13 @@ const PlaylistAnimeCard = ({ anime, isOwner, onOpenMAL, onDeleteAnime }) => {
   
   // Get the anime ID for linking
   const animeId = id || malId || mal_id;
-  
   // Get the appropriate image URL
   const getImageUrl = () => {
     if (animeImageUrl) return animeImageUrl;
     if (!images) return '';
-    
     // Handle different API response structures
-    if (images.jpg) return images.jpg.large_image_url || images.jpg.image_url;
-    if (images.webp) return images.webp.large_image_url || images.webp.image_url;
+    if (images.jpg) return  images.jpg.largeImageUrl || images.jpg.smallImageUrl ||images.jpg.large_image_url || images.jpg.image_url || images.jpg.imageUrl ;
+    if (images.webp) return images.webp.largeImageUrl || images.webp.smallImageUrl || images.webp.large_image_url || images.webp.image_url || images.webp.imageUrl;
     if (images.image_url) return images.image_url;
     if (images.large) return images.large;
     if (images.medium) return images.medium;

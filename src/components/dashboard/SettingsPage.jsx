@@ -295,17 +295,12 @@ const SettingsPage = () => {
   useEffect(() => {
     const loadSettings = async () => {
       setLoading(true);
-      let cached = getCachedSettings();
-      if (cached) {
-        setSettings(cached);
-        setLoading(false);
-        return;
-      }
       try {
-        const response = await import('../../services/api').then(m => m.userAPI.getSettings());
+        // Use the enhanced API with built-in caching
+        const response = await import('../../services/api').then(m => m.userAPI.getSettings({ useCache: true }));
         if (response && response.success) {
           setSettings(response.data);
-          setCachedSettings(response.data);
+          // No need to call setCachedSettings as caching is handled by userAPI
         } else {
           throw new Error(response?.message || 'Failed to load settings');
         }

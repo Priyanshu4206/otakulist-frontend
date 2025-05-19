@@ -315,7 +315,7 @@ export default function AnimeRatingModal({
     try {
       setLoading(true);
       setError('');
-      const response = await animeAPI.rateAnime(animeId, rating, comment);
+      const response = await animeAPI.rateAnime(animeId, {score: rating, comment});
       if (response && response.success) {
         onSuccess && onSuccess();
         onClose();

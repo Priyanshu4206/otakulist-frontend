@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { Star, Users, Clock, Tv, Bookmark, BookOpen } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
-import { watchlistAPI } from '../../services/api';
+import { watchlistAPI } from '../../services/modules';
 import WatchlistModal from '../common/WatchlistModal';
 import PlaylistAddModal from '../common/PlaylistAddModal';
 import useToast from '../../hooks/useToast';

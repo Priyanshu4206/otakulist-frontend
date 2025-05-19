@@ -2,9 +2,9 @@ import React, { createContext, useContext, useReducer, useEffect, useCallback, u
 import PropTypes from 'prop-types';
 import useAuth from '../hooks/useAuth';
 import useNotifications, { disconnectSocket, getGlobalSocket, setGlobalSocket } from '../hooks/useNotifications';
-import { notificationAPI, userAPI } from '../services/api';
 import { ToastContext } from './ToastContext';
 import { io } from 'socket.io-client';
+import { notificationAPI } from '../services/modules';
 
 // Logger utility for consistent logging format
 const logger = (area, action, data = null) => {
@@ -33,7 +33,10 @@ const initialState = {
 function notificationReducer(state, action) {
   switch (action.type) {
     case 'SET_NOTIFICATIONS': {
-      const unreadCount = action.notifications.filter(n => !n.read).length;
+      const unreadCount = action.unreadCount !== undefined 
+        ? action.unreadCount 
+        : action.notifications.filter(n => !n.read).length;
+      
       return {
         ...state,
         notifications: action.notifications,
@@ -47,7 +50,12 @@ function notificationReducer(state, action) {
       const existingIds = new Set(state.notifications.map(n => n._id));
       const newNotifications = action.notifications.filter(n => !existingIds.has(n._id));
       const notifications = [...state.notifications, ...newNotifications];
-      const unreadCount = notifications.filter(n => !n.read).length;
+      
+      // Use provided unreadCount or calculate it
+      const unreadCount = action.unreadCount !== undefined 
+        ? action.unreadCount 
+        : notifications.filter(n => !n.read).length;
+      
       return {
         ...state,
         notifications,
@@ -225,23 +233,37 @@ export const NotificationProvider = ({ children }) => {
     try {
       logger('API', `Fetching notifications (page: ${page}, limit: ${limit}, append: ${append})`);
       
-      const res = await notificationAPI.getNotifications(page, limit);
-      const notifications = res.notifications || [];
-      const pagination = res.pagination || { page, limit, total: notifications.length, hasMore: false };
+      const result = await notificationAPI.getNotifications(page, limit);
+      const { notifications = [], pagination = { page, limit, total: 0, hasMore: false } } = result;
+      
+      // Extract unread count if available in response
+      const responseUnreadCount = result.unreadCount !== undefined ? result.unreadCount : null;
       
       logger('API', 'Fetch successful', { 
         count: notifications.length, 
-        unreadCount: notifications.filter(n => !n.read).length,
+        unreadCount: responseUnreadCount !== null 
+          ? responseUnreadCount 
+          : notifications.filter(n => !n.read).length,
         pagination
       });
       
       if (append) {
-        dispatch({ type: 'APPEND_NOTIFICATIONS', notifications, pagination });
+        dispatch({ 
+          type: 'APPEND_NOTIFICATIONS', 
+          notifications, 
+          pagination,
+          unreadCount: responseUnreadCount
+        });
       } else {
-        dispatch({ type: 'SET_NOTIFICATIONS', notifications, pagination });
+        dispatch({ 
+          type: 'SET_NOTIFICATIONS', 
+          notifications, 
+          pagination,
+          unreadCount: responseUnreadCount
+        });
       }
       
-      return { notifications, pagination };
+      return result;
     } catch (err) {
       logger('API', 'Error fetching notifications', { error: err.message });
       return { notifications: [], pagination: { page, limit, total: 0, hasMore: false } };
@@ -324,7 +346,7 @@ export const NotificationProvider = ({ children }) => {
   const markAllRead = useCallback(() => {
     logger('Action', 'Marking all notifications as read');
     dispatch({ type: 'MARK_ALL_READ' });
-    notificationAPI.markAllNotificationsRead()
+    notificationAPI.markAllAsRead()
       .then(() => logger('API', 'Successfully marked all as read'))
       .catch(err => logger('API', 'Error marking all as read', { error: err.message }));
   }, []);
@@ -341,7 +363,7 @@ export const NotificationProvider = ({ children }) => {
     logger('Action', 'Clearing all notifications');
     dispatch({ type: 'CLEAR_ALL' });
     // Optionally, call backend to delete all
-    notificationAPI.markAllNotificationsRead()
+    notificationAPI.markAllAsRead()
       .then(() => logger('API', 'Successfully cleared all (marked as read)'))
       .catch(err => logger('API', 'Error clearing all', { error: err.message }));
   }, []);

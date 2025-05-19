@@ -645,6 +645,291 @@ export const EmptyState = styled.div`
   }
 `;
 
+// Enhanced Profile Layout Styles
+export const ProfileGridContainer = styled.div`
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 1.5rem;
+  width: 100%;
+  
+  @media (max-width: 1200px) {
+    grid-template-columns: 250px 1fr;
+    gap: 1.2rem;
+  }
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+`;
+
+export const ProfileSidePanel = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  
+  @media (max-width: 768px) {
+    gap: 1rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    
+    /* For horizontal scrolling on mobile */
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    
+    & > * {
+      flex: 0 0 auto;
+      width: 85%;
+      max-width: 300px;
+    }
+    
+    /* Hide scrollbar but keep functionality */
+    scrollbar-width: none;
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+`;
+
+export const ProfileMainPanel = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  
+  @media (max-width: 768px) {
+    gap: 1rem;
+  }
+`;
+
+export const ProfileSection = styled.div`
+  background-color: rgba(var(--cardBackground-rgb), 0.25);
+  border-radius: 12px;
+  width: 100%;
+  padding: 1.5rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  
+  @media (max-width: 768px) {
+    padding: 1.2rem;
+    border-radius: 10px;
+  }
+`;
+
+export const SectionTitle = styled.h3`
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--textPrimary);
+  margin-bottom: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  
+  svg {
+    color: var(--primary);
+  }
+  
+  @media (max-width: 768px) {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+  }
+`;
+
+export const PreferencesGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.8rem;
+  }
+`;
+
+export const PreferenceItem = styled.div`
+  background-color: var(--backgroundLight);
+  border-radius: 8px;
+  padding: 0.8rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+export const PreferenceLabel = styled.span`
+  font-size: 0.8rem;
+  color: var(--textSecondary);
+`;
+
+export const PreferenceValue = styled.span`
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--textPrimary);
+`;
+
+export const GenreTag = styled.div`
+  display: inline-flex;
+  align-items: center;
+  background-color: ${props => props.weight > 1 ? 'rgba(var(--primary-rgb), 0.1)' : 'var(--backgroundLight)'};
+  color: ${props => props.weight > 1 ? 'var(--primary)' : 'var(--textPrimary)'};
+  border: 1px solid ${props => props.weight > 1 ? 'var(--primary)' : 'var(--borderColor)'};
+  border-radius: 20px;
+  padding: 0.4rem 0.8rem;
+  margin: 0.3rem;
+  font-size: 0.9rem;
+  font-weight: ${props => props.weight > 1 ? '500' : '400'};
+  transition: all 0.2s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+`;
+
+export const GenresContainer = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+`;
+
+export const SocialLinks = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 0.5rem;
+`;
+
+export const SocialLink = styled.a`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--textSecondary);
+  text-decoration: none;
+  padding: 0.5rem 0.8rem;
+  border-radius: 8px;
+  background-color: var(--backgroundLight);
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background-color: var(--backgroundLighter);
+    color: var(--primary);
+    transform: translateY(-2px);
+  }
+  
+  svg {
+    color: var(--primary);
+  }
+`;
+
+export const LocationInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--textSecondary);
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+  
+  svg {
+    color: var(--primary);
+  }
+`;
+
+// Stats display components
+export const StatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 1rem;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 0.8rem;
+  }
+`;
+
+export const StatCard = styled.div`
+  border-radius: 10px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: all 0.2s ease;
+  
+  &:hover {
+  }
+  
+  @media (max-width: 768px) {
+    padding: 0.8rem;
+    border-radius: 8px;
+  }
+`;
+
+export const StatIconContainer = styled.div`
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: ${props => props.bgColor || 'rgba(var(--primary-rgb), 0.1)'};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.8rem;
+  
+  svg {
+    color: ${props => props.iconColor || 'var(--primary)'};
+  }
+  
+  @media (max-width: 768px) {
+    width: 36px;
+    height: 36px;
+    margin-bottom: 0.6rem;
+    
+    svg {
+      width: 18px;
+      height: 18px;
+    }
+  }
+`;
+
+export const StatNumber = styled.div`
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--textPrimary);
+  margin-bottom: 0.3rem;
+  
+  @media (max-width: 768px) {
+    font-size: 1.1rem;
+  }
+`;
+
+export const StatName = styled.div`
+  font-size: 0.85rem;
+  color: var(--textSecondary);
+  
+  @media (max-width: 768px) {
+    font-size: 0.8rem;
+  }
+`;
+
+export const RankBadge = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: ${props => props.bgColor || 'rgba(var(--primary-rgb), 0.1)'};
+  color: ${props => props.textColor || 'var(--primary)'};
+  border-radius: 20px;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  font-size: 0.9rem;
+  
+  svg {
+    color: ${props => props.iconColor || 'var(--primary)'};
+  }
+  
+  @media (max-width: 768px) {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+  }
+`;
+
 // Helpers
 export const formatDate = (dateString) => {
   if (!dateString) return '';

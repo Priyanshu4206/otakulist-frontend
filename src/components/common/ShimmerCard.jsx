@@ -1,11 +1,12 @@
+import React from 'react';
 import styled, { keyframes } from 'styled-components';
 
 const shimmer = keyframes`
   0% {
-    background-position: -200% 0;
+    background-position: -200px 0;
   }
   100% {
-    background-position: 200% 0;
+    background-position: 200px 0;
   }
 `;
 
@@ -22,6 +23,64 @@ const breathe = keyframes`
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
     transform: translateY(0);
   }
+`;
+
+const ShimmerContainer = styled.div`
+  width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(var(--cardBackground-rgb), 0.8);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  height: ${props => props.height || '280px'};
+  position: relative;
+`;
+
+const ShimmerEffect = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  animation: ${shimmer} 1.5s infinite linear;
+  background: linear-gradient(to right, 
+    rgba(255, 255, 255, 0.05) 8%, 
+    rgba(255, 255, 255, 0.15) 18%, 
+    rgba(255, 255, 255, 0.05) 33%
+  );
+  background-size: 800px 100%;
+`;
+
+const ImagePlaceholder = styled.div`
+  width: 100%;
+  height: 62%;
+  background-color: rgba(var(--cardBackground-rgb), 0.5);
+`;
+
+const ContentPlaceholder = styled.div`
+  padding: 12px;
+`;
+
+const TitlePlaceholder = styled.div`
+  height: 14px;
+  width: 90%;
+  background-color: rgba(var(--cardBackground-rgb), 0.5);
+  border-radius: 3px;
+  margin-bottom: 8px;
+`;
+
+const SubtitlePlaceholder = styled.div`
+  height: 12px;
+  width: 60%;
+  background-color: rgba(var(--cardBackground-rgb), 0.5);
+  border-radius: 3px;
+  margin-bottom: 8px;
+`;
+
+const DetailsPlaceholder = styled.div`
+  height: 10px;
+  width: 40%;
+  background-color: rgba(var(--cardBackground-rgb), 0.5);
+  border-radius: 3px;
 `;
 
 const ShimmerElement = styled.div`
@@ -130,29 +189,26 @@ const ShimmerGenre = styled(ShimmerShape)`
   border-radius: 6px;
 `;
 
-const ShimmerCard = ({ width, height, margin }) => {
+/**
+ * ShimmerCard Component
+ * 
+ * A loading placeholder with shimmer effect for card components
+ * 
+ * @param {Object} props - Component props
+ * @param {string} props.height - Height of the card (default: '280px')
+ * @returns {JSX.Element} - ShimmerCard component
+ */
+const ShimmerCard = ({ height }) => {
   return (
-    <ShimmerCardContainer width={width} height={height} margin={margin}>
-      <ShimmerImage />
-      <ShimmerBadge />
-      <ShimmerStatusBadge />
-      <ShimmerContent>
-        <ShimmerShape height="24px" margin="0 0 16px 0" />
-        
-        <ShimmerShape height="16px" width="75%" margin="0 0 8px 0" />
-        <ShimmerShape height="16px" width="85%" margin="0 0 16px 0" />
-        
-        <ShimmerGenres>
-          <ShimmerGenre />
-          <ShimmerGenre />
-        </ShimmerGenres>
-        
-        <ShimmerShape height="1px" width="100%" margin="16px 0" />
-        
-        <ShimmerShape height="14px" width="60%" margin="0 0 8px 0" />
-        <ShimmerShape height="14px" width="40%" />
-      </ShimmerContent>
-    </ShimmerCardContainer>
+    <ShimmerContainer height={height}>
+      <ShimmerEffect />
+      <ImagePlaceholder />
+      <ContentPlaceholder>
+        <TitlePlaceholder />
+        <SubtitlePlaceholder />
+        <DetailsPlaceholder />
+      </ContentPlaceholder>
+    </ShimmerContainer>
   );
 };
 

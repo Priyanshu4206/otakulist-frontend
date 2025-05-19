@@ -3,6 +3,10 @@ import styled from 'styled-components';
 import { Play, User, Tv, Download, Clock, ChevronRight, Bell, Trophy, Star, RotateCcw, ArrowRightCircle, KeyRound, ListMusic } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
+import UserStatsDisplay from './UserStatsDisplay';
+import { userAPI } from '../../services/api';
+import * as LucideIcons from 'lucide-react';
+
 // Page Header with gradient text
 const ContentContainer = styled.div`
   display: flex;
@@ -176,11 +180,23 @@ const SideColumn = styled.div`
 const XPCard = styled(Card)`
   display: flex;
   min-width: 240px;
+  flex: 1;
   flex-direction: column;
-  background: var(--primaryDark);
-
+  background: ${props => props.background || 'var(--primaryDark)'};
+  
   @media (max-width: 480px) {
     display: none;
+  }
+  
+  @keyframes slideUp {
+    0% { 
+      transform: translateY(10px); 
+      opacity: 0; 
+    }
+    100% { 
+      transform: translateY(0); 
+      opacity: 1; 
+    }
   }
 `;
 
@@ -212,11 +228,11 @@ const ProgressContainer = styled.div`
 // Progress bar fill
 const ProgressFill = styled.div`
   height: 100%;
-  background-color: var(--accent);
+  background-color: ${props => props.backgroundColor || 'var(--accent)'};
   border-radius: 0.5rem;
   width: ${props => props.progress}%;
   transition: width 0.8s ease-in-out;
-  box-shadow: 0 0 8px var(--accentLight);
+  box-shadow: ${props => props.boxShadow || 'none'};
 `;
 
 // Level text
@@ -224,13 +240,13 @@ const LevelText = styled.p`
   margin: 0;
   margin-top: 0.75rem;
   font-size: 0.875rem;
-  color: var(--textPrimary);
+  color: ${props => props.color || 'var(--textPrimary)'};
   display: flex;
   align-items: center;
   gap: 0.5rem;
   
   svg {
-    color: var(--accent);
+    color: ${props => props.color || 'var(--accent)'};
   }
 `;
 
@@ -497,9 +513,25 @@ const SideColumnMobile = styled.div`
   }
 `;
 
+/**
+ * Dynamically load a Lucide icon by name
+ * @param {string} iconName - The name of the icon to load
+ * @param {number} size - Size of the icon
+ * @returns React component
+ */
+const DynamicIcon = ({ iconName, size = 18, ...props }) => {
+  const Icon = LucideIcons[iconName.charAt(0).toUpperCase() + iconName.slice(1)];
+  
+  if (!Icon) {
+    // Fallback to a default icon if the requested one doesn't exist
+    return <LucideIcons.Star size={size} {...props} />;
+  }
+  
+  return <Icon size={size} {...props} />;
+};
 
 // Main HomePageHeader component
-const HomePageHeader = () => {
+const HomePageHeader = ({userStats}) => {
   // Refs for auto-scrolling
   const scrollerRef = useRef(null);
   const scrollInterval = useRef(null);
@@ -511,15 +543,7 @@ const HomePageHeader = () => {
   const [currentAnnouncementIndex, setCurrentAnnouncementIndex] = useState(0);
   
   const { isAuthenticated } = useAuth();
-  const navigate = useNavigate();
-  
-  // Mock user data
-  const userData = {
-    level: 'Otaku Novice',
-    xp: 350,
-    maxXp: 1000,
-    totalPoints: 425
-  };
+  const navigate = useNavigate();  
   
   // Mock announcements - additional items for auto-scrolling demonstration
   const announcements = [
@@ -555,9 +579,6 @@ const HomePageHeader = () => {
   
   // Mock video URL
   const videoUrl = null; // Set to null to show placeholder
-  
-  // Calculate progress percentage
-  const progressPercentage = (userData.xp / userData.maxXp) * 100;
   
   // Start countdown when component mounts
   useEffect(() => {
@@ -601,18 +622,6 @@ const HomePageHeader = () => {
       }
     };
   }, [currentAnnouncementIndex, announcements.length]);
-  
-  // Handle manual navigation
-  const scrollToAnnouncement = (index) => {
-    if (scrollerRef.current) {
-      const cardWidth = 15 * 16 + 16; // 15rem + 1rem gap
-      setCurrentAnnouncementIndex(index);
-      scrollerRef.current.scrollTo({
-        left: index * cardWidth,
-        behavior: 'smooth'
-      });
-    }
-  };
   
   // Pause auto-scrolling when hovering over announcements
   const handleMouseEnter = () => {
@@ -674,21 +683,113 @@ const HomePageHeader = () => {
           {/* User Info Cards */}
             {isAuthenticated ? (
               <SideColumn>
-                <XPCard>
+                <XPCard style={{ 
+                  background: userStats?.achievements?.isMaxTier 
+                    ? 'linear-gradient(135deg, #ffd700, #8b7500)' // Gold gradient for max tier users
+                    : 'var(--primaryDark)',
+                  animation: userStats?.achievements ? 'slideUp 0.5s ease-out forwards' : 'none'
+                }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <User size={22} />
-                    <Title>XP Level</Title>
+                    <Trophy 
+                      size={22} 
+                      color={userStats?.achievements?.isMaxTier 
+                        ? '#fff' 
+                        : (userStats?.achievements?.tier?.color || undefined)}
+                    />
+                    <Title style={{ color: userStats?.achievements?.isMaxTier ? '#fff' : 'var(--textPrimary)' }}>
+                      Achievement Level
+                    </Title>
                   </div>
-                  <div>
-                    <p>{userData.totalPoints} Total Points</p>
-                    <ProgressContainer>
-                      <ProgressFill progress={progressPercentage} />
-                    </ProgressContainer>
-                    <LevelText>
-                      <Star size={16} />
-                      {userData.xp}/{userData.maxXp} XP • {userData.level}
-                    </LevelText>
-                  </div>
+                  {userStats && userStats.achievements ? (
+                    <div style={{ marginTop: '1rem' }}>
+                      <p style={{ 
+                        color: userStats?.achievements?.isMaxTier ? '#fff' : 'var(--textPrimary)',
+                        fontWeight: '600',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}>
+                        <span>{userStats.achievements.points} Total Points</span>
+                        <span style={{ fontSize: '0.85rem' }}>
+                          <Trophy size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
+                          {userStats.achievements.unlocked} Unlocked
+                        </span>
+                      </p>
+                      <ProgressContainer>
+                        <ProgressFill 
+                          progress={
+                            userStats.achievements.nextTier 
+                              ? Math.min(100, Math.round(((userStats.achievements.points - userStats.achievements.tier.minPoints) / 
+                                (userStats.achievements.nextTier.minPoints - userStats.achievements.tier.minPoints)) * 100))
+                                : 100
+                          } 
+                          style={{
+                            backgroundColor: userStats?.achievements?.isMaxTier ? '#ffd700' : (userStats.achievements.tier.color || 'var(--accent)'),
+                            boxShadow: userStats?.achievements?.isMaxTier ? '0 0 8px #ffd700' : `0 0 8px ${userStats.achievements.tier.color || 'var(--accentLight)'}`
+                          }}
+                        />
+                      </ProgressContainer>
+                      <LevelText style={{ color: userStats?.achievements?.isMaxTier ? '#fff' : 'var(--textPrimary)' }}>
+                        {userStats.achievements.tier.icon ? (
+                          <DynamicIcon 
+                            iconName={userStats.achievements.tier.icon} 
+                            size={16} 
+                            color={userStats?.achievements?.isMaxTier ? '#fff' : 'var(--accent)'} 
+                          />
+                        ) : (
+                          <Star size={16} color={userStats?.achievements?.isMaxTier ? '#fff' : 'var(--accent)'} />
+                        )}
+                        <div style={{
+                          display: 'flex', 
+                          flexDirection: 'column', 
+                          gap: '0.25rem'
+                        }}>
+                          <span>{userStats.achievements.tier.title}</span>
+                          {!userStats.achievements.isMaxTier && userStats.achievements.nextTier && (
+                            <small style={{ 
+                              fontSize: '0.75rem', 
+                              opacity: '0.8' 
+                            }}>
+                              Next: {userStats.achievements.nextTier.title} ({userStats.achievements.nextTier.pointsNeeded} points needed)
+                            </small>
+                          )}
+                          {userStats.achievements.isMaxTier && (
+                            <small style={{ 
+                              fontSize: '0.75rem', 
+                              opacity: '0.8',
+                              fontWeight: 'bold' 
+                            }}>
+                              Maximum Rank Achieved! 🏆
+                            </small>
+                          )}
+                          {userStats.achievements.rankHistory && userStats.achievements.rankHistory.length > 0 && (
+                            <small style={{ 
+                              fontSize: '0.7rem', 
+                              opacity: '0.7',
+                              fontStyle: 'italic',
+                              marginTop: '0.25rem' 
+                            }}>
+                              {(() => {
+                                // Find the current tier in rank history
+                                const currentTierHistory = userStats.achievements.rankHistory.find(
+                                  rank => rank.tierId === userStats.achievements.tier.id
+                                );
+                                if (currentTierHistory) {
+                                  const date = new Date(currentTierHistory.achievedAt);
+                                  return `Achieved on ${date.toLocaleDateString()}`;
+                                }
+                                return null;
+                              })()}
+                            </small>
+                          )}
+                        </div>
+                      </LevelText>
+                    </div>
+                  ) : (
+                    <div style={{ marginTop: '1rem' }}>
+                      <UserStatsDisplay />
+                    </div>
+                  )}
                 </XPCard>
                 
                 <JourneyCard>
@@ -748,7 +849,7 @@ const HomePageHeader = () => {
                     <Title>Start Playlist</Title>
                     <p>Create your own custom anime playlist for marathon watching</p>
                   </div>
-                  <Button primary onClick={() => navigate('/search')}>
+                  <Button primary onClick={() => navigate('/explore')}>
                     Start <ListMusic size={18} />
                   </Button>
                 </PlaylistCard>
@@ -823,7 +924,7 @@ const HomePageHeader = () => {
                       <Title>Start Playlist</Title>
                       <p>Create your own custom anime playlist for marathon watching</p>
                     </div>
-                    <Button primary onClick={() => navigate('/search')}>
+                    <Button primary onClick={() => navigate('/explore')}>
                       Start <ListMusic size={18} />
                     </Button>
                   </PlaylistCard>
