@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import styled from 'styled-components';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, UsersRound } from 'lucide-react';
 import UserAvatar from '../common/UserAvatar';
 import ShimmerLoader from '../common/ShimmerLoader';
 import { exploreAPI, userAPI } from '../../services/modules';
@@ -43,12 +43,10 @@ const PeopleGrid = styled.div`
 `;
 const UserCard = styled.div`
   display: flex;
-  flex-direction: column;
-  gap:1rem;
+  gap: 1rem;
   padding: 1rem;
   border-radius: 12px;
-  background-color: var(--cardBackground);
-  border: 1px solid rgba(var(--borderColor-rgb), 0.1);
+  border-bottom: 1px solid rgba(var(--borderColor-rgb), 0.9);
   transition: all 0.2s ease;
   &:hover {
     transform: translateY(-3px);
@@ -56,7 +54,6 @@ const UserCard = styled.div`
   }
 `;
 const UserInfo = styled.div`
-  margin-left: 1rem;
   flex: 1;
 `;
 const UserName = styled.h3`
@@ -96,7 +93,7 @@ const FollowButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 100px;
+  width: fit-content;
   opacity: ${props => props.isLoading ? 0.7 : 1};
   
   &:hover {
@@ -114,6 +111,31 @@ const ErrorMessage = styled.div`
   font-size: 0.85rem;
   margin-top: 0.25rem;
   text-align: center;
+`;
+
+const EmptyStateWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background-color: var(--cardBackground);
+  border-radius: 12px;
+  text-align: center;
+  border: 1px solid rgba(var(--borderColor-rgb), 0.1);
+`;
+
+const EmptyStateIcon = styled.div`
+  font-size: 2.5rem;
+  color: var(--primary);
+  margin-bottom: 1rem;
+  opacity: 0.7;
+`;
+
+const EmptyStateText = styled.p`
+  color: var(--textSecondary);
+  font-size: 0.95rem;
+  margin: 0;
 `;
 
 const PeopleToFollowSection = () => {
@@ -134,7 +156,6 @@ const PeopleToFollowSection = () => {
         includeSimilarUsers: true
       });
 
-      console.log(response.data);
       if (response.success && response.data) {
         setRecommendedUsers(response.data.users || []);
       } else {
@@ -161,7 +182,6 @@ const PeopleToFollowSection = () => {
       setFollowLoading(prev => ({ ...prev, [userId]: true }));
 
       const userToUpdate = recommendedUsers.find(user => user._id === userId);
-      console.log(userToUpdate);
       const isCurrentlyFollowing = userToUpdate?.isFollowing;
       let response;
       if (isCurrentlyFollowing) {
@@ -201,19 +221,58 @@ const PeopleToFollowSection = () => {
     }
   }, [recommendedUsers]);
 
-  if (error) {
-    return (
-      <Section>
-        <SectionHeader>
-          <SectionTitle>
-            <BookOpen size={20} />
-            People to Follow
-          </SectionTitle>
-        </SectionHeader>
-        <ErrorMessage>{error}</ErrorMessage>
-      </Section>
-    );
-  }
+  const renderContent = () => {
+    if (loading) {
+      return Array(5).fill(0).map((_, index) => (
+        <ShimmerLoader key={index} type="user-card" height={100} />
+      ));
+    }
+    
+    if (error) {
+      return <ErrorMessage>{error}</ErrorMessage>;
+    }
+    
+    if (!recommendedUsers || recommendedUsers.length === 0) {
+      return (
+        <EmptyStateWrapper>
+          <EmptyStateIcon>
+            <UsersRound size={48} />
+          </EmptyStateIcon>
+          <EmptyStateText>No user recommendations available right now. Check back later!</EmptyStateText>
+        </EmptyStateWrapper>
+      );
+    }
+    
+    return recommendedUsers.map(user => (
+      <UserCard key={user._id || user.userId}>
+          <UserAvatar style={{ marginTop: "6px" }} src={user.avatarUrl} alt={user.username} size={44} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: "8px"}}>
+            <UserInfo>
+              <UserName>{user.username}</UserName>
+              <UserBio>
+                {user.bio ? (
+                  user.bio.length > 50
+                    ? user.bio.slice(0, 50) + '...'
+                    : user.bio
+                ) : user.reasons[0]}
+              </UserBio>
+            </UserInfo>
+            <FollowButton
+              following={user.isFollowing}
+              onClick={() => handleFollowToggle(user.username)}
+              disabled={followLoading[user._id || user.userId]}
+              isLoading={followLoading[user._id || user.userId]}
+            >
+              {followLoading[user._id || user.userId] ? (
+                <ButtonSpinner following={user.isFollowing} />
+              ) : (
+                user.isFollowing ? 'Following' : 'Follow'
+              )}
+            </FollowButton>
+          </div>
+      </UserCard>
+    ));
+  };
 
   return (
     <Section>
@@ -225,42 +284,7 @@ const PeopleToFollowSection = () => {
         {/* <ViewAllLink>View All</ViewAllLink> */}
       </SectionHeader>
       <PeopleGrid>
-        {loading ? (
-          Array(5).fill(0).map((_, index) => (
-            <ShimmerLoader key={index} type="user-card" height={100} />
-          ))
-        ) : (
-          recommendedUsers.map(user => (
-            <UserCard key={user._id || user.userId}>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <UserAvatar src={user.avatarUrl} alt={user.username} size={44} />
-                <UserInfo>
-                  <UserName>{user.username}</UserName>
-                  <UserBio>
-                    {user.bio ? (
-                      user.bio.length > 50
-                        ? user.bio.slice(0, 50) + '...'
-                        : user.bio
-                    ) : user.reasons[0]}
-                  </UserBio>
-                </UserInfo>
-              </div>
-
-              <FollowButton
-                following={user.isFollowing}
-                onClick={() => handleFollowToggle(user.username)}
-                disabled={followLoading[user._id || user.userId]}
-                isLoading={followLoading[user._id || user.userId]}
-              >
-                {followLoading[user._id || user.userId] ? (
-                  <ButtonSpinner following={user.isFollowing} />
-                ) : (
-                  user.isFollowing ? 'Following' : 'Follow'
-                )}
-              </FollowButton>
-            </UserCard>
-          ))
-        )}
+        {renderContent()}
       </PeopleGrid>
     </Section>
   );

@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import CustomSelect from '../common/CustomSelect';
-import { SelectContainer, SelectLabel, SelectDescription, SelectLoading } from './SettingsSelect.styles';
+import { SelectContainer, SelectLabel, SelectDescription, SelectLoading } from './SettingsSelectStyles';
 
 /**
  * SettingsSelect - A select/dropdown for enum or string settings.

@@ -4,11 +4,11 @@ import { processResponse } from '../responseHandler';
 // Logger utility for consistent logging format
 const logger = (area, action, data = null) => {
   const logMessage = `[SEARCH API] ${area} | ${action}`;
-  if (data) {
-    console.log(logMessage, data);
-  } else {
-    console.log(logMessage);
-  }
+  // if (data) {
+  //   console.log(logMessage, data);
+  // } else {
+  //   console.log(logMessage);
+  // }
 };
 
 // Cache constants

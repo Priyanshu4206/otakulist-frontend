@@ -35,7 +35,6 @@ const SeasonPreviewSection = () => {
       setError('');
       try {
         const response = await exploreAPI.getSeasonalAnime({ season: 'spring', year: 2025, limit: 50 });
-        console.log('SeasonPreviewSection API response:', response)
         if (response.success && response.data) {
           const list = response.data.anime || response.data.items || [];
           setAnimeList(list);

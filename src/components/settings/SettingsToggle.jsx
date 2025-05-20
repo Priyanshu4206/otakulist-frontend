@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { ToggleContainer, ToggleLabel, ToggleDescription, ToggleSwitch, Slider, ToggleLoading } from './SettingsToggle.styles';
+import { ToggleContainer, ToggleLabel, ToggleDescription, ToggleSwitch, Slider, ToggleLoading } from './SettingsToggleStyles';
 
 /**
  * SettingsToggle - A toggle switch for boolean settings.

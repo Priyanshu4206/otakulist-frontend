@@ -13,11 +13,11 @@ import { fetchWithETagAndCache } from '../conditionalFetch';
 // Logger utility for consistent logging format
 const logger = (area, action, data = null) => {
   const logMessage = `[USER API] ${area} | ${action}`;
-  if (data) {
-    console.log(logMessage, data);
-  } else {
-    console.log(logMessage);
-  }
+  // if (data) {
+  //   console.log(logMessage, data);
+  // } else {
+  //   console.log(logMessage);
+  // }
 };
 
 // Dashboard section cache keys

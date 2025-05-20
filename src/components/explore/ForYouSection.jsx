@@ -35,7 +35,6 @@ const ForYouSection = () => {
       setError('');
       try {
         const response = await exploreAPI.getPersonalizedRecommendations({ contentType: 'anime', limit: 30, forceRefresh: true });
-        console.log('ForYouSection API response:', response);
         if (response.success && response.data) {
           const list = response.data.anime || response.data.items || [];
           setAnimeList(list);

@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { GroupContainer, GroupTitle, GroupDescription } from './SettingsGroup.styles';
+import { GroupContainer, GroupTitle, GroupDescription } from './SettingsGroupStyles';
 
 /**
  * SettingsGroup - A container for grouping related settings.

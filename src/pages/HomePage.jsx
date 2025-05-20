@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import Layout from '../components/layout/Layout';
-import ForYouSection from '../components/home/ForYouSection';
+import TrendingPlaylistsMainSection from '../components/explore/TrendingPlaylistsMainSection';
 import ExploreGenresSection from '../components/home/ExploreGenresSection';
 import CommunityHighlightsSection from '../components/home/CommunityHighlightsSection';
 import HomePageHeader from '../components/home/HomePageHeader';
@@ -10,6 +10,7 @@ import styled from 'styled-components';
 import animeBackground from '../assets/images/home-bg.jpeg';
 import useAuth from '../hooks/useAuth';
 import { userAPI } from '../services/api';
+import { exploreAPI } from '../services/modules';
 
 const AnimeBackground = styled.div`
   position: fixed;
@@ -50,6 +51,31 @@ const HomePageContainer = styled.div`
   }
 `;
 
+const SectionTitle = styled.h2`
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--textPrimary);
+  position: relative;
+  margin-bottom: 1rem;
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 0;
+    width: 60px;
+    height: 3px;
+    background: var(--gradientPrimary);
+    border-radius: 2px;
+  }
+`;
+
+const SectionContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+
 const HomePage = () => {
   const { user } = useAuth();
   const [userStats, setUserStats] = useState(null);
@@ -86,7 +112,10 @@ const HomePage = () => {
       <AnimeBackground image={animeBackground} />
       <HomePageContainer>
         <HomePageHeader userStats={userStats} />
-        <ForYouSection />
+        <SectionContainer>
+          <SectionTitle>Trending Playlists</SectionTitle>
+          <TrendingPlaylistsMainSection limit={6} />
+        </SectionContainer>
         <LeaderboardAndActivities userStats={userStats} />
         <ExploreGenresSection />
         <HomeGridSection />

@@ -263,9 +263,6 @@ const AnimePage = () => {
 
     // Force refresh anime details
     await fetchAnimeDetails(true);
-
-    // Show a success message or update UI as needed
-    console.log('Rating submitted successfully, anime data refreshed');
   };
 
   // Show loading spinner when anime details are loading

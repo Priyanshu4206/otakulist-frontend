@@ -11,10 +11,9 @@ import SettingsToggle from '../settings/SettingsToggle';
 import SettingsSelect from '../settings/SettingsSelect';
 import GameScreenLoader from '../settings/GameScreenLoader';
 import ButtonLoader from '../settings/ButtonLoader';
-import { getCachedSettings, setCachedSettings } from '../../utils/settingsCache';
+import { setCachedSettings } from '../../utils/settingsCache';
 import { saveUserTimezone } from '../../utils/simpleTimezoneUtils';
 import styled from 'styled-components';
-import ReactDOM from 'react-dom';
 
 // Default theme to use if none is set
 export const DEFAULT_THEME = 'naruto-dark';

@@ -136,39 +136,32 @@ function isCacheExpired(lastFetchTimeKey) {
 function StaticDataLoader() {
   useEffect(() => {
     const fetchStaticData = async () => {
-      console.log('[App] Loading static application data...');
 
       try {
         // Fetch genres if needed
         const genresLastFetchKey = 'genres_last_fetch_time';
         if (isCacheExpired(genresLastFetchKey)) {
-          console.log('[App] Fetching genres data...');
           const genresResponse = await genreAPI.getAllGenres({ useCache: true });
           if (genresResponse.success) {
             localStorage.setItem(genresLastFetchKey, Date.now().toString());
-            console.log('[App] Genres data cached successfully');
           }
         }
 
         // Fetch achievements if needed
         const achievementsLastFetchKey = 'achievements_last_fetch_time';
         if (isCacheExpired(achievementsLastFetchKey)) {
-          console.log('[App] Fetching achievements data...');
           const achievementsResponse = await userAPI.getAllAchievements({ useCache: true });
           if (achievementsResponse.success) {
             localStorage.setItem(achievementsLastFetchKey, Date.now().toString());
-            console.log('[App] Achievements data cached successfully');
           }
         }
 
         // Fetch timezones if needed
         const timezonesLastFetchKey = 'timezones_last_fetch_time';
         if (isCacheExpired(timezonesLastFetchKey)) {
-          console.log('[App] Fetching timezones data...');
           const timezonesResponse = await userAPI.getAvailableTimezones({ useCache: true });
           if (timezonesResponse.success) {
             localStorage.setItem(timezonesLastFetchKey, Date.now().toString());
-            console.log('[App] Timezones data cached successfully');
           }
         }
       } catch (error) {

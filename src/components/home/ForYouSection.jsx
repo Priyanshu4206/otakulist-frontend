@@ -30,11 +30,26 @@ const CardRow = styled.div`
   overflow-x: auto;
   padding: 1rem 0;
   scroll-snap-type: x mandatory;
-  &::-webkit-scrollbar { display: none; }
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  
+  &::-webkit-scrollbar { 
+    height: 6px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(var(--primary-rgb), 0.3);
+    border-radius: 3px;
+  }
+  
+  @media (max-width: 768px) {
+    gap: 1rem;
+    padding-bottom: 1.5rem;
+  }
 `;
 
 const AnimeCard = styled.div`
-  min-width: 260px;
+  min-width: 280px;
   max-width: 320px;
   background: var(--cardBackground);
   border-radius: 16px;
@@ -45,6 +60,19 @@ const AnimeCard = styled.div`
   padding: 1rem 1rem 0.75rem 1rem;
   scroll-snap-align: start;
   animation: fadeInCard 0.7s cubic-bezier(0.23, 1, 0.32, 1);
+  
+  @media (max-width: 768px) {
+    min-width: 240px;
+    max-width: 260px;
+    border-radius: 14px;
+    padding: 0.75rem 0.75rem 0.5rem 0.75rem;
+  }
+  
+  @media (max-width: 480px) {
+    min-width: 200px;
+    max-width: 220px;
+  }
+  
   @keyframes fadeInCard {
     from { opacity: 0; transform: translateY(30px); }
     to { opacity: 1; transform: translateY(0); }
@@ -63,6 +91,11 @@ const AnimeImage = styled.div`
   font-size: 2.5rem;
   color: var(--primary);
   font-weight: 700;
+  
+  @media (max-width: 768px) {
+    border-radius: 10px;
+    font-size: 2rem;
+  }
 `;
 
 const AnimeTitle = styled.div`
@@ -71,12 +104,27 @@ const AnimeTitle = styled.div`
   color: var(--textPrimary);
   margin-bottom: 0.7rem;
   text-align: center;
+  
+  @media (max-width: 768px) {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+  }
 `;
 
 const ButtonRow = styled.div`
   display: flex;
   gap: 0.7rem;
   margin-bottom: 0.5rem;
+  
+  @media (max-width: 768px) {
+    gap: 0.5rem;
+  }
+  
+  @media (max-width: 480px) {
+    flex-direction: column;
+    width: 100%;
+    gap: 0.4rem;
+  }
 `;
 
 const ActionButton = styled.button`
@@ -89,6 +137,18 @@ const ActionButton = styled.button`
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s, transform 0.2s;
+  
+  @media (max-width: 768px) {
+    padding: 0.35rem 0.9rem;
+    font-size: 0.9rem;
+    border-radius: 6px;
+  }
+  
+  @media (max-width: 480px) {
+    width: 100%;
+    padding: 0.4rem 0.5rem;
+  }
+  
   &:hover {
     background: var(--gradientPrimary);
     transform: translateY(-2px) scale(1.04);

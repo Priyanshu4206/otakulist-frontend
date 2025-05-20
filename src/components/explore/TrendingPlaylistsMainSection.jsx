@@ -6,64 +6,98 @@ import ShimmerCard from '../common/ShimmerCard';
 
 const PlaylistGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1.5rem;
+  
+  @media (max-width: 1200px) {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+  
   @media (max-width: 768px) {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 1rem;
   }
+  
+  @media (max-width: 480px) {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 0.8rem;
+  }
 `;
+
 const ErrorMsg = styled.div`
   color: var(--danger);
   padding: 1rem;
   text-align: center;
-`;
-const EmptyMsg = styled.div`
-  color: var(--textSecondary);
-  padding: 1rem;
-  text-align: center;
+  background: rgba(var(--danger-rgb), 0.1);
+  border-radius: 8px;
+  margin: 1rem 0;
 `;
 
-const TrendingPlaylistsMainSection = () => {
+const EmptyMsg = styled.div`
+  color: var(--textSecondary);
+  padding: 2rem;
+  text-align: center;
+  background: var(--cardBackground);
+  border-radius: 12px;
+  border: 1px solid rgba(var(--borderColor-rgb), 0.1);
+  font-size: 0.95rem;
+`;
+
+const TrendingPlaylistsMainSection = ({ limit = 8 }) => {
   const [playlists, setPlaylists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Fetch trending playlists (right section)
+  // Fetch trending playlists
   useEffect(() => {
     const fetchTrendingPlaylists = async () => {
       try {
         setLoading(true);
+        setError('');
+        
         const response = await exploreAPI.getPublicPlaylists({
           sort: 'popularity',
-          limit: 50
+          limit: limit
         });
         
         if (response.success && response.data) {
           setPlaylists(response.data.items || []);
+        } else {
+          throw new Error(response.message || 'Failed to fetch playlists');
         }
       } catch (error) {
-        setError("Error Fetching Playlists");
         console.error('Error fetching trending playlists:', error);
+        setError("Error fetching playlists. Please try again later.");
       } finally {
         setLoading(false);
       }
     };
     fetchTrendingPlaylists();
-  }, []);
+  }, [limit]);
 
   if (loading) {
-    return <PlaylistGrid>{Array(8).fill(0).map((_, idx) => <ShimmerCard key={idx} type="playlist" />)}</PlaylistGrid>;
+    return (
+      <PlaylistGrid>
+        {Array(limit).fill(0).map((_, idx) => (
+          <ShimmerCard key={idx} type="playlist" />
+        ))}
+      </PlaylistGrid>
+    );
   }
+  
   if (error) {
     return <ErrorMsg>{error}</ErrorMsg>;
   }
+  
   if (!playlists.length) {
-    return <EmptyMsg>No playlists found.</EmptyMsg>;
+    return <EmptyMsg>No playlists found. Create one and be the trendsetter!</EmptyMsg>;
   }
+  
   return (
     <PlaylistGrid>
-      {playlists.map(playlist => <PlaylistCard key={playlist.id} playlist={playlist} />)}
+      {playlists.map(playlist => (
+        <PlaylistCard key={playlist.id || playlist._id} playlist={playlist} />
+      ))}
     </PlaylistGrid>
   );
 };

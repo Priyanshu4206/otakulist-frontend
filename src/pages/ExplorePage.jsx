@@ -15,6 +15,14 @@ import SeasonPreviewSection from '../components/explore/SeasonPreviewSection';
 import TopRatedSection from '../components/explore/TopRatedSection';
 
 // Main Layout
+const MainWrapper = styled.div`
+  padding: 2rem;
+
+  @media (max-width: 1024px) {
+    padding: 1rem;
+  }
+`;
+
 const MainLayout = styled.div`
   display: flex;
   width: 100%;
@@ -32,6 +40,7 @@ const MainLayout = styled.div`
 
 const LeftSection = styled.div`
   flex: 1 1 0;
+  width: 100%;
   min-width: 0;
   box-sizing: border-box;
 `;
@@ -133,7 +142,7 @@ const ExplorePage = () => {
 
   return (
     <Layout>
-      <div style={{ padding: '2rem' }}>
+      <MainWrapper>
         <ExplorePageHeader
           searchValue={searchValue}
           setSearchValue={setSearchValue}
@@ -155,7 +164,7 @@ const ExplorePage = () => {
           </RightSection>
         </MainLayout>
         <EventBanner />
-      </div>
+      </MainWrapper>
     </Layout>
   );
 };

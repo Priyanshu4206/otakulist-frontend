@@ -3,8 +3,6 @@ import { Menu, User, Bell } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import useUI from '../../hooks/useUI';
 import useAuth from '../../hooks/useAuth';
-import ThemeSwitcher from './ThemeSwitcher';
-import { useEffect } from 'react';
 
 const HeaderContainer = styled.header`
   display: none;
@@ -126,7 +124,6 @@ const Header = ({ transparent = false, unreadCount = 0, openNotificationPanel })
         <span>OtakuList</span>
       </LogoContainer>
       <NavActions>
-        <ThemeSwitcher />
         {isAuthenticated && (
           <>
             <IconButton onClick={openNotificationPanel} aria-label="Notifications" style={{ position: 'relative' }}>

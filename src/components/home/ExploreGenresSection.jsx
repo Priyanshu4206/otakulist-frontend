@@ -276,7 +276,6 @@ const ExploreGenresSection = () => {
       
       if (response.success && response.data) {
         const data = response.data;
-        console.log("All genres:", data);
         
         if (Array.isArray(data) && data.length > 0) {
           if (window.innerWidth > 768) {
@@ -352,12 +351,10 @@ const ExploreGenresSection = () => {
         
         // If we got a 304 Not Modified and have cached data, use the cached data
         if (response.status === 304 && cachedData) {
-          console.log('Using cached anime data (304 Not Modified)');
           anime = cachedData;
         } 
         // Otherwise use the new data from the response
         else if (response.success && response.data) {
-          console.log("Anime based on the genre:", response.data);
           
           // Store the new ETag if present
           const newEtag = response.headers?.etag;
@@ -397,7 +394,6 @@ const ExploreGenresSection = () => {
           const cachedData = getCachedData(cacheKey);
           
           if (cachedData) {
-            console.log('Using cached anime data (error fallback)');
             setAnimeList(cachedData);
           } else {
             setAnimeError('Failed to load anime for this genre.');

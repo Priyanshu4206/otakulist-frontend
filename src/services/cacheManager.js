@@ -25,7 +25,6 @@ export const clearAllCaches = () => {
   
   // Clear all ETags (redundant but for safety)
   clearAllETags();
-  console.log('[Cache Manager] All caches cleared');
 };
 
 /**
@@ -34,7 +33,6 @@ export const clearAllCaches = () => {
  */
 export const clearUserCaches = () => {
   userAPI.clearAllCaches();
-  console.log('[Cache Manager] User caches cleared');
 };
 
 /**
@@ -44,10 +42,8 @@ export const clearUserCaches = () => {
 export const clearAnimeCaches = (animeId) => {
   if (animeId) {
     animeAPI.clearAnimeCache(animeId);
-    console.log(`[Cache Manager] Cache cleared for anime ID: ${animeId}`);
   } else {
     animeAPI.clearAllCaches();
-    console.log('[Cache Manager] All anime caches cleared');
   }
 };
 
@@ -57,11 +53,6 @@ export const clearAnimeCaches = (animeId) => {
  */
 export const clearGenreCaches = (genreId) => {
   genreAPI.clearGenreCache(genreId);
-  if (genreId) {
-    console.log(`[Cache Manager] Cache cleared for genre ID: ${genreId}`);
-  } else {
-    console.log('[Cache Manager] All genre caches cleared');
-  }
 };
 
 /**
@@ -71,11 +62,6 @@ export const clearGenreCaches = (genreId) => {
  */
 export const clearSeasonalCaches = (season, year) => {
   animeAPI.clearSeasonalCache(season, year);
-  if (season && year) {
-    console.log(`[Cache Manager] Cache cleared for ${season} ${year}`);
-  } else {
-    console.log('[Cache Manager] All seasonal caches cleared');
-  }
 };
 
 /**
@@ -84,11 +70,6 @@ export const clearSeasonalCaches = (season, year) => {
  */
 export const clearScheduleCaches = (type) => {
   scheduleAPI.clearScheduleCache(type);
-  if (type) {
-    console.log(`[Cache Manager] ${type} schedule cache cleared`);
-  } else {
-    console.log('[Cache Manager] All schedule caches cleared');
-  }
 };
 
 /**
@@ -97,12 +78,6 @@ export const clearScheduleCaches = (type) => {
  */
 export const clearDashboardCaches = (sections) => {
   userAPI.clearDashboardCache(sections);
-  if (sections) {
-    const sectionsStr = Array.isArray(sections) ? sections.join(', ') : sections;
-    console.log(`[Cache Manager] Dashboard cache cleared for sections: ${sectionsStr}`);
-  } else {
-    console.log('[Cache Manager] All dashboard caches cleared');
-  }
 };
 
 export default {

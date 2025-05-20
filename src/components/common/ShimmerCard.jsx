@@ -3,10 +3,10 @@ import styled, { keyframes } from 'styled-components';
 
 const shimmer = keyframes`
   0% {
-    background-position: -200px 0;
+    background-position: -468px 0;
   }
   100% {
-    background-position: 200px 0;
+    background-position: 468px 0;
   }
 `;
 
@@ -25,191 +25,187 @@ const breathe = keyframes`
   }
 `;
 
-const ShimmerContainer = styled.div`
+const ShimmerWrapper = styled.div`
   width: 100%;
-  border-radius: 10px;
+  height: ${props => (props.height ? `${props.height}px` : 'auto')};
+  background: var(--cardBackground);
+  border-radius: 12px;
   overflow: hidden;
-  background: rgba(var(--cardBackground-rgb), 0.8);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  height: ${props => props.height || '280px'};
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
   position: relative;
+  display: ${props => (props.type === 'anime' || props.type === 'playlist' ? 'flex' : 'block')};
+  flex-direction: column;
+  
+  @media (max-width: 768px) {
+    border-radius: 10px;
+  }
 `;
 
 const ShimmerEffect = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  animation: ${shimmer} 1.5s infinite linear;
-  background: linear-gradient(to right, 
-    rgba(255, 255, 255, 0.05) 8%, 
-    rgba(255, 255, 255, 0.15) 18%, 
-    rgba(255, 255, 255, 0.05) 33%
-  );
-  background-size: 800px 100%;
-`;
-
-const ImagePlaceholder = styled.div`
-  width: 100%;
-  height: 62%;
-  background-color: rgba(var(--cardBackground-rgb), 0.5);
-`;
-
-const ContentPlaceholder = styled.div`
-  padding: 12px;
-`;
-
-const TitlePlaceholder = styled.div`
-  height: 14px;
-  width: 90%;
-  background-color: rgba(var(--cardBackground-rgb), 0.5);
-  border-radius: 3px;
-  margin-bottom: 8px;
-`;
-
-const SubtitlePlaceholder = styled.div`
-  height: 12px;
-  width: 60%;
-  background-color: rgba(var(--cardBackground-rgb), 0.5);
-  border-radius: 3px;
-  margin-bottom: 8px;
-`;
-
-const DetailsPlaceholder = styled.div`
-  height: 10px;
-  width: 40%;
-  background-color: rgba(var(--cardBackground-rgb), 0.5);
-  border-radius: 3px;
-`;
-
-const ShimmerElement = styled.div`
-  display: inline-block;
+  animation-duration: 1.5s;
+  animation-fill-mode: forwards;
+  animation-iteration-count: infinite;
+  animation-name: ${shimmer};
+  animation-timing-function: linear;
+  background: linear-gradient(to right, #f6f7f8 8%, #edeef1 18%, #f6f7f8 33%);
+  background-size: 800px 104px;
   position: relative;
-  background: var(--cardBackground);
-  border-radius: ${props => props.borderRadius || '4px'};
-  height: ${props => props.height || '16px'};
-  width: ${props => props.width || '100%'};
-  overflow: hidden;
-  
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    transform: translateX(-100%);
-    background-image: linear-gradient(
-      90deg,
-      rgba(var(--cardBackground-rgb), 0) 0,
-      rgba(var(--textPrimary-rgb), 0.2) 20%,
-      rgba(var(--cardBackground-rgb), 0.3) 60%,
-      rgba(var(--cardBackground-rgb), 0)
-    );
-    animation: ${shimmer} 2s infinite;
-    background-size: 200% 100%;
-  }
 `;
 
-const ShimmerShape = styled(ShimmerElement)`
-  mask-image: ${props => props.maskImage};
-  -webkit-mask: linear-gradient(var(--textPrimary) 0 0) content-box, linear-gradient(var(--textPrimary) 0 0);
-  mask-composite: add;
-  -webkit-mask-composite: source-out;
-`;
-
-const ShimmerCardContainer = styled.div`
-  width: ${props => props.width || '280px'};
-  height: ${props => props.height || '380px'};
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-  background-color: var(--cardBackground);
-  margin: ${props => props.margin || '0'};
-  padding: 0;
-  position: relative;
-  animation: ${breathe} 3s infinite ease-in-out;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    border-radius: 12px;
-    padding: 2px;
-    background: linear-gradient(
-      -45deg,
-      rgba(var(--primary-rgb), 0.1),
-      rgba(var(--secondary-rgb), 0.1),
-      rgba(var(--accent-rgb), 0.1)
-    );
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-  }
-`;
-
-const ShimmerImage = styled(ShimmerElement)`
-  width: 100%;
-  height: 65%;
-  border-radius: 12px 12px 0 0;
-`;
-
-const ShimmerContent = styled.div`
-  padding: 1rem;
-`;
-
-const ShimmerBadge = styled(ShimmerShape)`
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 50px;
-  height: 24px;
-  border-radius: 6px;
-`;
-
-const ShimmerStatusBadge = styled(ShimmerShape)`
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  width: 70px;
-  height: 24px;
-  border-radius: 6px;
-`;
-
-const ShimmerGenres = styled.div`
+const AnimeCardContent = styled.div`
   display: flex;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
+  flex-direction: column;
+  height: 100%;
 `;
 
-const ShimmerGenre = styled(ShimmerShape)`
-  width: 60px;
-  height: 24px;
-  border-radius: 6px;
+const AnimeShimmerImage = styled(ShimmerEffect)`
+  width: 100%;
+  height: 140px;
+  flex-shrink: 0;
+  
+  @media (max-width: 768px) {
+    height: 120px;
+  }
+  
+  @media (max-width: 480px) {
+    height: 100px;
+  }
 `;
 
-/**
- * ShimmerCard Component
- * 
- * A loading placeholder with shimmer effect for card components
- * 
- * @param {Object} props - Component props
- * @param {string} props.height - Height of the card (default: '280px')
- * @returns {JSX.Element} - ShimmerCard component
- */
-const ShimmerCard = ({ height }) => {
-  return (
-    <ShimmerContainer height={height}>
-      <ShimmerEffect />
-      <ImagePlaceholder />
-      <ContentPlaceholder>
-        <TitlePlaceholder />
-        <SubtitlePlaceholder />
-        <DetailsPlaceholder />
-      </ContentPlaceholder>
-    </ShimmerContainer>
-  );
+const AnimeShimmerTitle = styled(ShimmerEffect)`
+  margin: 1rem;
+  height: 1rem;
+  width: 80%;
+  border-radius: 4px;
+  
+  @media (max-width: 768px) {
+    margin: 0.75rem;
+    height: 0.9rem;
+  }
+`;
+
+const AnimeShimmerRating = styled(ShimmerEffect)`
+  margin: 0 1rem 1rem;
+  height: 0.8rem;
+  width: 50%;
+  border-radius: 4px;
+  
+  @media (max-width: 768px) {
+    margin: 0 0.75rem 0.75rem;
+    height: 0.7rem;
+  }
+`;
+
+const PlaylistShimmerImage = styled(ShimmerEffect)`
+  width: 100%;
+  height: 150px;
+  flex-shrink: 0;
+  
+  @media (max-width: 768px) {
+    height: 130px;
+  }
+  
+  @media (max-width: 480px) {
+    height: 110px;
+  }
+`;
+
+const PlaylistShimmerTitle = styled(ShimmerEffect)`
+  margin: 1rem;
+  height: 1rem;
+  width: 80%;
+  border-radius: 4px;
+  
+  @media (max-width: 768px) {
+    margin: 0.75rem;
+    height: 0.9rem;
+  }
+`;
+
+const PlaylistShimmerDesc = styled(ShimmerEffect)`
+  margin: 0 1rem 1rem;
+  height: 0.8rem;
+  width: 60%;
+  border-radius: 4px;
+  
+  @media (max-width: 768px) {
+    margin: 0 0.75rem 0.75rem;
+    height: 0.7rem;
+  }
+`;
+
+const UserShimmerImage = styled(ShimmerEffect)`
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  margin: 1rem;
+  
+  @media (max-width: 768px) {
+    width: 40px;
+    height: 40px;
+    margin: 0.75rem;
+  }
+`;
+
+const UserShimmerUsername = styled(ShimmerEffect)`
+  margin: 1rem;
+  height: 0.9rem;
+  width: 70%;
+  border-radius: 4px;
+  
+  @media (max-width: 768px) {
+    margin: 0.75rem;
+    height: 0.8rem;
+  }
+`;
+
+const UserShimmerBio = styled(ShimmerEffect)`
+  margin: 0 1rem 1rem;
+  height: 0.7rem;
+  width: 85%;
+  border-radius: 4px;
+  
+  @media (max-width: 768px) {
+    margin: 0 0.75rem 0.75rem;
+    height: 0.6rem;
+  }
+`;
+
+const ShimmerCard = ({ type, height }) => {
+  const renderContent = () => {
+    switch (type) {
+      case 'anime':
+        return (
+          <AnimeCardContent>
+            <AnimeShimmerImage />
+            <AnimeShimmerTitle />
+            <AnimeShimmerRating />
+          </AnimeCardContent>
+        );
+      case 'playlist':
+        return (
+          <>
+            <PlaylistShimmerImage />
+            <PlaylistShimmerTitle />
+            <PlaylistShimmerDesc />
+          </>
+        );
+      case 'user-card':
+        return (
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <UserShimmerImage />
+            <div>
+              <UserShimmerUsername />
+              <UserShimmerBio />
+            </div>
+          </div>
+        );
+      default:
+        return <AnimeShimmerImage style={{ height: height || 150 }} />;
+    }
+  };
+
+  return <ShimmerWrapper type={type} height={height}>{renderContent()}</ShimmerWrapper>;
 };
 
 export default ShimmerCard; 

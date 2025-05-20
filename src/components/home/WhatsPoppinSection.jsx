@@ -457,8 +457,6 @@ const WhatsPoppinSection = () => {
   const handleRefresh = () => {
     // Check if we have more refreshes available
     if (!refreshInfo.canRefresh) {
-      // Show some feedback that we've hit the refresh limit
-      console.log('Refresh limit reached. Try again later.');
       return;
     }
     
