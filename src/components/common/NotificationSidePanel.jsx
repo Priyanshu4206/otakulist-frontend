@@ -237,9 +237,9 @@ const NotificationSidePanel = ({ open, onClose }) => {
           )}
           {!loading && filteredNotifications.map((notif) => (
             <NotificationCard
-              key={notif._id}
+              key={notif?._id}
               notification={notif}
-              onDelete={() => deleteNotification(notif._id)}
+              onDelete={() => deleteNotification(notif?._id)}
               onClick={() => {}}
               compact
             />

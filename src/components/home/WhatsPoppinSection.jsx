@@ -518,7 +518,7 @@ const WhatsPoppinSection = () => {
       </SectionHeader>
       <List>
         {news.slice(0, MAX_TRENDING_NEWS).map(item => (
-          <NewsCard key={item._id} onClick={() => handleNewsClick(item.url)}>
+          <NewsCard key={item?._id} onClick={() => handleNewsClick(item.url)}>
             <NewsImage>
               {item.imageUrl ? 
                 <img src={item.imageUrl} alt={item.title} /> : 

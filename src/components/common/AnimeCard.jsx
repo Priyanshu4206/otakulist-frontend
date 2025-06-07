@@ -247,7 +247,7 @@ const AnimeCard = ({ anime }) => {
     return `${season ? season.charAt(0).toUpperCase() + season.slice(1) : ''} ${year || ''}`.trim();
   };
   
-  const animeId = malId || mal_id || _id;
+  const animeId = malId || mal_id || _id || null;
   const displayTitle = getTitle();
   const imageUrl = getImageUrl();
   const animeScore = score || null;

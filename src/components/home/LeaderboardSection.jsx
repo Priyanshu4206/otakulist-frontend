@@ -721,8 +721,8 @@ const AdventureGuildBoard = () => {
             const rankClass = entry?.rankTier;
             return (
               <AdventurerItem 
-                key={entry.user._id} 
-                isCurrentUser={user && entry.user._id === user._id}
+                key={entry?.user?._id} 
+                isCurrentUser={user && entry?.user?._id === user?._id}
               >
                 <RankNumber rank={entry.rank}>{entry.rank}</RankNumber>
                 <AdventurerAvatar>

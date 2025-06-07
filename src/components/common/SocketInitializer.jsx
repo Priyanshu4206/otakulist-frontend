@@ -25,7 +25,7 @@ const SocketInitializer = () => {
       return;
     }
 
-    if (!user || !user.id || user._id) {
+    if (!user || !user?.id || user?._id) {
       return;
     }
 
@@ -66,7 +66,7 @@ const SocketInitializer = () => {
     // Create a new socket connection with improved options
     const socket = io(SOCKET_URL, {
       path: '/socket.io',
-      auth: { token, userId: user.id || user._id }, // Include userId in socket auth
+      auth: { token, userId: user?.id || user?._id }, // Include userId in socket auth
       transports: ['websocket'],
       reconnection: true,
       reconnectionAttempts: 10,

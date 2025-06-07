@@ -60,11 +60,11 @@ export const setGlobalSocket = (socket) => {
 
 // Update the last seen notification ID
 const updateLastSeenNotificationId = (notification) => {
-  if (notification && notification._id) {
+  if (notification && notification?._id) {
     // Store the last seen notification ID for reconnection recovery
-    lastSeenNotificationId = notification._id;
-    localStorage.setItem('last_seen_notification_id', notification._id);
-    logger('State', `Updated last seen notification ID: ${notification._id}`);
+    lastSeenNotificationId = notification?._id;
+    localStorage.setItem('last_seen_notification_id', notification?._id);
+    logger('State', `Updated last seen notification ID: ${notification?._id}`);
   }
 };
 
