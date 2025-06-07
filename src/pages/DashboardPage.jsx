@@ -311,15 +311,6 @@ const DashboardNavigation = () => {
         </Tab>
 
         <Tab
-          to="/dashboard/history"
-          $active={isActive('/dashboard/history')}
-          data-active={isActive('/dashboard/history')}
-        >
-          <Clock size={20} />
-          <TabLabel $active={isActive('/dashboard/history')}>History</TabLabel>
-        </Tab>
-
-        <Tab
           to="/dashboard/activity"
           $active={isActive('/dashboard/activity')}
           data-active={isActive('/dashboard/activity')}
