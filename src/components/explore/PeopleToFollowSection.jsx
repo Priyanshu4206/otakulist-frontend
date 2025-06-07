@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, memo } from 'react';
 import styled from 'styled-components';
 import { BookOpen, UsersRound } from 'lucide-react';
 import UserAvatar from '../common/UserAvatar';
@@ -146,11 +146,17 @@ const PeopleToFollowSection = () => {
   const { showToast } = useToast();
   const [error, setError] = useState(null);
   const [followLoading, setFollowLoading] = useState({}); // Track loading state per user
+  const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
 
-  const fetchRecommendedUsers = async () => {
+  const fetchRecommendedUsers = useCallback(async () => {
     // Skip API call if user is not authenticated
     if (!isAuthenticated || !user) {
       setLoading(false);
+      return;
+    }
+
+    // Prevent multiple fetch attempts during the same session
+    if (hasAttemptedFetch && recommendedUsers.length > 0) {
       return;
     }
 
@@ -174,13 +180,14 @@ const PeopleToFollowSection = () => {
       setError('Failed to load recommendations. Please try again later.');
     } finally {
       setLoading(false);
+      setHasAttemptedFetch(true);
     }
-  };
+  }, [isAuthenticated, user, hasAttemptedFetch, recommendedUsers.length]);
 
   // Fetch recommended users (right section)
   useEffect(() => {
     fetchRecommendedUsers();
-  }, [isAuthenticated, user]);
+  }, [fetchRecommendedUsers]);
 
   const handleFollowToggle = useCallback(async (userId) => {
     // If already loading for this user, prevent multiple requests
@@ -208,8 +215,6 @@ const PeopleToFollowSection = () => {
           )
         );
 
-        await fetchRecommendedUsers();
-
         showToast({
           type: 'success',
           message: isCurrentlyFollowing ? 'Unfollowed user successfully' : 'Now following user'
@@ -227,7 +232,7 @@ const PeopleToFollowSection = () => {
     } finally {
       setFollowLoading(prev => ({ ...prev, [userId]: false }));
     }
-  }, [recommendedUsers]);
+  }, [recommendedUsers, followLoading, showToast]);
 
   // If user is not authenticated, this component shouldn't be rendered
   // But we'll add a check just in case
@@ -317,4 +322,4 @@ const PeopleToFollowSection = () => {
   );
 };
 
-export default PeopleToFollowSection; 
+export default memo(PeopleToFollowSection); 

@@ -265,6 +265,7 @@ const Button = styled.button`
   font-size: 0.95rem;
   cursor: pointer;
   transition: all 0.2s ease-in-out;
+  align-self: flex-end;
 
   &:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -444,7 +445,6 @@ const PlaylistCard = styled(Card)`
   grid-row: 3;
   display: flex;
   justify-content: space-between;
-  align-items: center;
   flex-wrap: wrap;
   padding: 1rem 1.5rem;
   background: var(--primaryDark);
@@ -835,12 +835,10 @@ const HomePageHeader = ({userStats}) => {
                     <Title>Install Our App</Title>
                     <p>Watch anime on the go with our mobile app and enjoy offline viewing</p>
                   </div>
-                  <div className="button-container">
                     <Button>
                       <Download size={18} />
                       Download App
                     </Button>
-                  </div>
                 </AppBanner>
                 
                 {/* Start Playlist */}

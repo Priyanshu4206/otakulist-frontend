@@ -580,17 +580,12 @@ const ActivityButtons = ({ showActiveQuests = true, showOnlyActiveQuests = false
   return (
     <ActivityContainer>
       <Header>
-        <Title>
+        <SectionTitle mb="2rem">
           <Trophy size={22} />
           Adventure Guild Quests
-        </Title>
+        </SectionTitle>
         <Description>Complete quests to earn Adventure Points and climb the ranks</Description>
       </Header>
-      
-      <SectionTitle mb="1rem">
-        <Gamepad2 size={18} />
-        Fun Activities
-      </SectionTitle>
       
       <CardsGrid>
         {activities.map(activity => (

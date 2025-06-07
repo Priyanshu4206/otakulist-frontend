@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import styled from 'styled-components';
 import { searchAPI } from '../services/modules';
 import Layout from '../components/layout/Layout';
@@ -57,12 +57,34 @@ const RightSection = styled.div`
   }
 `;
 
+// Content wrapper for consistent styling across all sections
+const SectionWrapper = ({ children }) => (
+  <div style={{ width: '100%', marginBottom: '1rem' }}>
+    {children}
+  </div>
+);
+
+// Memoized content components
+const MemoizedGenreSectionList = React.memo(GenreSectionList);
+const MemoizedForYouSection = React.memo(ForYouSection);
+const MemoizedTopRatedSection = React.memo(TopRatedSection);
+const MemoizedSeasonPreviewSection = React.memo(SeasonPreviewSection);
+const MemoizedTrendingPlaylistsMainSection = React.memo(TrendingPlaylistsMainSection);
+const MemoizedTrendingPlaylistsSection = React.memo(TrendingPlaylistsSection);
+const MemoizedPeopleToFollowSection = React.memo(PeopleToFollowSection);
+const MemoizedEventBanner = React.memo(EventBanner);
+
 const ExplorePage = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [activeTab, setActiveTab] = useState('trending');
-  const debouncedSearchTerm = useDebounce(searchTerm, 800);
+  // State for active tab
+  const [activeTab, setActiveTab] = useState('genres');
+  // Search state
+  const [searchValue, setSearchValue] = useState('');
+  const [searchResults, setSearchResults] = useState({ anime: [], users: [], playlists: [] });
+  const [searchVisible, setSearchVisible] = useState(false);
+  const [searchType, setSearchType] = useState('anime');
+  const [searchLoading, setSearchLoading] = useState(false);
+  const debouncedSearchValue = useDebounce(searchValue, 300);
+  
   const { user } = useAuth();
   const isAuthenticated = !!user;
 
@@ -73,7 +95,7 @@ const ExplorePage = () => {
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
-        setIsSearching(false);
+        setSearchVisible(false);
       }
     };
 
@@ -85,72 +107,81 @@ const ExplorePage = () => {
 
   // Search functionality
   useEffect(() => {
-    setIsSearching(true);
-    const fetchSearchResults = async () => {
-      if (debouncedSearchTerm.length < 2) {
-        setSearchResults([]);
-        return;
-      }
+    if (debouncedSearchValue.length < 2) {
+      setSearchResults({
+        anime: [],
+        users: [],
+        playlists: []
+      });
+      setSearchLoading(false);
+      return;
+    }
 
+    setSearchLoading(true);
+    const fetchSearchResults = async () => {
       try {
         const response = await searchAPI.searchAll({
-          query: debouncedSearchTerm,
+          query: debouncedSearchValue,
           limit: 15,
           useCache: true
         });
 
         if (response.success && response.data) {
-          setSearchResults(response.data.anime || []);
-          setIsSearching(false);
+          setSearchResults({
+            anime: response.data.anime || [],
+            users: response.data.users || [],
+            playlists: response.data.playlists || []
+          });
+          setSearchVisible(true);
         }
       } catch (error) {
         console.error('Search error:', error);
+      } finally {
+        setSearchLoading(false);
       }
     };
 
     fetchSearchResults();
-  }, [debouncedSearchTerm]);
+  }, [debouncedSearchValue]);
 
-  // Render left section content based on active tab
-  const renderLeftSectionContent = (activeTab, user) => {
-    
-    // Content wrapper for consistent styling across all sections
-    const SectionWrapper = ({ children }) => (
-        <div style={{ width: '100%', marginBottom: '1rem' }}>
-            {children}
-        </div>
-    );
-    
+  // Memoized left section content based on active tab
+  const leftSectionContent = useMemo(() => {
     switch (activeTab) {
-        case 'for-you':
-            if (!user) {
-                return (
-                    <SectionWrapper>
-                        <LoginPrompt 
-                            message="Login to see personalized anime recommendations"
-                            subtext="We'll recommend anime based on your preferences and watch history"
-                        />
-                    </SectionWrapper>
-                );
-            }
-            return <SectionWrapper><ForYouSection /></SectionWrapper>;
-        case 'top-rated':
-            return <SectionWrapper><TopRatedSection /></SectionWrapper>;
-        case 'season':
-            return <SectionWrapper><SeasonPreviewSection /></SectionWrapper>;
-        case 'trending':
-        default:
-            return <SectionWrapper><TrendingPlaylistsMainSection /></SectionWrapper>;
+      case 'for-you':
+        if (!user) {
+          return (
+            <SectionWrapper>
+              <LoginPrompt 
+                message="Login to see personalized anime recommendations"
+                subtext="We'll recommend anime based on your preferences and watch history"
+              />
+            </SectionWrapper>
+          );
+        }
+        return <SectionWrapper><MemoizedForYouSection /></SectionWrapper>;
+      case 'top-rated':
+        return <SectionWrapper><MemoizedTopRatedSection /></SectionWrapper>;
+      case 'season-preview':
+        return <SectionWrapper><MemoizedSeasonPreviewSection /></SectionWrapper>;
+      case 'trending-playlists':
+        return (
+          <SectionWrapper>
+            <MemoizedTrendingPlaylistsMainSection layout="grid" limit={12} />
+          </SectionWrapper>
+        );
+      case 'genres':
+      default:
+        return <SectionWrapper><MemoizedGenreSectionList /></SectionWrapper>;
     }
-  };
+  }, [activeTab, user]);
 
-  // Render right section content based on authentication state
-  const renderRightSectionContent = () => {
+  // Memoized right section content based on authentication state
+  const rightSectionContent = useMemo(() => {
     return (
       <>
-        <TrendingPlaylistsSection />
+        <MemoizedTrendingPlaylistsSection />
         {isAuthenticated ? (
-          <PeopleToFollowSection />
+          <MemoizedPeopleToFollowSection />
         ) : (
           <LoginPrompt 
             title="Find Users to Follow" 
@@ -159,27 +190,41 @@ const ExplorePage = () => {
         )}
       </>
     );
-  };
+  }, [isAuthenticated]);
+
+  // Memoized header props to prevent unnecessary re-renders
+  const headerProps = useMemo(() => ({
+    searchValue,
+    setSearchValue,
+    searchType,
+    setSearchType,
+    searchResults,
+    searchVisible,
+    setSearchVisible,
+    searchLoading
+  }), [searchValue, searchType, searchResults, searchVisible, searchLoading]);
+
+  const handleTabChange = useCallback((tab) => {
+    setActiveTab(tab);
+  }, []);
 
   return (
     <Layout>
       <MainWrapper>
         <ExplorePageHeader
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          searchResults={searchResults}
-          isSearching={isSearching}
+          searchRef={searchRef}
+          {...headerProps}
         />
-        <ExploreTopNav activeTab={activeTab} onTabChange={setActiveTab} />
+        <ExploreTopNav activeTab={activeTab} onTabChange={handleTabChange} />
         <MainLayout>
           <LeftSection>
-            {renderLeftSectionContent(activeTab, user)}
+            {leftSectionContent}
           </LeftSection>
           <RightSection>
-            {renderRightSectionContent()}
+            {rightSectionContent}
           </RightSection>
         </MainLayout>
-        <EventBanner />
+        <MemoizedEventBanner />
       </MainWrapper>
     </Layout>
   );

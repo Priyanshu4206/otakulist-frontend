@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, memo } from 'react';
 import styled from 'styled-components';
 import { ListMusic } from 'lucide-react';
 import ShimmerCard from '../common/ShimmerCard';
@@ -72,28 +72,36 @@ const TrendingPlaylistsSection = () => {
     const [playlists, setPlaylists] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
   
     // Fetch trending playlists (right section)
-    useEffect(() => {
-      const fetchTrendingPlaylists = async () => {
-        try {
-          setLoading(true);
-          const response = await exploreAPI.getPublicPlaylists({
-            sort: 'popularity',
-            limit: 5
-          });
-          if (response.success && response.data) {
-            setPlaylists(response.data.items || []);
-          }
-        } catch (error) {
-          setError("Error fetching playlists. Please try again later.");
-          console.error('Error fetching trending playlists:', error);
-        } finally {
-          setLoading(false);
+    const fetchTrendingPlaylists = useCallback(async () => {
+      // Prevent multiple fetch attempts if we already have data
+      if (hasAttemptedFetch && playlists.length > 0) {
+        return;
+      }
+      
+      try {
+        setLoading(true);
+        const response = await exploreAPI.getPublicPlaylists({
+          sort: 'popularity',
+          limit: 5
+        });
+        if (response.success && response.data) {
+          setPlaylists(response.data.items || []);
         }
-      };
+      } catch (error) {
+        setError("Error fetching playlists. Please try again later.");
+        console.error('Error fetching trending playlists:', error);
+      } finally {
+        setLoading(false);
+        setHasAttemptedFetch(true);
+      }
+    }, [hasAttemptedFetch, playlists.length]);
+    
+    useEffect(() => {
       fetchTrendingPlaylists();
-    }, []);
+    }, [fetchTrendingPlaylists]);
   
     if (loading) {
         return (
@@ -136,4 +144,4 @@ const TrendingPlaylistsSection = () => {
     );
 };
 
-export default TrendingPlaylistsSection;
+export default memo(TrendingPlaylistsSection);

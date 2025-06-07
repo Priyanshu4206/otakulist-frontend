@@ -309,6 +309,7 @@ const RefreshButton = styled.button`
 const RefreshBarContainer = styled.div`
   display: flex;
   justify-content: flex-end;
+  gap: 1rem;
   margin-bottom: 1rem;
 `;
 

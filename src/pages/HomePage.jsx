@@ -74,6 +74,7 @@ const SectionContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  margin: 2rem 0;
 `;
 
 const HomePage = () => {
@@ -114,7 +115,7 @@ const HomePage = () => {
         <HomePageHeader userStats={userStats} />
         <SectionContainer>
           <SectionTitle>Trending Playlists</SectionTitle>
-          <TrendingPlaylistsMainSection limit={6} />
+          <TrendingPlaylistsMainSection limit={6} layout="flexbox" />
         </SectionContainer>
         <LeaderboardAndActivities userStats={userStats} />
         <ExploreGenresSection />
