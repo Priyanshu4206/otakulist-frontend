@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -71,22 +71,6 @@ const SearchDropdown = styled.div`
   display: ${props => props.isVisible ? 'block' : 'none'};
   margin-top: 0.5rem;
 `;
-const SearchTabs = styled.div`
-  display: flex;
-  border-bottom: 1px solid rgba(var(--borderColor-rgb), 0.2);
-`;
-const SearchTab = styled.button`
-  padding: 0.75rem 1rem;
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid ${props => props.active ? 'var(--primary)' : 'transparent'};
-  color: ${props => props.active ? 'var(--primary)' : 'var(--textSecondary)'};
-  font-weight: ${props => props.active ? '600' : '400'};
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-  &:hover { color: var(--primary); }
-`;
 const SearchResults = styled.div`
   padding: 1rem;
 `;
@@ -120,111 +104,98 @@ const SearchResultSubtitle = styled.p`
   color: var(--textSecondary);
   margin: 0;
 `;
-
-const TABS = [
-  { key: 'anime', label: 'Anime' },
-  { key: 'users', label: 'Users' },
-  { key: 'playlists', label: 'Playlists' },
-];
+const EmptyResults = styled.div`
+  padding: 1rem;
+  text-align: center;
+  color: var(--textSecondary);
+`;
 
 const ExplorePageHeader = ({
-  searchValue,
-  setSearchValue,
-  searchType,
-  setSearchType,
-  searchResults,
-  searchVisible,
-  setSearchVisible,
-  searchLoading,
+  searchTerm,
+  setSearchTerm,
+  searchResults = [],
+  isSearching = false,
 }) => {
   const searchRef = useRef(null);
+  const navigate = useNavigate();
+  const [isDropdownVisible, setIsDropdownVisible] = useState(false);
 
   // Handle click outside search dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
-        setSearchVisible(false);
+        setIsDropdownVisible(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [setSearchVisible]);
+  }, []);
 
-  const navigate = useNavigate();
+  // Show dropdown when search term is entered
+  useEffect(() => {
+    setIsDropdownVisible(searchTerm.length >= 2);
+  }, [searchTerm]);
 
   return (
     <PageHeader>
       <PageTitle>Explore</PageTitle>
       <SearchBarContainer ref={searchRef}>
         <SearchInput
-          placeholder="Search anime, people, playlists..."
-          value={searchValue}
-          onChange={e => setSearchValue(e.target.value)}
-          onFocus={() => searchValue.length >= 2 && setSearchVisible(true)}
+          placeholder="Search anime..."
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          onFocus={() => searchTerm.length >= 2 && setIsDropdownVisible(true)}
         />
         <SearchIcon>
-          <Search size={20} />
+          {isSearching ? <MiniLoadingSpinner size={20} /> : <Search size={20} />}
         </SearchIcon>
-        <SearchDropdown isVisible={searchVisible}>
-          <SearchTabs>
-            {TABS.map(tab => (
-              <SearchTab
-                key={tab.key}
-                active={searchType === tab.key}
-                onClick={() => setSearchType(tab.key)}
-              >
-                {tab.label}
-              </SearchTab>
-            ))}
-          </SearchTabs>
+        <SearchDropdown isVisible={isDropdownVisible && searchTerm.length >= 2}>
           <SearchResults>
-            {searchLoading ? (
+            {isSearching ? (
               <MiniLoadingSpinner />
             ) : (
               <>
-                {searchType === 'anime' && (
-                  searchResults.anime && searchResults.anime.length > 0
-                    ? searchResults.anime.map(anime => (
-                      <SearchResultItem key={anime.id} onClick={() => navigate(`/anime/${anime.mal_id || anime.malId}`)}>
-                        <SearchResultImage src={anime.images.webp.image_url || anime.images.jpg.image_url || anime.images.jpg.large_image_url || anime.images.jpg.largeImageUrl || anime.images.jpg.imageUrl || anime.images.jpg.image_url || '/images/placeholder.jpg'}
-                          alt={anime.titles.english || anime.titles.romaji || anime.titles.japanese || anime.titles.default || anime.title}
-                          type="anime" />
-                        <SearchResultContent>
-                          <SearchResultTitle>{anime.titles.english || anime.titles.romaji || anime.titles.japanese || anime.titles.default || anime.title}</SearchResultTitle>
-                          <SearchResultSubtitle>{anime.type} {anime.year && `, ${anime.year}`}</SearchResultSubtitle>
-                        </SearchResultContent>
-                      </SearchResultItem>
-                    ))
-                    : <div>No anime found</div>
-                )}
-                {searchType === 'users' && (
-                  searchResults.users && searchResults.users.length > 0
-                    ? searchResults.users.map(user => (
-                      <SearchResultItem key={user.id} onClick={() => navigate(`/user/${user.username}`)}>
-                        <SearchResultImage src={user.avatarUrl || '/images/default-avatar.png'} alt={user.username} type="user" />
-                        <SearchResultContent>
-                          <SearchResultTitle>{user.username}</SearchResultTitle>
-                          <SearchResultSubtitle>{user.followersCount || 0} followers</SearchResultSubtitle>
-                        </SearchResultContent>
-                      </SearchResultItem>
-                    ))
-                    : <div>No users found</div>
-                )}
-                {searchType === 'playlists' && (
-                  searchResults.playlists && searchResults.playlists.length > 0
-                    ? searchResults.playlists.map(playlist => (
-                      <SearchResultItem key={playlist.id} onClick={() => navigate(`/playlist/${playlist._id}`)}>
-                        <SearchResultImage src={playlist.coverImage || playlist.coverImages[0] || '/images/placeholder.jpg'} alt={playlist.name} type="playlist" />
-                        <SearchResultContent>
-                          <SearchResultTitle>{playlist.name}</SearchResultTitle>
-                          <SearchResultSubtitle>By {playlist.owner?.username || 'Anonymous'}</SearchResultSubtitle>
-                          <SearchResultSubtitle>{playlist.animeCount || 0} anime</SearchResultSubtitle>
-                        </SearchResultContent>
-                      </SearchResultItem>
-                    ))
-                    : <div>No playlists found</div>
+                {searchResults.length > 0 ? (
+                  searchResults.map(anime => (
+                    <SearchResultItem 
+                      key={anime._id || anime.id || anime.malId} 
+                      onClick={() => navigate(`/anime/${anime.malId || anime.mal_id}`)}
+                    >
+                      <SearchResultImage 
+                        src={
+                          anime.images?.webp?.image_url || 
+                          anime.images?.jpg?.large_image_url || 
+                          anime.images?.jpg?.image_url || 
+                          anime.coverImage ||
+                          '/images/placeholder.jpg'
+                        }
+                        alt={
+                          anime.title || 
+                          anime.titles?.english || 
+                          anime.titles?.romaji || 
+                          anime.titles?.japanese || 
+                          'Anime'
+                        }
+                        type="anime" 
+                      />
+                      <SearchResultContent>
+                        <SearchResultTitle>
+                          {anime.title || 
+                           anime.titles?.english || 
+                           anime.titles?.romaji || 
+                           anime.titles?.japanese || 
+                           'Unknown Anime'}
+                        </SearchResultTitle>
+                        <SearchResultSubtitle>
+                          {anime.type || 'TV'} {anime.year && `, ${anime.year}`}
+                        </SearchResultSubtitle>
+                      </SearchResultContent>
+                    </SearchResultItem>
+                  ))
+                ) : (
+                  <EmptyResults>No results found</EmptyResults>
                 )}
               </>
             )}

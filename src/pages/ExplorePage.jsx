@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { searchAPI } from '../services/modules';
 import Layout from '../components/layout/Layout';
-import { useDebounce } from '../hooks';
+import { useDebounce, useAuth } from '../hooks';
 import GenreSectionList from '../components/explore/GenreSectionList';
 import TrendingPlaylistsSection from '../components/explore/TrendingPlaylistsSection';
 import PeopleToFollowSection from '../components/explore/PeopleToFollowSection';
@@ -13,6 +13,7 @@ import ForYouSection from '../components/explore/ForYouSection';
 import TrendingPlaylistsMainSection from '../components/explore/TrendingPlaylistsMainSection';
 import SeasonPreviewSection from '../components/explore/SeasonPreviewSection';
 import TopRatedSection from '../components/explore/TopRatedSection';
+import LoginPrompt from '../components/common/LoginPrompt';
 
 // Main Layout
 const MainWrapper = styled.div`
@@ -57,15 +58,13 @@ const RightSection = styled.div`
 `;
 
 const ExplorePage = () => {
-  // State for active tab
-  const [activeTab, setActiveTab] = useState('genres');
-  // Search state
-  const [searchValue, setSearchValue] = useState('');
-  const [searchResults, setSearchResults] = useState({ anime: [], users: [], playlists: [] });
-  const [searchVisible, setSearchVisible] = useState(false);
-  const [searchType, setSearchType] = useState('anime');
-  const [searchLoading, setSearchLoading] = useState(false);
-  const debouncedSearchValue = useDebounce(searchValue, 300);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [activeTab, setActiveTab] = useState('trending');
+  const debouncedSearchTerm = useDebounce(searchTerm, 800);
+  const { user } = useAuth();
+  const isAuthenticated = !!user;
 
   // Ref for clicking outside search dropdown
   const searchRef = useRef(null);
@@ -74,7 +73,7 @@ const ExplorePage = () => {
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
-        setSearchVisible(false);
+        setIsSearching(false);
       }
     };
 
@@ -86,81 +85,104 @@ const ExplorePage = () => {
 
   // Search functionality
   useEffect(() => {
-    setSearchLoading(true);
+    setIsSearching(true);
     const fetchSearchResults = async () => {
-      if (debouncedSearchValue.length < 2) {
-        setSearchResults({
-          anime: [],
-          users: [],
-          playlists: []
-        });
+      if (debouncedSearchTerm.length < 2) {
+        setSearchResults([]);
         return;
       }
 
       try {
         const response = await searchAPI.searchAll({
-          query: debouncedSearchValue,
+          query: debouncedSearchTerm,
           limit: 15,
           useCache: true
         });
 
         if (response.success && response.data) {
-          setSearchResults({
-            anime: response.data.anime || [],
-            users: response.data.users || [],
-            playlists: response.data.playlists || []
-          });
-          setSearchVisible(true);
+          setSearchResults(response.data.anime || []);
+          setIsSearching(false);
         }
       } catch (error) {
         console.error('Search error:', error);
-      } finally {
-        setSearchLoading(false);
       }
     };
 
     fetchSearchResults();
-  }, [debouncedSearchValue]);
+  }, [debouncedSearchTerm]);
 
   // Render left section content based on active tab
-  const renderLeftSectionContent = () => {
+  const renderLeftSectionContent = (activeTab, user) => {
+    console.log('Active tab:', activeTab);
+    
+    // Content wrapper for consistent styling across all sections
+    const SectionWrapper = ({ children }) => (
+        <div style={{ width: '100%', marginBottom: '1rem' }}>
+            {children}
+        </div>
+    );
+    
     switch (activeTab) {
-      case 'for-you':
-        return <ForYouSection />;
-      case 'trending-playlists':
-        return <TrendingPlaylistsMainSection />;
-      case 'season-preview':
-        return <SeasonPreviewSection />;
-      case 'top-rated':
-        return <TopRatedSection />;
-      case 'genres':
-        return <GenreSectionList />;
-      default:
-        return <GenreSectionList />;
+        case 'for-you':
+            if (!user) {
+                return (
+                    <SectionWrapper>
+                        <LoginPrompt 
+                            message="Login to see personalized anime recommendations"
+                            subtext="We'll recommend anime based on your preferences and watch history"
+                        />
+                    </SectionWrapper>
+                );
+            }
+            return <SectionWrapper><ForYouSection /></SectionWrapper>;
+        case 'top-rated':
+            return <SectionWrapper><TopRatedSection /></SectionWrapper>;
+        case 'season':
+            return <SectionWrapper><SeasonPreviewSection /></SectionWrapper>;
+        case 'trending':
+        default:
+            return <SectionWrapper><TrendingPlaylistsMainSection /></SectionWrapper>;
     }
   };
+
+  // Render right section content based on authentication state
+  const renderRightSectionContent = () => {
+    return (
+      <>
+        <TrendingPlaylistsSection />
+        {isAuthenticated ? (
+          <PeopleToFollowSection />
+        ) : (
+          <LoginPrompt 
+            title="Find Users to Follow" 
+            message="Log in to discover and connect with other anime enthusiasts on the platform." 
+          />
+        )}
+      </>
+    );
+  };
+
+  useEffect(() => {
+    // For debugging
+    console.log('Current active tab:', activeTab);
+  }, [activeTab]);
 
   return (
     <Layout>
       <MainWrapper>
         <ExplorePageHeader
-          searchValue={searchValue}
-          setSearchValue={setSearchValue}
-          searchType={searchType}
-          setSearchType={setSearchType}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
           searchResults={searchResults}
-          searchVisible={searchVisible}
-          setSearchVisible={setSearchVisible}
-          searchLoading={searchLoading}
+          isSearching={isSearching}
         />
         <ExploreTopNav activeTab={activeTab} onTabChange={setActiveTab} />
         <MainLayout>
           <LeftSection>
-            {renderLeftSectionContent()}
+            {renderLeftSectionContent(activeTab, user)}
           </LeftSection>
           <RightSection>
-            <TrendingPlaylistsSection />
-            <PeopleToFollowSection />
+            {renderRightSectionContent()}
           </RightSection>
         </MainLayout>
         <EventBanner />

@@ -24,10 +24,9 @@ const NavTab = styled.button`
 `;
 
 const TABS = [
-  { key: 'genres', label: 'GENRES' },
+  { key: 'trending', label: 'TRENDING' },
   { key: 'top-rated', label: 'TOP RATED' },
-  { key: 'trending-playlists', label: 'TRENDING PLAYLISTS' },
-  { key: 'season-preview', label: 'SEASON PREVIEW' },
+  { key: 'season', label: 'SEASON PREVIEW' },
   { key: 'for-you', label: 'FOR YOU' },
 ];
 

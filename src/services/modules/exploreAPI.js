@@ -379,19 +379,22 @@ const exploreAPI = {
   /**
    * Get top rated anime
    * @param {Object} options - Request options
-   * @param {number} options.limit - Number of results (default: 10)
+   * @param {number} options.page - Page number (default: 1)
+   * @param {number} options.limit - Number of results per page (default: 12)
+   * @param {string} options.sort - Sort order (default: 'score')
    * @returns {Promise<Object>} - Top rated anime
    */
   getTopRatedAnime: async (options = {}) => {
-    const { limit = 10 } = options;
-    logger("TopRated", "Getting top rated anime", { limit });
+    const { page = 1, limit = 12, sort = 'score' } = options;
+    logger("TopRated", "Getting top rated anime", { page, limit, sort });
 
     try {
       const response = await processResponse(
         api.get("/schedule/airing", {
           params: {
+            page,
             limit,
-            sort: "score",
+            sort,
           },
         })
       );

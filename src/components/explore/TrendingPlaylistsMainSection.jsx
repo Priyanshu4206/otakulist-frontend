@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
+import { ListMusic } from 'lucide-react';
 import exploreAPI from '../../services/modules/exploreAPI';
 import PlaylistCard from '../common/PlaylistCard';
 import ShimmerCard from '../common/ShimmerCard';
@@ -33,14 +34,32 @@ const ErrorMsg = styled.div`
   margin: 1rem 0;
 `;
 
-const EmptyMsg = styled.div`
-  color: var(--textSecondary);
-  padding: 2rem;
-  text-align: center;
-  background: var(--cardBackground);
+const EmptyStateWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  background-color: var(--cardBackground);
   border-radius: 12px;
+  text-align: center;
   border: 1px solid rgba(var(--borderColor-rgb), 0.1);
-  font-size: 0.95rem;
+  grid-column: 1 / -1;
+  margin: 1rem 0;
+`;
+
+const EmptyStateIcon = styled.div`
+  font-size: 2.5rem;
+  color: var(--primary);
+  margin-bottom: 1.5rem;
+  opacity: 0.7;
+`;
+
+const EmptyStateText = styled.p`
+  color: var(--textSecondary);
+  font-size: 1rem;
+  margin: 0;
+  max-width: 450px;
 `;
 
 const TrendingPlaylistsMainSection = ({ limit = 8 }) => {
@@ -90,7 +109,16 @@ const TrendingPlaylistsMainSection = ({ limit = 8 }) => {
   }
   
   if (!playlists.length) {
-    return <EmptyMsg>No playlists found. Create one and be the trendsetter!</EmptyMsg>;
+    return (
+      <EmptyStateWrapper>
+        <EmptyStateIcon>
+        <ListMusic size={64} />
+        </EmptyStateIcon>
+        <EmptyStateText>
+          No trending playlists found. Create one and be the trendsetter!
+        </EmptyStateText>
+      </EmptyStateWrapper>
+    );
   }
   
   return (

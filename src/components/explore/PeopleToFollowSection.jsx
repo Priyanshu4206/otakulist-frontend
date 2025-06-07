@@ -6,6 +6,7 @@ import ShimmerLoader from '../common/ShimmerLoader';
 import { exploreAPI, userAPI } from '../../services/modules';
 import MiniLoadingSpinner from '../common/MiniLoadingSpinner';
 import { useAuth, useToast } from '../../hooks';
+import LoginPrompt from '../common/LoginPrompt';
 
 const Section = styled.section`
   margin-bottom: 2.5rem;
@@ -141,11 +142,18 @@ const EmptyStateText = styled.p`
 const PeopleToFollowSection = () => {
   const [recommendedUsers, setRecommendedUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { user, isAuthenticated } = useAuth();
   const { showToast } = useToast();
   const [error, setError] = useState(null);
   const [followLoading, setFollowLoading] = useState({}); // Track loading state per user
 
   const fetchRecommendedUsers = async () => {
+    // Skip API call if user is not authenticated
+    if (!isAuthenticated || !user) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -172,7 +180,7 @@ const PeopleToFollowSection = () => {
   // Fetch recommended users (right section)
   useEffect(() => {
     fetchRecommendedUsers();
-  }, []);
+  }, [isAuthenticated, user]);
 
   const handleFollowToggle = useCallback(async (userId) => {
     // If already loading for this user, prevent multiple requests
@@ -220,6 +228,25 @@ const PeopleToFollowSection = () => {
       setFollowLoading(prev => ({ ...prev, [userId]: false }));
     }
   }, [recommendedUsers]);
+
+  // If user is not authenticated, this component shouldn't be rendered
+  // But we'll add a check just in case
+  if (!isAuthenticated || !user) {
+    return (
+      <Section>
+        <SectionHeader>
+          <SectionTitle>
+            <BookOpen size={20} />
+            People to Follow
+          </SectionTitle>
+        </SectionHeader>
+        <LoginPrompt 
+          title="Find Users to Follow" 
+          message="Log in to discover and connect with other anime enthusiasts on the platform."
+        />
+      </Section>
+    );
+  }
 
   const renderContent = () => {
     if (loading) {
