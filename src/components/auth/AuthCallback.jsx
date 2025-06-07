@@ -5,6 +5,7 @@ import styled from 'styled-components';
 import { CheckCircle, XCircle } from 'lucide-react';
 import LoadingSpinner from '../common/LoadingSpinner';
 import { motion } from 'framer-motion';
+import { userAPI } from '../../services/modules';
 
 // Styled components for the loading screen
 const LoadingContainer = styled.div`
@@ -156,30 +157,37 @@ function AuthCallback() {
         );
         
         const token = hashParams.get('token');
-        const userDataEncoded = hashParams.get('user');
+        const userId = hashParams.get('userId');
         
-        if (!token || !userDataEncoded) {
+        if (!token || !userId) {
           throw new Error('Authentication failed. Missing credentials.');
         }
         
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // Step 3: Process data
-        setStatus({ step: 3, message: 'Processing user data...' });
+        // Step 3: Process data - fetch the complete user profile with the token
+        setStatus({ step: 3, message: 'Retrieving your profile...' });
         
-        // Decode user data
-        const userData = JSON.parse(decodeURIComponent(userDataEncoded));
+        // Store the token first to use it for API calls
+        localStorage.setItem('auth_token', token);
+        
+        // We need to fetch the user data since we only have the ID
+        // The token is already stored in localStorage for the API call
+        // const userData = await userAPI.getUserProfile(userId);
+        // if (!userData || !userData.success) {
+        //   throw new Error('Failed to retrieve user profile.');
+        // }
+        
         await new Promise(resolve => setTimeout(resolve, 800));
         
         // Step 4: Complete login
         setStatus({ step: 4, message: 'Completing login...' });
         
         // Set a flag to tell the AuthContext we're coming from the auth callback
-        // This will be checked in the AuthContext to prevent duplicate API calls
         localStorage.setItem('auth_from_callback', 'true');
         
-        // Use the auth context to handle login success with skipRefresh=true to prevent duplicate API calls
-        handleLoginSuccess(userData, token);
+        // Use the auth context to handle login success
+        handleLoginSuccess(userData.data, token);
         
         await new Promise(resolve => setTimeout(resolve, 600));
         
@@ -194,6 +202,7 @@ function AuthCallback() {
         navigate('/dashboard', { replace: true });
         
       } catch (error) {
+        console.error('Authentication error:', error);
         setError(error.message || 'Authentication failed. Please try again.');
         
         // Clear the processed flag on error so user can try again
@@ -220,32 +229,21 @@ function AuthCallback() {
   if (hash && hash.includes('token=')) {
     try {
       const hashParams = new URLSearchParams(hash.substring(1));
-      const token = hashParams.get('token');
       
-      if (token) {
-        // Store token and redirect immediately if component doesn't process properly
+      const token = hashParams.get('token');
+      const userId = hashParams.get('userId');
+      
+      if (token && userId) {
+        // Store token but don't set has_valid_token yet
+        // The handleLoginSuccess function will validate the token and set has_valid_token
         localStorage.setItem('auth_token', token);
-        localStorage.setItem('has_valid_token', 'true');
         localStorage.setItem('auth_from_callback', 'true');
         
-        // Get user data if possible
-        const userDataEncoded = hashParams.get('user');
-        if (userDataEncoded) {
-          try {
-            // Parse user data
-            const userData = JSON.parse(decodeURIComponent(userDataEncoded));
-            
-            // Set session flag for processing
-            sessionStorage.setItem(AUTH_PROCESSED_FLAG, 'true');
-            
-            // Immediate login success handling
-            setTimeout(() => {
-              handleLoginSuccess({ user: userData }, token);
-            }, 0);
-          } catch (e) {
-            console.error('[AUTH CALLBACK] Error parsing user data in immediate handling:', e);
-          }
-        }
+        // Set session flag for processing
+        sessionStorage.setItem(AUTH_PROCESSED_FLAG, 'true');
+        
+        // We can't do immediate login success handling here because we only have the userId
+        // We would need to fetch the full user profile first
         
         // Only set this flag once
         if (!localStorage.getItem('hard_redirect_attempted')) {

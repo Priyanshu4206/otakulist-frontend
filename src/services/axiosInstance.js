@@ -125,6 +125,13 @@ api.interceptors.request.use(
     if (token) {
       config.headers["Authorization"] = `Bearer ${token}`;
       logger("Request", "Added auth token to headers");
+      
+      // Reset authFailed flag if we have a valid token and has_valid_token is true
+      // This handles cases where the flag might be incorrectly set
+      if (authFailed && localStorage.getItem('has_valid_token') === 'true') {
+        logger("Auth", "Resetting incorrect auth failed state due to valid token");
+        authFailed = false;
+      }
     } else {
       logger("Request", "No auth token available");
     }

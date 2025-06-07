@@ -614,7 +614,6 @@ const AnimePage = () => {
               <NoContentMessage>No character information available for this anime.</NoContentMessage>
             )}
           </ContentSection>
-          {console.log(recommendations)}
           {/* Recommendations section */}
           <ContentSection>
             <SectionHeading><Calendar size={24} /> Recommendations</SectionHeading>

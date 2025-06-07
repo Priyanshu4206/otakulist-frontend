@@ -119,8 +119,6 @@ const TopRatedSection = () => {
         sort: 'score' 
       });
       
-      console.log('Top Rated API response:', response);
-      
       if (response.success && response.data) {
         let animeData = [];
         let totalItems = 0;

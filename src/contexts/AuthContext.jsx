@@ -409,7 +409,6 @@ export const AuthProvider = ({ children }) => {
   const handleLoginSuccess = (userData, token) => {
     // Check if we already have a session to avoid duplicate work
     const hasSession = localStorage.getItem('has_valid_token') === 'true' && user;
-    console.log(userData);
     logger('Auth', 'Login success handler', { 
       hasUserData: !!userData, 
       hasToken: !!token,
@@ -419,11 +418,11 @@ export const AuthProvider = ({ children }) => {
     if (token) {
       logger('Storage', 'Storing auth token');
       localStorage.setItem('auth_token', token);
+      // Don't set has_valid_token until we've actually validated the token
+      // by successfully fetching user data
     }
     
-    // Set session validity flag
-    localStorage.setItem('has_valid_token', 'true');
-  
+    // Reset auth failure tracking
     authFailCount.current = 0;
     resetAuthFailedState();
   
@@ -454,7 +453,23 @@ export const AuthProvider = ({ children }) => {
     
     // Always fetch the full user data from the API to get settings, stats, notifications
     logger('API', 'Fetching complete user data after login');
-    fetchCurrentUser(true, true);
+    fetchCurrentUser(true, true)
+      .then(result => {
+        if (result && result.user) {
+          // Now that we know the token is valid, we can set the flag
+          localStorage.setItem('has_valid_token', 'true');
+          logger('Auth', 'Token validated successfully, setting has_valid_token flag');
+        } else {
+          logger('Auth', 'Failed to validate token with user data fetch');
+          // Don't set has_valid_token if the fetch fails
+          localStorage.removeItem('has_valid_token');
+        }
+      })
+      .catch(err => {
+        logger('Error', 'Error fetching user data during login', { message: err.message });
+        // Don't set has_valid_token if the fetch fails
+        localStorage.removeItem('has_valid_token');
+      });
   };
 
   const loginWithGoogle = () => {

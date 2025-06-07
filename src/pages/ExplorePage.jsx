@@ -113,7 +113,6 @@ const ExplorePage = () => {
 
   // Render left section content based on active tab
   const renderLeftSectionContent = (activeTab, user) => {
-    console.log('Active tab:', activeTab);
     
     // Content wrapper for consistent styling across all sections
     const SectionWrapper = ({ children }) => (
@@ -161,11 +160,6 @@ const ExplorePage = () => {
       </>
     );
   };
-
-  useEffect(() => {
-    // For debugging
-    console.log('Current active tab:', activeTab);
-  }, [activeTab]);
 
   return (
     <Layout>
