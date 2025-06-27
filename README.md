@@ -1,4 +1,4 @@
-# Anime-Share Frontend
+# OtakuList Frontend [Live Demo](https://otakulist-frontend-v1.vercel.app/)
 
 A modern React application for anime enthusiasts to discover, track, and share anime.
 
